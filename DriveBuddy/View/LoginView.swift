@@ -33,6 +33,7 @@ struct LoginView: View {
 //			)
 //			.ignoresSafeArea()
 			
+			
 			Color.black.opacity(0.95).ignoresSafeArea()
 
 			VStack{
@@ -48,14 +49,15 @@ struct LoginView: View {
 								.repeatForever(autoreverses: true),
 							value: isAnimating
 						)
-					VStack(spacing: 30){
-					// Title text in front
-					Text("LOGIN")
-						.font(.system(size: 36, weight: .bold, design: .rounded))
-//						.position()
-						.foregroundColor(.white)
-						.shadow(color: .blue, radius: 10)
+				
 					
+					VStack(spacing: 30){
+						// Title text in front
+						Text("LOGIN")
+							.font(.system(size: 36, weight: .bold, design: .rounded))
+//							.position(x:160, y:150)
+							.foregroundColor(.white)
+							.shadow(color: .blue, radius: 10)
 						// Username field
 						VStack(alignment: .leading, spacing: 8) {
 							Text("Email")
@@ -100,9 +102,15 @@ struct LoginView: View {
 						}
 						.padding(0)
 
+					}.position(x: 160, y: 250)
+					
+					VStack{
+						Image("MascotDriveBuddy").resizable().scaledToFit().frame(width: 250).padding(.top, 450).offset(x:80, y:85)
 					}
 					
 					
+						
+						
 					
 				}
 				

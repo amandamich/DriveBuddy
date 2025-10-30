@@ -58,7 +58,7 @@ struct SplashView: View {
         }
         // Navigasi ke LoginView
         .fullScreenCover(isPresented: $isActive) {
-            LoginView() .transition(.opacity.animation(.easeOut(duration: 0.8)))
+            StartScreen() .transition(.opacity.animation(.easeOut(duration: 0.8)))
         }
     }
 }

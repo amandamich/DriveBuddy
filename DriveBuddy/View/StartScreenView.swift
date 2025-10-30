@@ -82,7 +82,11 @@ struct StartScreen: View {
 //							.shadow(color: .blue, radius: 10)
 					}
 				}
-			}
+			}.onAppear {
+				withAnimation {
+				 isAnimating = true
+			 }
+		 }
 			
 		
 		
