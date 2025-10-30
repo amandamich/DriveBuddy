@@ -68,9 +68,9 @@ struct HomeView: View {
 				.tabItem{
 					Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent")
 				}
-			ServiceView()
+			WorkshopsView()
 				.tabItem{
-					Label("Service", systemImage:"wrench.and.screwdriver.fill")
+					Label("Workshops", systemImage:"wrench.and.screwdriver.fill")
 				}
 			ProfileView()
 				.tabItem{
@@ -116,7 +116,7 @@ struct DashboardView:View {
 						.font(.headline)
 						.foregroundColor(.white)
 						.padding()
-						.frame(maxWidth: .infinity)
+						.frame(maxWidth: .infinity, maxHeight: 150)
 						.background(
 							RoundedRectangle(cornerRadius: 12)
 								.stroke(Color.cyan, lineWidth: 2)
@@ -148,10 +148,10 @@ struct VehicleView:View {
 	}
 }
 
-struct ServiceView:View {
+struct WorkshopsView:View {
 	var body: some View {
 		VStack{
-			Text("👀 Service")
+			Text("🛞🛠️ Nearby Workshops")
 				.font(.largeTitle)
 		}
 	}
