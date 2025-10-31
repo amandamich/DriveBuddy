@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="24G222" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="User" representedClassName="User" syncable="YES" codeGenerationType="class">
+        <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="email" optional="YES" attributeType="String"/>
+        <attribute name="password_hash" optional="YES" attributeType="String"/>
+        <attribute name="user_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="Vehicles" representedClassName="Vehicles" syncable="YES" codeGenerationType="class">
+        <attribute name="attribute" optional="YES"/>
+        <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="last_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="make_model" optional="YES" attributeType="String"/>
+        <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="plate_number" optional="YES" attributeType="String"/>
+        <attribute name="tax_due_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="tax_reminder" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="vehicle_type" optional="YES" attributeType="String"/>
+        <attribute name="vehicles_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="year_manufacture" optional="YES" attributeType="String"/>
+    </entity>
+</model>
