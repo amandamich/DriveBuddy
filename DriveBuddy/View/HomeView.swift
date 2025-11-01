@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
-
+import CoreData
 struct HomeView: View {
-//	@ObservedObject var authVM: AuthViewModel
+	@ObservedObject var authVM: AuthenticationViewModel
 	
 	@State private var selectedTab: Int = 0
 	
@@ -166,5 +166,5 @@ struct ProfileView:View {
 	}
 }
 #Preview {
-    HomeView()
+    HomeView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }

@@ -11,20 +11,16 @@ import CoreData
 struct PersistenceController {
     static let shared = PersistenceController()
     let container: NSPersistentContainer
-    
+
     init(inMemory: Bool = false) {
-        container = NSPersistentContainer(name: "StudentModel")
-        
+        container = NSPersistentContainer(name: "DriveBuddyModel")
         if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
-        
-        container.loadPersistentStores {_, error in
+        container.loadPersistentStores { (storeDescription, error) in
             if let error = error as NSError? {
                 fatalError("Unresolved error \(error), \(error.userInfo)")
             }
         }
-        
-        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
     }
 }
