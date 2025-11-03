@@ -8,14 +8,25 @@ struct AddVehicleView: View {
 
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
+        
+        // use a mock user if currentUser is nil
+        let user = authVM.currentUser ?? {
+            let tempUser = User(context: PersistenceController.shared.container.viewContext)
+            tempUser.user_id = UUID()
+            tempUser.email = "preview@drivebuddy.com"
+            tempUser.password_hash = "mock"
+            tempUser.created_at = Date()
+            return tempUser
+        }()
+        
+        // Use the same context from your persistence controller
         _addVehicleVM = StateObject(
             wrappedValue: AddVehicleViewModel(
                 context: PersistenceController.shared.container.viewContext,
-                user: authVM.currentUser!
+                user: user
             )
         )
     }
-
     let vehicleTypes = ["Car", "Motorbike"]
 
     var body: some View {
