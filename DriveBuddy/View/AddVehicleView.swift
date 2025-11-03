@@ -1,16 +1,20 @@
 import SwiftUI
+import CoreData
 
 struct AddVehicleView: View {
     @Environment(\.dismiss) var dismiss
-    var onAdd: (Vehicle) -> Void
+    @ObservedObject var authVM: AuthenticationViewModel
+    @StateObject private var addVehicleVM: AddVehicleViewModel
 
-    @State private var makeAndModel: String = ""
-    @State private var vehicleType: String = "Car"
-    @State private var licensePlate: String = ""
-    @State private var year: String = ""
-    @State private var odometer: String = ""
-    @State private var taxDate: Date = Date()
-    @State private var taxReminder: Bool = true
+    init(authVM: AuthenticationViewModel) {
+        self._authVM = ObservedObject(initialValue: authVM)
+        _addVehicleVM = StateObject(
+            wrappedValue: AddVehicleViewModel(
+                context: PersistenceController.shared.container.viewContext,
+                user: authVM.currentUser!
+            )
+        )
+    }
 
     let vehicleTypes = ["Car", "Motorbike"]
 
@@ -22,71 +26,82 @@ struct AddVehicleView: View {
                 Text("Add New Vehicle")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
-                    .padding()
+                    .padding(.top)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        // MARK: Vehicle Type
+                        Text("Vehicle Type")
+                            .foregroundColor(.white)
+                        Menu {
+                            ForEach(vehicleTypes, id: \.self) { type in
+                                Button(type) { addVehicleVM.vehicleType = type }
+                            }
+                        } label: {
+                            HStack {
+                                Text(addVehicleVM.vehicleType.isEmpty ? "Select type" : addVehicleVM.vehicleType)
+                                    .foregroundColor(.black)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                            }
+                            .padding()
+                            .background(.white)
+                            .cornerRadius(10)
+                        }
+
+                        // MARK: TextFields
                         Group {
-                            Text("Vehicle Type")
-                                .foregroundColor(.white)
-                            Menu {
-                                ForEach(vehicleTypes, id: \.self) { type in
-                                    Button(type) { vehicleType = type }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(vehicleType)
-                                        .foregroundColor(.black)
-                                    Spacer()
-                                    Image(systemName: "chevron.down")
-                                }
+                            TextField("Vehicle Model", text: $addVehicleVM.makeModel)
                                 .padding()
                                 .background(.white)
                                 .cornerRadius(10)
-                            }
+
+                            TextField("License Plate", text: $addVehicleVM.plateNumber)
+                                .padding()
+                                .background(.white)
+                                .cornerRadius(10)
+                                .textInputAutocapitalization(.characters)
+
+                            TextField("Year", text: $addVehicleVM.yearManufacture)
+                                .padding()
+                                .background(.white)
+                                .cornerRadius(10)
+                                .keyboardType(.numberPad)
+
+                            TextField("Odometer (km)", text: $addVehicleVM.odometer)
+                                .padding()
+                                .background(.white)
+                                .cornerRadius(10)
+                                .keyboardType(.numberPad)
                         }
 
-                        TextField("Vehicle Model", text: $makeAndModel)
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
+                        // MARK: Dates
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Tax Due Date")
+                                .foregroundColor(.white)
+                            DatePicker("", selection: $addVehicleVM.taxDueDate, displayedComponents: .date)
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                .padding()
+                                .background(.white)
+                                .cornerRadius(10)
 
-                        TextField("License Plate", text: $licensePlate)
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
+                            Text("STNK Due Date")
+                                .foregroundColor(.white)
+                            DatePicker("", selection: $addVehicleVM.stnkDueDate, displayedComponents: .date)
+                                .datePickerStyle(.compact)
+                                .labelsHidden()
+                                .padding()
+                                .background(.white)
+                                .cornerRadius(10)
+                        }
 
-                        TextField("Year", text: $year)
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
-
-                        TextField("Odometer (km)", text: $odometer)
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
-                            .keyboardType(.numberPad)
-
-                        Text("Tax Expiry Date")
-                            .foregroundColor(.white)
-                        DatePicker("", selection: $taxDate, displayedComponents: .date)
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
-
+                        // MARK: Add Button
                         Button(action: {
-                            let newVehicle = Vehicle(
-                                makeAndModel: makeAndModel,
-                                vehicleType: vehicleType,
-                                licensePlate: licensePlate,
-                                year: year,
-                                odometer: odometer,
-                                taxDate: taxDate
-                            )
-                            onAdd(newVehicle)
-                            dismiss()
+                            addVehicleVM.addVehicle()
+                            if addVehicleVM.successMessage != nil {
+                                dismiss()
+                            }
                         }) {
                             Text("Add Vehicle")
                                 .font(.headline)
@@ -96,14 +111,33 @@ struct AddVehicleView: View {
                                 .background(Color.blue.opacity(0.8))
                                 .cornerRadius(12)
                         }
+                        .padding(.top, 10)
+
+                        // MARK: Feedback
+                        if let success = addVehicleVM.successMessage {
+                            Text(success)
+                                .foregroundColor(.green)
+                                .font(.caption)
+                                .padding(.top, 5)
+                        }
+
+                        if let error = addVehicleVM.errorMessage {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .padding(.top, 5)
+                        }
                     }
                     .padding()
                 }
             }
+            .padding(.horizontal)
         }
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
-    AddVehicleView { _ in }
+    AddVehicleView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }

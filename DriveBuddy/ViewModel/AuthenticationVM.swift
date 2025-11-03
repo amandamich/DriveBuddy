@@ -18,7 +18,7 @@ class AuthenticationViewModel: ObservableObject {
     @Published var currentUser: User?
     @Published var errorMessage: String?
 
-    private let viewContext: NSManagedObjectContext
+    let viewContext: NSManagedObjectContext
 
     init(context: NSManagedObjectContext) {
         self.viewContext = context

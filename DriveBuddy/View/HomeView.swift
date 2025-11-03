@@ -17,7 +17,7 @@ struct HomeView: View {
         TabView(selection: $selectedTab) {
             
             // MARK: Dashboard / Home
-            DashboardView()
+            DashboardView(authVM: authVM)
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
