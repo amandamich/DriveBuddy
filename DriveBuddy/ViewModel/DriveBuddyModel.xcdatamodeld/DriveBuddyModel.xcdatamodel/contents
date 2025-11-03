@@ -33,6 +33,7 @@
     </entity>
     <entity name="Vehicles" representedClassName="Vehicles" syncable="YES" codeGenerationType="class">
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="last_odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="last_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="make_model" optional="YES" attributeType="String"/>
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>

@@ -9,7 +9,7 @@ struct AddVehicleView: View {
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
         
-        // use a mock user if currentUser is nil
+        // Safe mock user for preview mode
         let user = authVM.currentUser ?? {
             let tempUser = User(context: PersistenceController.shared.container.viewContext)
             tempUser.user_id = UUID()
@@ -19,7 +19,6 @@ struct AddVehicleView: View {
             return tempUser
         }()
         
-        // Use the same context from your persistence controller
         _addVehicleVM = StateObject(
             wrappedValue: AddVehicleViewModel(
                 context: PersistenceController.shared.container.viewContext,
@@ -27,125 +26,233 @@ struct AddVehicleView: View {
             )
         )
     }
+
     let vehicleTypes = ["Car", "Motorbike"]
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Add New Vehicle")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.top)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("New Vehicle")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.top)
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        // MARK: Vehicle Type
-                        Text("Vehicle Type")
-                            .foregroundColor(.white)
-                        Menu {
-                            ForEach(vehicleTypes, id: \.self) { type in
-                                Button(type) { addVehicleVM.vehicleType = type }
-                            }
-                        } label: {
-                            HStack {
-                                Text(addVehicleVM.vehicleType.isEmpty ? "Select type" : addVehicleVM.vehicleType)
-                                    .foregroundColor(.black)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                            }
-                            .padding()
-                            .background(.white)
-                            .cornerRadius(10)
-                        }
-
-                        // MARK: TextFields
+                    // MARK: Vehicle Info Section
+                    SectionBox(title: "Vehicle Info", icon: "car.fill") {
                         Group {
-                            TextField("Vehicle Model", text: $addVehicleVM.makeModel)
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-
-                            TextField("License Plate", text: $addVehicleVM.plateNumber)
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-                                .textInputAutocapitalization(.characters)
-
-                            TextField("Year", text: $addVehicleVM.yearManufacture)
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-                                .keyboardType(.numberPad)
-
-                            TextField("Odometer (km)", text: $addVehicleVM.odometer)
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-                                .keyboardType(.numberPad)
-                        }
-
-                        // MARK: Dates
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Tax Due Date")
-                                .foregroundColor(.white)
-                            DatePicker("", selection: $addVehicleVM.taxDueDate, displayedComponents: .date)
-                                .datePickerStyle(.compact)
-                                .labelsHidden()
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-
-                            Text("STNK Due Date")
-                                .foregroundColor(.white)
-                            DatePicker("", selection: $addVehicleVM.stnkDueDate, displayedComponents: .date)
-                                .datePickerStyle(.compact)
-                                .labelsHidden()
-                                .padding()
-                                .background(.white)
-                                .cornerRadius(10)
-                        }
-
-                        // MARK: Add Button
-                        Button(action: {
-                            addVehicleVM.addVehicle()
-                            if addVehicleVM.successMessage != nil {
-                                dismiss()
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Make & Model")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("Honda Brio", text: $addVehicleVM.makeModel)
+                                    .textFieldStyle(CustomTextFieldStyle())
                             }
-                        }) {
-                            Text("Add Vehicle")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(Color.blue.opacity(0.8))
-                                .cornerRadius(12)
-                        }
-                        .padding(.top, 10)
 
-                        // MARK: Feedback
-                        if let success = addVehicleVM.successMessage {
-                            Text(success)
-                                .foregroundColor(.green)
-                                .font(.caption)
-                                .padding(.top, 5)
-                        }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Vehicle Type")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                Menu {
+                                    ForEach(vehicleTypes, id: \.self) { type in
+                                        Button(type) { addVehicleVM.vehicleType = type }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(addVehicleVM.vehicleType.isEmpty ? "Select Vehicle Type" : addVehicleVM.vehicleType)
+                                            .foregroundColor(addVehicleVM.vehicleType.isEmpty ? .gray : .black)
+                                        Spacer()
+                                        Image(systemName: "chevron.down")
+                                    }
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                }
+                            }
 
-                        if let error = addVehicleVM.errorMessage {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .padding(.top, 5)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("License Plate Number")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("L 567 GX", text: $addVehicleVM.plateNumber)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                                    .textInputAutocapitalization(.characters)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Year of Manufacture")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("2019", text: $addVehicleVM.yearManufacture)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Current Odometer")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("4500 km", text: $addVehicleVM.odometer)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                            }
                         }
                     }
-                    .padding()
+
+                    // MARK: Tax Info Section
+                    SectionBox(title: "Tax Info", icon: "doc.text.fill") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Tax Expiry Date")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                HStack {
+                                    DatePicker("", selection: $addVehicleVM.taxDueDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("STNK Expiry Date")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                HStack {
+                                    DatePicker("", selection: $addVehicleVM.stnkDueDate, displayedComponents: .date)
+                                        .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                                     
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
+                            }
+                            HStack {
+                                Text("Tax Reminder")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                Spacer()
+                                Toggle("", isOn: $addVehicleVM.taxReminder)
+                                    .toggleStyle(SwitchToggleStyle(tint: .blue))
+                            }
+                            .padding(.top, 6)
+                        }
+                    }
+
+                    // MARK: Last Service Section
+                    SectionBox(title: "History Last Service", icon: "wrench.and.screwdriver.fill") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Last Service Date")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                HStack {
+                                    DatePicker("", selection: $addVehicleVM.lastServiceDate, displayedComponents: .date)
+                                        .labelsHidden()
+                                        .datePickerStyle(.compact)
+                                        .frame(maxWidth: .infinity, alignment: .leading) // ✅ left align
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Service Item")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("Tune-Up", text: $addVehicleVM.serviceName)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Odometer at Last Service")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                TextField("42000 km", text: $addVehicleVM.lastOdometer)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(CustomTextFieldStyle())
+                            }
+                        }
+                    }
+
+
+                    // MARK: Add Button
+                    Button(action: {
+                        addVehicleVM.addVehicle()
+                        if addVehicleVM.successMessage != nil {
+                            dismiss()
+                        }
+                    }) {
+                        Text("Add Vehicle")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue.opacity(0.8))
+                            .cornerRadius(20)
+                            .padding(.top)
+                    }
+
+                    // MARK: Feedback
+                    if let success = addVehicleVM.successMessage {
+                        Text(success)
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    }
+
+                    if let error = addVehicleVM.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
                 }
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
         }
-        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// MARK: - Custom Components
+struct SectionBox<Content: View>: View {
+    var title: String
+    var icon: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundColor(.blue)
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+            }
+
+            VStack(spacing: 12) {
+                content
+            }
+            .padding()
+            .background(Color.blue.opacity(0.15))
+            .cornerRadius(15)
+        }
+    }
+}
+
+struct CustomTextFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding()
+            .background(Color.white)
+            .cornerRadius(10)
     }
 }
 

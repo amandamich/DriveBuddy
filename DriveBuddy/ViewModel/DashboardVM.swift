@@ -69,6 +69,34 @@ class DashboardViewModel: ObservableObject {
             return .valid
         }
     }
+
+    // MARK: - Service Reminder Logic
+    func serviceReminderStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
+        guard let lastService = vehicle.last_service_date else { return .unknown }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+
+        // Approx. next service 6 months after last one
+        guard let nextService = calendar.date(byAdding: .month, value: 6, to: lastService) else {
+            return .unknown
+        }
+
+        let daysUntilNext = calendar.dateComponents([.day], from: today, to: nextService).day ?? 0
+
+        switch daysUntilNext {
+        case ..<0:
+            return .overdue
+        case 0:
+            return .tomorrow
+        case 1...7:
+            return .upcoming
+        case 8...30:
+            return .soon
+        default:
+            return .notYet
+        }
+    }
 }
 
 // MARK: - Enum for Vehicle Tax Status
@@ -92,6 +120,38 @@ enum VehicleTaxStatus {
         case .valid: return .green
         case .dueSoon: return .orange
         case .overdue: return .red
+        case .unknown: return .gray
+        }
+    }
+}
+
+// MARK: - Enum for Service Reminder Status
+enum ServiceReminderStatus {
+    case tomorrow
+    case upcoming
+    case soon
+    case overdue
+    case notYet
+    case unknown
+
+    var label: String {
+        switch self {
+        case .tomorrow: return "Tomorrow"
+        case .upcoming: return "Upcoming"
+        case .soon: return "Soon"
+        case .overdue: return "Overdue"
+        case .notYet: return "Not Yet"
+        case .unknown: return "Unknown"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .tomorrow: return .cyan
+        case .upcoming: return .orange
+        case .soon: return .yellow
+        case .overdue: return .red
+        case .notYet: return .gray
         case .unknown: return .gray
         }
     }

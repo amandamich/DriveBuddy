@@ -9,7 +9,7 @@ struct DashboardView: View {
     init(authVM: AuthenticationViewModel) {
         _authVM = ObservedObject(initialValue: authVM)
         
-        // Use a fallback mock user if currentUser is nil
+        // Fallback mock user for preview or nil case
         let user = authVM.currentUser ?? {
             let tempUser = User(context: authVM.viewContext)
             tempUser.user_id = UUID()
@@ -27,15 +27,14 @@ struct DashboardView: View {
         )
     }
 
-
     var body: some View {
         NavigationStack {
             ZStack {
-                // MARK: Background
+                // MARK: - Background
                 Color.black.opacity(0.95).ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 15) {
-                    // MARK: Header
+                    // MARK: - Header
                     VStack(alignment: .leading, spacing: 4) {
                         Text("DriveBuddy")
                             .font(.system(size: 28, weight: .bold))
@@ -48,14 +47,14 @@ struct DashboardView: View {
                     .padding(.horizontal)
                     .padding(.top, 30)
 
-                    // MARK: Title
+                    // MARK: - Title
                     Text("Your Vehicles")
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding(.horizontal)
                         .padding(.top, 10)
 
-                    // MARK: Vehicle List
+                    // MARK: - Vehicle List
                     if dashboardVM.userVehicles.isEmpty {
                         Spacer()
                         VStack {
@@ -80,7 +79,8 @@ struct DashboardView: View {
                             ForEach(dashboardVM.userVehicles, id: \.self) { vehicle in
                                 VehicleCard(
                                     vehicle: vehicle,
-                                    status: dashboardVM.taxStatus(for: vehicle)
+                                    taxStatus: dashboardVM.taxStatus(for: vehicle),
+                                    serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
                                 )
                                 .listRowBackground(Color.black.opacity(0.8))
                             }
@@ -91,7 +91,7 @@ struct DashboardView: View {
                     }
                 }
 
-                // MARK: Floating Add Button
+                // MARK: - Floating Add Button
                 VStack {
                     Spacer()
                     HStack {
@@ -109,7 +109,7 @@ struct DashboardView: View {
                     }
                 }
             }
-            // MARK: Add Vehicle Sheet
+            // MARK: - Add Vehicle Sheet
             .sheet(isPresented: $showingAddVehicle, onDismiss: {
                 dashboardVM.fetchVehicles()
             }) {
@@ -119,13 +119,15 @@ struct DashboardView: View {
     }
 }
 
- // MARK: - Vehicle Card Component (inside same file)
+// MARK: - Vehicle Card Component
 struct VehicleCard: View {
     var vehicle: Vehicles
-    var status: VehicleTaxStatus
+    var taxStatus: VehicleTaxStatus
+    var serviceStatus: ServiceReminderStatus
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            // MARK: - Vehicle Info
             Text(vehicle.make_model ?? "Unknown Vehicle")
                 .font(.headline)
                 .foregroundColor(.white)
@@ -134,18 +136,34 @@ struct VehicleCard: View {
                 .foregroundColor(.gray)
                 .font(.subheadline)
 
+            // MARK: - Tax Info
             HStack {
                 Label("Tax: \(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")", systemImage: "calendar")
                     .foregroundColor(.white)
                     .font(.caption)
                 Spacer()
 
-                // Status Badge
-                Text(status.label)
+                Text(taxStatus.label)
                     .font(.caption)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(status.color)
+                    .background(taxStatus.color)
+                    .cornerRadius(8)
+                    .foregroundColor(.white)
+            }
+
+            // MARK: - Service Info
+            HStack {
+                Label("Next Service: \(nextServiceDateText(for: vehicle))", systemImage: "wrench.and.screwdriver.fill")
+                    .foregroundColor(.white)
+                    .font(.caption)
+                Spacer()
+
+                Text(serviceStatus.label)
+                    .font(.caption)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(serviceStatus.color)
                     .cornerRadius(8)
                     .foregroundColor(.white)
             }
@@ -158,30 +176,38 @@ struct VehicleCard: View {
                 .shadow(color: .blue.opacity(0.3), radius: 5)
         )
     }
+
+    // MARK: - Compute Next Service Date Text
+    private func nextServiceDateText(for vehicle: Vehicles) -> String {
+        guard let lastServiceDate = vehicle.last_service_date else { return "N/A" }
+        if let nextService = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate) {
+            return nextService.formatted(date: .abbreviated, time: .omitted)
+        }
+        return "N/A"
+    }
 }
 
- // MARK: - Preview
+// MARK: - Preview
 #Preview {
     let context = PersistenceController.shared.container.viewContext
 
-    // Mock user for preview
+    // Mock user
     let mockUser = User(context: context)
     mockUser.user_id = UUID()
     mockUser.email = "preview@drivebuddy.com"
     mockUser.password_hash = "mockhash"
     mockUser.created_at = Date()
 
-    // Mock vehicle for preview
+    // Mock vehicle
     let mockVehicle = Vehicles(context: context)
     mockVehicle.make_model = "Honda Brio"
     mockVehicle.vehicle_type = "Car"
     mockVehicle.plate_number = "B 9876 FG"
     mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
+    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
     mockVehicle.odometer = 25000
     mockVehicle.user = mockUser
-    try? context.save()
 
-    // Mock authentication VM
     let mockAuthVM = AuthenticationViewModel(context: context)
     mockAuthVM.currentUser = mockUser
     mockAuthVM.isAuthenticated = true

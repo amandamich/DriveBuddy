@@ -21,6 +21,8 @@ class AddVehicleViewModel: ObservableObject {
     @Published var stnkDueDate: Date = Date()
     @Published var lastServiceDate: Date = Date()
     @Published var serviceName: String = ""
+    @Published var lastOdometer: String = ""
+    @Published var taxReminder: Bool = false
 
     @Published var errorMessage: String?
     @Published var successMessage: String?
@@ -57,6 +59,9 @@ class AddVehicleViewModel: ObservableObject {
         newVehicle.service_name = serviceName
         newVehicle.created_at = Date()
         newVehicle.user = user
+        newVehicle.tax_reminder = taxReminder
+        newVehicle.last_odometer = Double(lastOdometer) ?? 0
+        
 
         do {
             try viewContext.save()
@@ -78,5 +83,8 @@ class AddVehicleViewModel: ObservableObject {
         taxDueDate = Date()
         stnkDueDate = Date()
         lastServiceDate = Date()
+        lastOdometer = ""
+        taxReminder = false
+        
     }
 }
