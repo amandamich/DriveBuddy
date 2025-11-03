@@ -16,28 +16,43 @@ struct HomeView: View {
         // MARK: - Main Tab View
         TabView(selection: $selectedTab) {
             
-            // Dashboard / Home
+            // MARK: Dashboard / Home
             DashboardView()
                 .tabItem {
                     Label("Home", systemImage: "house")
                 }
                 .tag(0)
             
-            // Vehicles
-            VehicleView()
-                .tabItem {
-                    Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent")
-                }
-                .tag(1)
+            // MARK: Vehicles → langsung ke VehicleDetailView
+            NavigationStack {
+                VehicleDetailView(
+                    vehicle: Vehicle(
+                        makeAndModel: "Pajero Sport",
+                        vehicleType: "Car",
+                        licensePlate: "AB 123 CDE",
+                        year: "2021",
+                        odometer: "20357",
+                        taxDate: Date()
+                    ),
+                    allVehicles: [
+                        Vehicle(makeAndModel: "Pajero Sport", vehicleType: "Car", licensePlate: "AB 123 CDE", year: "2021", odometer: "20357", taxDate: Date()),
+                        Vehicle(makeAndModel: "Honda Brio", vehicleType: "Car", licensePlate: "B 9876 FG", year: "2022", odometer: "30000", taxDate: Date())
+                    ]
+                )
+            }
+            .tabItem {
+                Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent")
+            }
+            .tag(1)
             
-            // Workshops
+            // MARK: Workshops
             WorkshopsView()
                 .tabItem {
                     Label("Workshops", systemImage: "wrench.and.screwdriver.fill")
                 }
                 .tag(2)
             
-            // Profile
+            // MARK: Profile
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person")
@@ -51,19 +66,6 @@ struct HomeView: View {
 //
 // MARK: - Subviews
 //
-
-struct VehicleView: View {
-    var body: some View {
-        VStack {
-            Text("👀 VEHICLE")
-                .font(.largeTitle)
-                .foregroundColor(.white)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.95))
-        .ignoresSafeArea()
-    }
-}
 
 struct WorkshopsView: View {
     var body: some View {
