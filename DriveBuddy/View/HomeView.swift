@@ -29,13 +29,13 @@ struct HomeView: View {
                     vehicle: Vehicle(
                         makeAndModel: "Pajero Sport",
                         vehicleType: "Car",
-                        licensePlate: "AB 123 CDE",
+                        licensePlate: "L 1111 E",
                         year: "2021",
                         odometer: "20357",
                         taxDate: Date()
                     ),
                     allVehicles: [
-                        Vehicle(makeAndModel: "Pajero Sport", vehicleType: "Car", licensePlate: "AB 123 CDE", year: "2021", odometer: "20357", taxDate: Date()),
+                        Vehicle(makeAndModel: "Pajero Sport", vehicleType: "Car", licensePlate: "L 1111 E", year: "2021", odometer: "20357", taxDate: Date()),
                         Vehicle(makeAndModel: "Honda Brio", vehicleType: "Car", licensePlate: "B 9876 FG", year: "2022", odometer: "30000", taxDate: Date())
                     ]
                 )
@@ -46,7 +46,7 @@ struct HomeView: View {
             .tag(1)
             
             // MARK: Workshops
-            WorkshopsView()
+            WorkshopView()
                 .tabItem {
                     Label("Workshops", systemImage: "wrench.and.screwdriver.fill")
                 }
@@ -67,31 +67,31 @@ struct HomeView: View {
 // MARK: - Subviews
 //
 
-struct WorkshopsView: View {
-    var body: some View {
-        VStack {
-            Text("🛞🛠️ Nearby Workshops")
-                .font(.largeTitle)
-                .foregroundColor(.white)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.95))
-        .ignoresSafeArea()
-    }
-}
+//struct WorkshopsView: View {
+//    var body: some View {
+//        VStack {
+//            Text("🛞🛠️ Nearby Workshops")
+//                .font(.largeTitle)
+//                .foregroundColor(.white)
+//        }
+//        .frame(maxWidth: .infinity, maxHeight: .infinity)
+//        .background(Color.black.opacity(0.95))
+//        .ignoresSafeArea()
+//    }
+//}
 
-struct ProfileView: View {
-    var body: some View {
-        VStack {
-            Text("👀 PROFILE")
-                .font(.largeTitle)
-                .foregroundColor(.white)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.95))
-        .ignoresSafeArea()
-    }
-}
+//struct ProfileView: View {
+//    var body: some View {
+//        VStack {
+//            Text("👀 PROFILE")
+//                .font(.largeTitle)
+//                .foregroundColor(.white)
+//        }
+//        .frame(maxWidth: .infinity, maxHeight: .infinity)
+//        .background(Color.black.opacity(0.95))
+//        .ignoresSafeArea()
+//    }
+//}
 
 #Preview {
     HomeView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
