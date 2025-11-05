@@ -17,6 +17,9 @@ struct SignUpView: View {
         NavigationStack {
                     ZStack {
                         Color.black.opacity(0.95).ignoresSafeArea()
+						
+						FlowingLinesView()
+							.ignoresSafeArea()
 
                         VStack {
                             ZStack(alignment: .center) {

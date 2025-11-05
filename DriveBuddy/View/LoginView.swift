@@ -17,6 +17,109 @@ struct NeonTextFieldStyle: TextFieldStyle {
 	}
 }
 
+struct FlowingLinesView: View {
+		@State private var phase1: CGFloat = 0
+		@State private var phase2: CGFloat = 0
+		@State private var phase3: CGFloat = 0
+		
+		var body: some View {
+			GeometryReader { geometry in
+				ZStack {
+					// Wave 1
+					WavePath(phase: phase1, amplitude: 30, frequency: 1.5)
+						.stroke(
+							LinearGradient(
+								colors: [.cyan.opacity(0.4), .blue.opacity(0.6), .cyan.opacity(0.4)],
+								startPoint: .leading,
+								endPoint: .trailing
+							),
+							lineWidth: 3
+						)
+						.blur(radius: 3)
+						.offset(y: 150)
+					
+					// Wave 2
+					WavePath(phase: phase2, amplitude: 45, frequency: 1.5)
+						.stroke(
+							LinearGradient(
+								colors: [.blue.opacity(0.3), .cyan.opacity(0.5), .blue.opacity(0.3)],
+								startPoint: .leading,
+								endPoint: .trailing
+							),
+							lineWidth: 2.5
+						)
+						.blur(radius: 4)
+						.offset(y: 350)
+					
+					// Wave 3
+					WavePath(phase: phase3, amplitude: 25, frequency: 1.8)
+						.stroke(
+							LinearGradient(
+								colors: [.cyan.opacity(0.3), .blue.opacity(0.4), .cyan.opacity(0.3)],
+								startPoint: .leading,
+								endPoint: .trailing
+							),
+							lineWidth: 2
+						)
+						.blur(radius: 2.5)
+						.offset(y: 550)
+				}
+			}
+			.onAppear {
+				withAnimation(
+					Animation.linear(duration: 3)
+						.repeatForever(autoreverses: false)
+				) {
+					phase1 = .pi * 2
+				}
+				
+				withAnimation(
+					Animation.linear(duration: 4)
+						.repeatForever(autoreverses: false)
+				) {
+					phase2 = .pi * 2
+				}
+				
+				withAnimation(
+					Animation.linear(duration: 3.5)
+						.repeatForever(autoreverses: false)
+				) {
+					phase3 = .pi * 2
+				}
+			}
+		}
+}
+
+// MARK: - Wave Path Shape
+struct WavePath: Shape {
+	var phase: CGFloat
+	var amplitude: CGFloat
+	var frequency: CGFloat
+	
+	var animatableData: CGFloat {
+		get { phase }
+		set { phase = newValue }
+	}
+	
+	func path(in rect: CGRect) -> Path {
+		var path = Path()
+		let width = rect.width
+		let midHeight = rect.height / 2
+		
+		path.move(to: CGPoint(x: 0, y: midHeight))
+		
+		for x in stride(from: 0, through: width, by: 1) {
+			let relativeX = x / width
+			let sine = sin((relativeX * frequency * .pi * 2) + phase)
+			let y = midHeight + (sine * amplitude)
+			path.addLine(to: CGPoint(x: x, y: y))
+		}
+		
+		return path
+	}
+}
+
+
 // MARK: - Main Login View
 struct LoginView: View {
     @ObservedObject var authVM: AuthenticationViewModel
@@ -36,6 +139,10 @@ struct LoginView: View {
                         //            .ignoresSafeArea()
                         Color.black.opacity(0.95).ignoresSafeArea()
 
+						// Flowing lines animation
+						FlowingLinesView()
+							.ignoresSafeArea()
+						
                         VStack {
                             ZStack(alignment: .center) {
                                 // Glowing circle background
@@ -67,7 +174,10 @@ struct LoginView: View {
                                             .shadow(color: .blue, radius: 5)
                                         TextField("Enter your email", text: $email)
                                             .textFieldStyle(NeonTextFieldStyle())
-											.autocapitalization(.none)
+											.keyboardType(.emailAddress)
+//											.autocapitalization(.none)
+//											.textInputAutocapitalization(.never)
+											.autocorrectionDisabled(true)
                                     }
 
                                     // Password Field
@@ -149,7 +259,9 @@ struct LoginView: View {
                     .navigationTitle("") // remove default title
                     .navigationBarBackButtonHidden(false)
                 }
+			
             }
+		
 }
 
 #Preview {

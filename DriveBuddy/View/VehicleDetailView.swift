@@ -55,13 +55,16 @@ struct VehicleDetailView: View {
                     // MARK: Vehicle Info Card
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Image("CarIcon")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 80, height: 50)
+							Image(systemName: "car")
+								.foregroundColor(.white)
+								.font(.system(size: 30, weight: .bold))
+//                                .resizable()
+//                                .scaledToFit()
+//                                .frame(width: 80, height: 50)
                             Spacer()
 							Button(action: {}) {
 								Image(systemName: "pencil")
+									.font(.system(size: 20, weight: .bold))
 									.foregroundColor(.white)
 								
 							}
