@@ -44,9 +44,9 @@ struct LoginView: View {
                                     .position(x: 150, y: -270)
                                     .frame(width: 300, height: 300)
                                     .blur(radius: 80)
-                                    .offset(y: isAnimating ? 30 : 30)
+                                    .offset(y: isAnimating ? 50 : 100)
                                     .animation(
-                                        Animation.easeInOut(duration: 1)
+										Animation.easeInOut(duration: 1.5)
                                             .repeatForever(autoreverses: true),
                                         value: isAnimating
                                     )
@@ -67,7 +67,7 @@ struct LoginView: View {
                                             .shadow(color: .blue, radius: 5)
                                         TextField("Enter your email", text: $email)
                                             .textFieldStyle(NeonTextFieldStyle())
-                                            .autocapitalization(.none)
+											.autocapitalization(.none)
                                     }
 
                                     // Password Field
@@ -114,7 +114,7 @@ struct LoginView: View {
                                     }
 
                                     // MARK: - Navigate to Sign Up
-                                    NavigationLink("Don't have an account? Sign Up") {
+									NavigationLink("Don't have an account ? Sign Up") {
                                         SignUpView(authVM: authVM)
                                     }
                                     .foregroundColor(.cyan)

@@ -26,12 +26,12 @@ struct SignUpView: View {
                                     .position(x: 150, y: -270)
                                     .frame(width: 300, height: 300)
                                     .blur(radius: 80)
-                                    .offset(y: isAnimating ? 30 : 30)
-                                    .animation(
-                                        Animation.easeInOut(duration: 1)
-                                            .repeatForever(autoreverses: true),
-                                        value: isAnimating
-                                    )
+									.offset(y: isAnimating ? 50 : 100)
+									.animation(
+										Animation.easeInOut(duration: 1.5)
+											.repeatForever(autoreverses: true),
+										value: isAnimating
+									)
 
                                 VStack(spacing: 30) {
                                     // MARK: - Title

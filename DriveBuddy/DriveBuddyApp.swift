@@ -12,7 +12,7 @@ struct DriveBuddyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            StartScreen()
+            ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }

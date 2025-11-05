@@ -56,7 +56,7 @@ struct DashboardView: View {
 
                     // MARK: - Vehicle List
                     if dashboardVM.userVehicles.isEmpty {
-                        Spacer()
+//                        Spacer()
                         VStack {
                             Text("No vehicles added yet.")
                                 .foregroundColor(.gray)
@@ -64,12 +64,20 @@ struct DashboardView: View {
 
                             Button(action: { showingAddVehicle = true }) {
                                 Text("+ Add Vehicle")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color.blue.opacity(0.2))
-                                    .cornerRadius(12)
+								.font(.headline)
+								.foregroundColor(.white)
+								.padding(.vertical, 45)
+								.frame(maxWidth: .infinity)
+								.background(
+									RoundedRectangle(cornerRadius: 12)
+										.stroke(Color.cyan, lineWidth: 2)
+										.shadow(color: .blue, radius: 8)
+										.background(
+											RoundedRectangle(cornerRadius: 12)
+												.fill(Color.black.opacity(0.5))
+										)
+								)
+								.shadow(color: .blue, radius: 10)
                             }
                             .padding(.horizontal)
                         }
@@ -88,26 +96,28 @@ struct DashboardView: View {
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
+						
+						// MARK: - Floating Add Button
+						VStack {
+							Spacer()
+							HStack {
+								Spacer()
+								Button(action: { showingAddVehicle = true }) {
+									Image(systemName: "plus")
+										.font(.title2)
+										.foregroundColor(.white)
+										.padding()
+										.background(Color.blue)
+										.clipShape(Circle())
+										.shadow(radius: 5)
+								}
+								.padding()
+							}
+						}
                     }
                 }
 
-                // MARK: - Floating Add Button
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button(action: { showingAddVehicle = true }) {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(radius: 5)
-                        }
-                        .padding()
-                    }
-                }
+                
             }
             // MARK: - Add Vehicle Sheet
             .sheet(isPresented: $showingAddVehicle, onDismiss: {

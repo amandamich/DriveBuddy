@@ -2,8 +2,6 @@
 //  StartScreen.swift
 //  DriveBuddy
 //
-//  Created by Timothy on 30/10/25.
-//
 
 import SwiftUI
 import CoreData
@@ -80,7 +78,7 @@ struct StartScreen: View {
                                                 .fill(Color.black.opacity(0.5))
                                         )
                                 )
-                        }
+						}.padding(.bottom, 20)
                     }
                 }
                 .onAppear {

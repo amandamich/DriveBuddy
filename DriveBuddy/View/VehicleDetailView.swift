@@ -60,10 +60,11 @@ struct VehicleDetailView: View {
                                 .scaledToFit()
                                 .frame(width: 80, height: 50)
                             Spacer()
-                            Button(action: {}) {
-                                Image(systemName: "pencil")
-                                    .foregroundColor(.white)
-                            }
+							Button(action: {}) {
+								Image(systemName: "pencil")
+									.foregroundColor(.white)
+								
+							}
                         }
                         
                         Text(activeVehicle.makeAndModel.uppercased())
@@ -87,7 +88,7 @@ struct VehicleDetailView: View {
                     
                     // MARK: Upcoming Services & Tax Example Section
                     HStack(spacing: 15) {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 2) {
                             HStack {
                                 Image(systemName: "wrench.and.screwdriver.fill")
                                 Text("Upcoming Services")
@@ -96,6 +97,7 @@ struct VehicleDetailView: View {
                             .font(.headline)
                             Text("Tire Rotation")
                                 .foregroundColor(.white)
+								.font(.subheadline).padding(.top, 3)
                             Label("1 November 2025", systemImage: "calendar")
                                 .foregroundColor(.white.opacity(0.8))
                                 .font(.caption)
@@ -112,13 +114,13 @@ struct VehicleDetailView: View {
                             }
                             .foregroundColor(.white)
                             .font(.headline)
-                            Text("2 January 2026")
+                            Text("")
                                 .foregroundColor(.white)
-                            Label("Next Due", systemImage: "calendar")
+                            Label("2 January 2026", systemImage: "calendar")
                                 .foregroundColor(.white.opacity(0.8))
                                 .font(.caption)
                         }
-                        .padding()
+						.padding().padding(.horizontal, 10)
                         .frame(maxWidth: .infinity)
                         .background(Color.blue.opacity(0.3))
                         .cornerRadius(15)
