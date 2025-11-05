@@ -53,7 +53,7 @@ struct HomeView: View {
                 .tag(2)
             
             // MARK: Profile
-            ProfileView()
+            ProfileView(authVM: authVM)
                 .tabItem {
                     Label("Profile", systemImage: "person")
                 }

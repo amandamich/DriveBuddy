@@ -1,0 +1,11 @@
+# File konfigurasi sistem macOS
+.DS_Store
+
+# File pengaturan pengguna Xcode
+*.xcuserdatad
+*.xcuserdata
+*.xcworkspace/xcuserdata/
+
+# Ini juga bagus untuk ditambahkan (file konfigurasi Core Data sementara)
+*.sqlite-shm
+*.sqlite-wal

@@ -6,98 +6,112 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct ProfileView: View {
-    @State private var addToCalendar = true
-    @State private var isDarkMode = false
-    
+    @ObservedObject var authVM: AuthenticationViewModel
+    @StateObject private var profileVM: ProfileViewModel
+
+    init(authVM: AuthenticationViewModel) {
+        _authVM = ObservedObject(initialValue: authVM)
+        _profileVM = StateObject(
+            wrappedValue: ProfileViewModel(
+                context: authVM.viewContext,
+                user: authVM.currentUser
+            )
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 // MARK: - Background
                 Color.black.opacity(0.95)
                     .ignoresSafeArea()
-                
+
                 VStack(alignment: .leading, spacing: 0) {
                     // MARK: - Header
                     HStack(spacing: 12) {
                         Image(systemName: "car.fill")
                             .font(.title2)
                             .foregroundColor(.white)
-                        
+
                         Text("DriveBuddy")
                             .font(.system(size: 20, weight: .semibold))
                             .foregroundColor(.white)
-                        
+
                         Spacer()
                     }
                     .padding(.horizontal)
                     .padding(.top, 20)
                     .padding(.bottom, 40)
-                    
+
                     // MARK: - Profile Title
                     Text("Profile")
                         .font(.system(size: 34, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal)
                         .padding(.bottom, 8)
-                    
+
                     // MARK: - User Info
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Jonny Suh")
+                        Text(profileVM.user?.email?.components(separatedBy: "@").first ?? "User")
                             .font(.system(size: 28, weight: .semibold))
                             .foregroundColor(.white)
-                        
-                        Text("jonny@gmail.com")
+
+                        Text(profileVM.user?.email ?? "No email found")
                             .font(.system(size: 15))
                             .foregroundColor(.gray)
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 30)
-                    
+
                     // MARK: - Settings Section
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 12) {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 20))
                                 .foregroundColor(.white)
-                            
+
                             Text("Settings")
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.white)
                         }
                         .padding(.horizontal)
                         .padding(.bottom, 16)
-                        
+
                         VStack(spacing: 0) {
                             // Add to Calendar Toggle
                             HStack {
                                 Text("Add to Calendar")
                                     .font(.system(size: 16))
                                     .foregroundColor(.white)
-                                
+
                                 Spacer()
-                                
-                                Toggle("", isOn: $addToCalendar)
+
+                                Toggle("", isOn: $profileVM.addToCalendar)
                                     .labelsHidden()
                                     .tint(.green)
+                                    .onChange(of: profileVM.addToCalendar) {
+                                        profileVM.toggleAddToCalendar(profileVM.addToCalendar)
+                                    }
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
-                            
+
                             Divider()
                                 .background(Color.white.opacity(0.15))
                                 .padding(.leading, 16)
-                            
+
                             // Theme Toggle
                             HStack {
                                 Text("Theme")
                                     .font(.system(size: 16))
                                     .foregroundColor(.white)
-                                
+
                                 Spacer()
-                                
-                                Toggle("", isOn: $isDarkMode)
+
+                                Toggle("", isOn: $profileVM.isDarkMode)
                                     .labelsHidden()
                                     .tint(.blue)
                             }
@@ -111,7 +125,6 @@ struct ProfileView: View {
                         .padding(.horizontal)
                     }
                     .padding(.bottom, 24)
-                    
                     // MARK: - Account Section
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 12) {
@@ -152,7 +165,7 @@ struct ProfileView: View {
                             
                             // Privacy Policy
                             NavigationLink {
-                                PrivacyPolicyView()
+                                
                             } label: {
                                 HStack {
                                     Text("Privacy Policy")
@@ -175,7 +188,8 @@ struct ProfileView: View {
                         )
                         .padding(.horizontal)
                     }
-                    
+                    .padding(.bottom, 24)
+
                     Spacer()
                 }
             }
@@ -184,40 +198,15 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Placeholder Views
-//struct ChangePasswordView: View {
-//    var body: some View {
-//        ZStack {
-//            Color.black.opacity(0.95)
-//                .ignoresSafeArea()
-//            
-//            VStack {
-//                Text("Change Password")
-//                    .font(.title)
-//                    .foregroundColor(.white)
-//            }
-//        }
-//        .navigationBarTitleDisplayMode(.inline)
-//    }
-//}
-
-// MARK: - Placeholder Views
-struct PrivacyPolicyView: View {
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.95)
-                .ignoresSafeArea()
-            
-            VStack {
-                Text("Privacy Policy")
-                    .font(.title)
-                    .foregroundColor(.white)
-            }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
 
 #Preview {
-    ProfileView()
+    let context = PersistenceController.shared.container.viewContext
+    let mockUser = User(context: context)
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.add_to_calendar = true
+    let mockAuthVM = AuthenticationViewModel(context: context)
+    mockAuthVM.currentUser = mockUser
+    return ProfileView(authVM: mockAuthVM)
+    
 }
+
