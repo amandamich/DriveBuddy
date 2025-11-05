@@ -41,7 +41,7 @@ struct SplashView: View {
 							.frame(width: 300, height: 300)
 							.shadow(radius: 10)
 							.opacity(logoOpacity)
-							.offset(x: logoRevealProgress)
+//							.offset(x: logoRevealProgress) 
 					}
 					.offset(y: logoOffset)
 
