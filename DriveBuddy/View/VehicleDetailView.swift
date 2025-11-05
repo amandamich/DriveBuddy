@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreData
 
 struct VehicleDetailView: View {
     var vehicle: Vehicle
