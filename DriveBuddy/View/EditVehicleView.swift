@@ -59,8 +59,16 @@ struct EditVehicleView: View {
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.blue.opacity(0.8))
-                            .cornerRadius(20)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan, lineWidth: 2)
+                                    .shadow(color: .blue, radius: 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.black.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: .blue, radius: 10)
                     }
                     .padding(.top, 10)
                 }
@@ -69,3 +77,19 @@ struct EditVehicleView: View {
         }
     }
 }
+
+
+#Preview {
+    EditVehicleView(
+        vehicle: Vehicle(
+            makeAndModel: "Pajero Sport",
+            vehicleType: "Car",
+            licensePlate: "AB 1234 CD",
+            year: "2021",
+            odometer: "25000",
+            taxDate: Date()
+        ),
+        onSave: { _ in } // closure dummy untuk preview
+    )
+}
+
