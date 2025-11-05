@@ -11,6 +11,6 @@ import SwiftUI
 struct ThemeColors {
     static let background = Color("BackgroundPrimary")
     static let card = Color("CardBackground")
-    static let accent = Color("AccentNeonBlue")
+    static let accent = Color("AccentNeon")
     static let text = Color("TextPrimary")
 }
