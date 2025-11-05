@@ -116,9 +116,16 @@ struct AddServiceView: View {
                             .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
-                            .background(Color.blue.opacity(0.8))
-                            .cornerRadius(20)
-                            .padding(.top)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan, lineWidth: 2)
+                                    .shadow(color: .blue, radius: 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.black.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: .blue, radius: 10)
                     }
                 }
                 .padding(.horizontal)

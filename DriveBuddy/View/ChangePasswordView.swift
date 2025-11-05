@@ -92,20 +92,20 @@ struct ChangePasswordView: View {
                     handlePasswordChange()
                 }) {
                     Text("Change Password")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(.headline)
                         .foregroundColor(.white)
+                        .padding()
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
                         .background(
-                            RoundedRectangle(cornerRadius: 25)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [Color.blue.opacity(0.8), Color.blue]),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.cyan, lineWidth: 2)
+                                .shadow(color: .blue, radius: 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.black.opacity(0.5))
                                 )
                         )
+                        .shadow(color: .blue, radius: 10)
                 }
                 .padding(.horizontal, 32)
                 
