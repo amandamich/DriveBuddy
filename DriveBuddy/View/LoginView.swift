@@ -215,13 +215,13 @@ struct LoginView: View {
                                     }
                                     .padding(0)
 
-                                    // MARK: - Error Message
-                                    if let error = authVM.errorMessage {
-                                        Text(error)
-                                            .foregroundColor(.red)
-                                            .font(.caption)
-                                            .padding(.top, 8)
-                                    }
+//                                    // MARK: - Error Message
+//                                    if let error = authVM.errorMessage {
+//                                        Text(error)
+//                                            .foregroundColor(.red)
+//                                            .font(.caption)
+//                                            .padding(.top, 8)
+//                                    }
 
                                     // MARK: - Navigate to Sign Up
 									NavigationLink("Don't have an account ? Sign Up") {
@@ -246,9 +246,9 @@ struct LoginView: View {
                         .padding(.horizontal, 40)
                     }
                     .onAppear {
-                        withAnimation {
-                            isAnimating = true
-                        }
+                    withAnimation { isAnimating = true }
+                        authVM.errorMessage = nil
+                                }
                     }
 
                     // ✅ Auto-navigation to HomeView after login
@@ -261,8 +261,7 @@ struct LoginView: View {
                 }
 			
             }
-		
-}
+    
 
 #Preview {
     LoginView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
