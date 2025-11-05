@@ -7,6 +7,8 @@ struct VehicleDetailView: View {
     
     @Environment(\.dismiss) private var dismiss
     @State private var selectedVehicle: Vehicle?
+    @State private var showAddService = false
+    @State private var showEditVehicle = false
     
     var activeVehicle: Vehicle {
         selectedVehicle ?? vehicle
@@ -17,7 +19,7 @@ struct VehicleDetailView: View {
             Color.black.opacity(0.95).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 24) {
                     
                     // MARK: Header
                     HStack {
@@ -55,104 +57,91 @@ struct VehicleDetailView: View {
                     
                     // MARK: Vehicle Info Card
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-							Image(systemName: "car")
-								.foregroundColor(.white)
-								.font(.system(size: 30, weight: .bold))
-//                                .resizable()
-//                                .scaledToFit()
-//                                .frame(width: 80, height: 50)
+                        HStack(alignment: .center, spacing: 20) {
+                            // Gambar kiri
+                            Image(activeVehicle.vehicleType == "Car" ? "Car" : "Motorbike")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 70)
+                                .padding(.leading, 6)
+                            
+                            // Teks kanan
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(activeVehicle.makeAndModel.uppercased())
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                
+                                Text(activeVehicle.licensePlate)
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                Text("\(activeVehicle.odometer) km")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
                             Spacer()
-							Button(action: {}) {
-								Image(systemName: "pencil")
-									.font(.system(size: 20, weight: .bold))
-									.foregroundColor(.white)
-								
-							}
+                            
+                            // Tombol Edit
+                            Button(action: {
+                                showEditVehicle = true
+                            }) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
                         }
-                        
-                        Text(activeVehicle.makeAndModel.uppercased())
-                            .font(.title2)
-                            .bold()
-                            .foregroundColor(.white)
-                        
-                        Text(activeVehicle.licensePlate)
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        
-                        Text("\(activeVehicle.odometer) km")
-                            .font(.title3)
-                            .bold()
-                            .foregroundColor(.white)
                     }
                     .padding()
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(15)
+                    .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+                    .cornerRadius(18)
+                    .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     
-                    // MARK: Upcoming Services & Tax Example Section
-                    HStack(spacing: 15) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Image(systemName: "wrench.and.screwdriver.fill")
-                                Text("Upcoming Services")
-                            }
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            Text("Tire Rotation")
-                                .foregroundColor(.white)
-								.font(.subheadline).padding(.top, 3)
-                            Label("1 November 2025", systemImage: "calendar")
-                                .foregroundColor(.white.opacity(0.8))
-                                .font(.caption)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue.opacity(0.3))
-                        .cornerRadius(15)
+                    // MARK: Upcoming Services & Tax Section
+                    HStack(alignment: .top, spacing: 16) {
+                        InfoCard(
+                            icon: "wrench.and.screwdriver.fill",
+                            title: "Upcoming Services",
+                            subtitle: "Tire Rotation",
+                            date: "1 November 2025"
+                        )
                         
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Image(systemName: "banknote")
-                                Text("Tax Payment")
-                            }
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            Text("")
-                                .foregroundColor(.white)
-                            Label("2 January 2026", systemImage: "calendar")
-                                .foregroundColor(.white.opacity(0.8))
-                                .font(.caption)
-                        }
-						.padding().padding(.horizontal, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue.opacity(0.3))
-                        .cornerRadius(15)
+                        InfoCard(
+                            icon: "banknote.fill",
+                            title: "Tax Payment",
+                            subtitle: "Next Due",
+                            date: "2 January 2026"
+                        )
                     }
+                    .frame(height: 130) // ✅ SAME HEIGHT for both cards
                     .padding(.horizontal)
                     
                     // MARK: Last Service Section
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Last Service")
                                 .font(.headline)
                                 .foregroundColor(.white)
                             Spacer()
-                            Button(action: {}) {
+                            Button(action: {
+                                showAddService = true
+                            }) {
                                 Text("Add a service")
-                                    .font(.caption)
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 12)
-                                    .background(Color.blue.opacity(0.8))
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 22)
+                                    .background(Color.blue)
+                                    .cornerRadius(25)
                                     .foregroundColor(.white)
-                                    .cornerRadius(20)
                             }
                         }
                         
                         Divider().background(Color.white.opacity(0.2))
                         
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: 6) {
                                 Text("Oil Service")
                                 Text("Engine Repair")
                             }
@@ -160,7 +149,7 @@ struct VehicleDetailView: View {
                             
                             Spacer()
                             
-                            VStack(alignment: .trailing, spacing: 4) {
+                            VStack(alignment: .trailing, spacing: 6) {
                                 Text("10 October 2025")
                                 Text("27 October 2025")
                             }
@@ -169,8 +158,9 @@ struct VehicleDetailView: View {
                         .font(.subheadline)
                     }
                     .padding()
-                    .background(Color.blue.opacity(0.2))
-                    .cornerRadius(15)
+                    .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+                    .cornerRadius(18)
+                    .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     
                     Spacer(minLength: 50)
@@ -182,7 +172,53 @@ struct VehicleDetailView: View {
         .gesture(DragGesture().onEnded { value in
             if value.translation.width > 100 { dismiss() }
         })
+        // MARK: Sheets
+        .sheet(isPresented: $showAddService) {
+            AddServiceView()
+        }
+        .sheet(isPresented: $showEditVehicle) {
+            EditVehicleView(vehicle: activeVehicle) { updated in
+                selectedVehicle = updated
+            }
+        }
         .navigationBarBackButtonHidden(true)
+    }
+}
+
+// MARK: - Info Card Component
+struct InfoCard: View {
+    var icon: String
+    var title: String
+    var subtitle: String
+    var date: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .foregroundColor(.white)
+            .font(.headline)
+            
+            Text(subtitle)
+                .foregroundColor(.white)
+                .font(.subheadline)
+            
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                Text(date)
+            }
+            .font(.caption)
+            .foregroundColor(.white.opacity(0.8))
+            
+            Spacer() // ✅ Biar isi tetap rata atas tapi tinggi konsisten
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+        .cornerRadius(18)
+        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
     }
 }
 
