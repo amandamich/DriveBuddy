@@ -32,28 +32,57 @@ struct VehicleDetailView: View {
                     .padding(.horizontal)
                     .padding(.top, 10)
                     
-                    // MARK: Vehicle Dropdown
-                    Menu {
-                        ForEach(allVehicles, id: \.id) { v in
-                            Button(v.makeAndModel) {
-                                withAnimation(.easeInOut) {
-                                    selectedVehicle = v
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text(activeVehicle.makeAndModel)
-                                .foregroundColor(.white)
-                                .bold()
-                            Spacer()
-                            Image(systemName: "chevron.down")
-                                .foregroundColor(.white)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.blue)
-                    }
+					// MARK: Vehicle Dropdown
+					Menu {
+						ForEach(allVehicles, id: \.id) { v in
+							Button(v.makeAndModel) {
+								withAnimation(.easeInOut) {
+									selectedVehicle = v
+								}
+							}
+						}
+					} label: {
+						HStack {
+							Image(systemName: "car.fill")
+								.foregroundColor(.cyan)
+								.imageScale(.medium)
+							
+							Text(activeVehicle.makeAndModel)
+								.foregroundColor(.white)
+								.bold()
+							
+							Spacer()
+							
+							Image(systemName: "chevron.down")
+								.foregroundColor(.cyan.opacity(0.9))
+								.font(.system(size: 14, weight: .semibold))
+								.rotationEffect(selectedVehicle != nil ? .degrees(180) : .degrees(0))
+								.animation(.easeInOut(duration: 0.2), value: selectedVehicle?.id)
+
+						}
+						.padding(.vertical, 14)
+						.padding(.horizontal, 18)
+						.frame(maxWidth: .infinity)
+						.background(
+							LinearGradient(
+								gradient: Gradient(colors: [
+									Color.black.opacity(0.35),
+									Color.blue.opacity(0.25)
+								]),
+								startPoint: .topLeading,
+								endPoint: .bottomTrailing
+							)
+							.blur(radius: 0)
+							.overlay(
+								RoundedRectangle(cornerRadius: 16)
+									.stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+							)
+						)
+						.cornerRadius(16)
+						.shadow(color: Color.cyan.opacity(0.3), radius: 8, x: 0, y: 4)
+						.padding(.horizontal)
+					}
+
                     
                     // MARK: Vehicle Info Card
                     VStack(alignment: .leading, spacing: 10) {
