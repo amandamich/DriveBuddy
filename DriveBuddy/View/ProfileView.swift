@@ -166,7 +166,7 @@ struct ProfileView: View {
 
                             // Privacy Policy
                             NavigationLink {
-                                
+                                PrivacyPolicyView()
                             } label: {
                                 HStack {
                                     Text("Privacy Policy")
