@@ -15,7 +15,7 @@
         <attribute name="status" optional="YES" attributeType="String"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicles" inverseName="schedule" inverseEntity="Vehicles"/>
     </entity>
-    <entity name="Service_History" representedClassName="Service_History" syncable="YES" codeGenerationType="class">
+    <entity name="ServiceHistory" representedClassName="ServiceHistory" syncable="YES" codeGenerationType="class">
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="history_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
@@ -47,7 +47,7 @@
         <attribute name="year_manufacture" optional="YES" attributeType="String"/>
         <relationship name="reminder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Reminders" inverseName="vehicle" inverseEntity="Reminders"/>
         <relationship name="schedule" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Schedules" inverseName="vehicle" inverseEntity="Schedules"/>
-        <relationship name="servicehistory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Service_History" inverseName="vehicle" inverseEntity="Service_History"/>
+        <relationship name="servicehistory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="vehicles" inverseEntity="User"/>
     </entity>
     <entity name="Workshops" representedClassName="Workshops" syncable="YES" codeGenerationType="class">
