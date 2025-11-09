@@ -12,7 +12,19 @@ struct HomeView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @State private var selectedTab: Int = 0
     
+    @Environment(\.managedObjectContext) private var viewContext
+        
+        // Ambil semua Vehicles dari Core Data
+        @FetchRequest(
+            sortDescriptors: [NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)],
+            animation: .default)
+    private var allVehicles: FetchedResults<Vehicles>
+    
     var body: some View {
+        
+        // 1. Tentukan Kendaraan Aktif (pertama dalam daftar, atau nil jika kosong)
+        let activeVehicle = allVehicles.first
+        
         // MARK: - Main Tab View
         TabView(selection: $selectedTab) {
             
@@ -25,20 +37,24 @@ struct HomeView: View {
             
             // MARK: Vehicles → langsung ke VehicleDetailView
             NavigationStack {
-                VehicleDetailView(
-                    vehicle: Vehicle(
-                        makeAndModel: "Pajero Sport",
-                        vehicleType: "Car",
-                        licensePlate: "L 1111 E",
-                        year: "2021",
-                        odometer: "20357",
-                        taxDate: Date()
-                    ),
-                    allVehicles: [
-                        Vehicle(makeAndModel: "Pajero Sport", vehicleType: "Car", licensePlate: "L 1111 E", year: "2021", odometer: "20357", taxDate: Date()),
-                        Vehicle(makeAndModel: "Honda Brio", vehicleType: "Car", licensePlate: "B 9876 FG", year: "2022", odometer: "30000", taxDate: Date())
-                    ]
-                )
+                // 2. Gunakan 'if let' untuk memastikan ada kendaraan sebelum memanggil View
+                if let activeVehicle = activeVehicle {
+                    VehicleDetailView(
+                        // Menggunakan parameter baru dan data Core Data
+                        initialVehicle: activeVehicle,
+                        allVehicles: Array(allVehicles), // Konversi FetchedResults ke Array
+                        context: viewContext // Meneruskan Core Data context
+                    )
+                } else {
+                    // Tampilkan pesan atau View untuk menambahkan kendaraan jika allVehicles kosong
+                    // Atau mungkin langsung menampilkan AddVehicleView jika user belum ada data kendaraan yang tersimpan di Core Data
+                    VStack {
+                        Image(systemName: "car.fill").font(.largeTitle)
+                        Text("Anda belum memiliki kendaraan. Silakan tambahkan kendaraan pertama Anda.")
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                }
             }
             .tabItem {
                 Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent")

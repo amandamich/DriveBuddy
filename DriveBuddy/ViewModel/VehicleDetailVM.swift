@@ -32,6 +32,10 @@ class VehicleDetailViewModel: ObservableObject {
     @Published var isEditing: Bool = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
+    
+    var isShowingError: Bool {
+        errorMessage != nil
+    }
 
     private let viewContext: NSManagedObjectContext
 
@@ -49,7 +53,7 @@ class VehicleDetailViewModel: ObservableObject {
     // MARK: - FUNGSI PEMUATAN DATA
     
     // Menyalin data dari objek Core Data ke properti @Published untuk form
-    private func loadVehicleData() {
+    func loadVehicleData() {
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
         // Konversi Double (dari Core Data) ke String (untuk form input)
@@ -91,7 +95,7 @@ class VehicleDetailViewModel: ObservableObject {
         // --- 3. Penyimpanan Data ---
         do {
             try viewContext.save()
-            successMessage = "Detail kendaraan berhasil diperbarui! 🎉"
+            successMessage = "Detail kendaraan berhasil diperbarui!"
             isEditing = false // Keluar dari mode edit
         } catch {
             errorMessage = "Gagal memperbarui kendaraan: \(error.localizedDescription)"
