@@ -24,8 +24,12 @@ class AuthenticationViewModel: ObservableObject {
         self.viewContext = context
         checkExistingSession()
     }
-    // Sign Up
+
+    // MARK: - Sign Up
     func signUp() {
+        // clear old error first
+        errorMessage = nil
+
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Please enter email and password"
             return
@@ -49,6 +53,7 @@ class AuthenticationViewModel: ObservableObject {
                 currentUser = newUser
                 isAuthenticated = true
                 saveSession(user: newUser)
+                errorMessage = nil
             } else {
                 errorMessage = "Email already registered"
             }
@@ -57,8 +62,11 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // Login
+    // MARK: - Login
     func login() {
+        // reset before each attempt
+        errorMessage = nil
+
         guard !email.isEmpty, !password.isEmpty else {
             errorMessage = "Please fill all fields"
             return
@@ -69,11 +77,17 @@ class AuthenticationViewModel: ObservableObject {
 
         do {
             let users = try viewContext.fetch(request)
-            if let user = users.first, user.password_hash == hash(password) {
-                currentUser = user
-                isAuthenticated = true
-                saveSession(user: user)
+            if let user = users.first {
+                if user.password_hash == hash(password) {
+                    currentUser = user
+                    isAuthenticated = true
+                    saveSession(user: user)
+                    errorMessage = nil
+                } else {
+                    errorMessage = "Invalid email or password"
+                }
             } else {
+                // user not found
                 errorMessage = "Invalid email or password"
             }
         } catch {
@@ -81,14 +95,14 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    //Hashing (for demo only)
+    // MARK: - Hashing
     private func hash(_ input: String) -> String {
         let data = Data(input.utf8)
         let hashed = SHA256.hash(data: data)
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 
-    // Session Handling
+    // MARK: - Session Handling
     private func saveSession(user: User) {
         UserDefaults.standard.set(user.user_id?.uuidString, forKey: "currentUserID")
     }
