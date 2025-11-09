@@ -36,9 +36,11 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: 15) {
                     // MARK: - Header
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("DriveBuddy")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
+//                        Text("DriveBuddy")
+//                            .font(.system(size: 28, weight: .bold))
+//                            .foregroundColor(.white)
+						Image("LogoDriveBuddy")
+							.resizable().scaledToFit().frame(width: 180, height: 40)
 
                         Text("Hello, \(authVM.currentUser?.email ?? "User") 👋")
                             .font(.system(size: 18, weight: .medium))

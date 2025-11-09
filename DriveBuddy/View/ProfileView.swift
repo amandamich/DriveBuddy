@@ -31,20 +31,23 @@ struct ProfileView: View {
 
                 VStack(alignment: .leading, spacing: 0) {
                     // MARK: - Header
-                    HStack(spacing: 12) {
-                        Image(systemName: "car.fill")
-                            .font(.title2)
-                            .foregroundColor(Color("AccentNeon"))
-
-                        Text("DriveBuddy")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
-
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
-                    .padding(.bottom, 40)
+//                    HStack(spacing: 12) {
+//                        Image(systemName: "car.fill")
+//                            .font(.title2)
+//                            .foregroundColor(Color("AccentNeon"))
+//
+//                        Text("DriveBuddy")
+//                            .font(.system(size: 20, weight: .semibold))
+//                            .foregroundColor(Color("TextPrimary"))
+//
+//                        Spacer()
+//                    }
+//                    .padding(.horizontal)
+//                    .padding(.top, 20)
+//                    .padding(.bottom, 40)
+					Image("LogoDriveBuddy")
+						.resizable().scaledToFit().frame(width: 180, height: 40)
+						.padding(.bottom)
 
                     // MARK: - Profile Title
                     Text("Profile")
@@ -56,7 +59,7 @@ struct ProfileView: View {
                     // MARK: - User Info
                     VStack(alignment: .leading, spacing: 2) {
                         Text(profileVM.user?.email?.components(separatedBy: "@").first ?? "User")
-                            .font(.system(size: 28, weight: .semibold))
+                            .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(Color("TextPrimary"))
 
                         Text(profileVM.user?.email ?? "No email found")
