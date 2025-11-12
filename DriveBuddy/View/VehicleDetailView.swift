@@ -116,8 +116,8 @@ struct VehicleDetailView: View {
                     .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     
-                    // MARK: Upcoming Services & Tax Section (Masih Statis)
-                    HStack(alignment: .top, spacing: 16) {
+        // MARK: Upcoming Services & Tax Section (Masih Statis)
+            HStack(alignment: .top, spacing: 16) {
                         InfoCard(
                             icon: "wrench.and.screwdriver.fill", title: "Upcoming Services",
                             subtitle: "Tire Rotation", date: "1 November 2025"
@@ -130,17 +130,17 @@ struct VehicleDetailView: View {
                     .frame(height: 130)
                     .padding(.horizontal)
                     
-                    // MARK: Last Service Section (Tombol Terhubung)
+            // MARK: Last Service Section (Tombol Terhubung)
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Last Service")
                                 .font(.headline).foregroundColor(.white)
                             Spacer()
-                            Button(action: {
-                                showAddService = true // Menggunakan @State lokal
+                    Button(action: {
+                            showAddService = true // Menggunakan @State lokal
                             }) {
-                                Text("Add a service")
-                                    .font(.subheadline).fontWeight(.semibold)
+                    Text("Add a service")
+                             .font(.subheadline).fontWeight(.semibold)
                                     .padding(.vertical, 10).padding(.horizontal, 22)
                                     .background(Color.blue).cornerRadius(25).foregroundColor(.white)
                             }
@@ -180,8 +180,23 @@ struct VehicleDetailView: View {
         
         // MARK: Sheets (Terhubung ke VM dan State)
         .sheet(isPresented: $showAddService) {
-            // AddServiceView() // Tampilan Anda untuk menambah servis
+            NavigationView {
+                AddServiceView(vehicle: viewModel.activeVehicle, context: viewContext)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: {
+                                showAddService = false
+                            }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+            }
+            .presentationDetents([.large])
         }
+
         
         // Sheet ini dikontrol oleh ViewModel
         .sheet(isPresented: $viewModel.isEditing) {

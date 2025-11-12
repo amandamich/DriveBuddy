@@ -6,49 +6,50 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct AddServiceView: View {
     @Environment(\.dismiss) var dismiss
-    
-    @State private var serviceName: String = ""
-    @State private var selectedDate: Date = Date()
-    @State private var odometer: String = ""
-    @State private var reminder: String = "One month before"
-    @State private var addToReminder: Bool = true
-    
-    let reminderOptions = ["One week before", "Two weeks before", "One month before"]
-    
+    @Environment(\.managedObjectContext) private var viewContext
+
+    // MARK: - ViewModel
+    @StateObject private var viewModel: AddServiceViewModel
+
+    // MARK: - Init
+    init(vehicle: Vehicles, context: NSManagedObjectContext) {
+        _viewModel = StateObject(wrappedValue: AddServiceViewModel(context: context, vehicle: vehicle))
+    }
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    
+
                     // MARK: Header
                     Text("Add Service")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top)
-                    
+
                     // MARK: Service Info Section
-                    SectionBox(title: "Service Info", icon: "wrench.fill") {
+                    SectionBoxService(title: "Service Info", icon: "wrench.fill") {
                         VStack(alignment: .leading, spacing: 15) {
-                            
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Service Name")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("Oil Service", text: $serviceName)
-                                    .textFieldStyle(CustomTextFieldStyle())
+                                TextField("Oil Service", text: $viewModel.serviceName)
+                                    .textFieldStyle(CustomTextFieldStyleService())
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Date")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 HStack {
-                                    DatePicker("", selection: $selectedDate, displayedComponents: .date)
+                                    DatePicker("", selection: $viewModel.selectedDate, displayedComponents: .date)
                                         .labelsHidden()
                                         .datePickerStyle(.compact)
                                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -57,33 +58,33 @@ struct AddServiceView: View {
                                 .background(Color.white)
                                 .cornerRadius(10)
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Current Odometer (km)")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("47901", text: $odometer)
+                                TextField("47901", text: $viewModel.odometer)
                                     .keyboardType(.numberPad)
-                                    .textFieldStyle(CustomTextFieldStyle())
+                                    .textFieldStyle(CustomTextFieldStyleService())
                             }
                         }
                     }
-                    
+
                     // MARK: Reminder Section
-                    SectionBox(title: "Reminder Settings", icon: "bell.badge.fill") {
+                    SectionBoxService(title: "Reminder Settings", icon: "bell.badge.fill") {
                         VStack(alignment: .leading, spacing: 15) {
-                            
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Reminders")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 Menu {
-                                    ForEach(reminderOptions, id: \.self) { option in
-                                        Button(option) { reminder = option }
+                                    ForEach(viewModel.reminderOptions, id: \.self) { option in
+                                        Button(option) { viewModel.reminder = option }
                                     }
                                 } label: {
                                     HStack {
-                                        Text(reminder)
+                                        Text(viewModel.reminder)
                                             .foregroundColor(.black)
                                         Spacer()
                                         Image(systemName: "chevron.down")
@@ -94,22 +95,25 @@ struct AddServiceView: View {
                                     .cornerRadius(10)
                                 }
                             }
-                            
+
                             HStack {
                                 Text("Add to Reminder")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 Spacer()
-                                Toggle("", isOn: $addToReminder)
+                                Toggle("", isOn: $viewModel.addToReminder)
                                     .toggleStyle(SwitchToggleStyle(tint: .blue))
                             }
                             .padding(.top, 6)
                         }
                     }
-                    
+
                     // MARK: Add Button
                     Button(action: {
-                        dismiss()
+                        viewModel.addService()
+                        if viewModel.successMessage != nil {
+                            dismiss()
+                        }
                     }) {
                         Text("Add Service")
                             .font(.headline)
@@ -127,12 +131,24 @@ struct AddServiceView: View {
                             )
                             .shadow(color: .blue, radius: 10)
                     }
+
+                    // MARK: - Messages
+                    if let message = viewModel.errorMessage {
+                        Text(message)
+                            .foregroundColor(.red)
+                            .font(.subheadline)
+                    } else if let message = viewModel.successMessage {
+                        Text(message)
+                            .foregroundColor(.green)
+                            .font(.subheadline)
+                    }
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        // Default iOS back arrow otomatis aktif
     }
 }
 
@@ -141,7 +157,7 @@ struct SectionBoxService<Content: View>: View {
     var title: String
     var icon: String
     @ViewBuilder var content: Content
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
@@ -151,7 +167,7 @@ struct SectionBoxService<Content: View>: View {
                     .font(.headline)
                     .foregroundColor(.white)
             }
-            
+
             VStack(spacing: 12) {
                 content
             }
@@ -173,5 +189,10 @@ struct CustomTextFieldStyleService: TextFieldStyle {
 
 // MARK: - Preview
 #Preview {
-    AddServiceView()
+    let previewContext = PersistenceController.preview.container.viewContext
+    let sampleVehicle = Vehicles(context: previewContext)
+    sampleVehicle.make_model = "Honda Civic"
+    return NavigationView {
+        AddServiceView(vehicle: sampleVehicle, context: previewContext)
+    }
 }

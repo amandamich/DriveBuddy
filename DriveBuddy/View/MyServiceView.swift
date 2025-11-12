@@ -6,19 +6,29 @@
 //
 
 import SwiftUI
+import CoreData
 
 struct MyServiceView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
 
+    // MARK: - ViewModel
+    @StateObject private var viewModel: MyServiceViewModel
+
+    // MARK: - Init
+    init(vehicle: Vehicles, context: NSManagedObjectContext) {
+        _viewModel = StateObject(wrappedValue: MyServiceViewModel(context: context, vehicle: vehicle))
+    }
+
+    // MARK: - Body
     var body: some View {
         ZStack {
-            // Background
             Color.black.opacity(0.95).ignoresSafeArea()
-            
+
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    
-                    // MARK: Header
+
+                    // MARK: - Header
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
@@ -34,72 +44,94 @@ struct MyServiceView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
+
                     Spacer(minLength: 5)
-                    
-                    // MARK: Ongoing Service
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Ongoing Service")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                        
-                        ServiceCard(
-                            title: "Tire Rotation",
-                            date: "25 December 2025",
-                            detail: "50,000 km | Next : 70,000 km",
-                            type: .upcoming
-                        )
+
+                    // MARK: - Upcoming Services
+                    if !viewModel.upcomingServices.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Upcoming Service")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+
+                            ForEach(viewModel.upcomingServices, id: \.objectID) { service in
+                                ServiceCard(
+                                    title: service.service_name ?? "Unknown",
+                                    date: formatted(service.service_date),
+                                    detail: "\(Int(service.odometer)) km | Next Service",
+                                    type: ServiceType.upcoming
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                    
-                    // MARK: Last Service
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Last Service")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                        
-                        ServiceCard(
-                            title: "Oil Change",
-                            date: "2 November 2025",
-                            detail: "45,000 km | Next : 60,000 km\nBengkel Haris Mobil Surabaya\nNotes: Changes Oil and filter",
-                            type: .completed
-                        )
-                        
-                        ServiceCard(
-                            title: "Engine",
-                            date: "7 July 2025",
-                            detail: "45,000 km | Next : 60,000 km\nBengkel Jaya Anda Surabaya\nNotes: System Rem",
-                            type: .completed
-                        )
+
+                    // MARK: - Completed Services
+                    if !viewModel.completedServices.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Completed Service")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+
+                            ForEach(viewModel.completedServices, id: \.objectID) { service in
+                                ServiceCard(
+                                    title: service.service_name ?? "Unknown",
+                                    date: formatted(service.service_date),
+                                    detail: "\(Int(service.odometer)) km",
+                                    type: ServiceType.completed
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
-                    
-                    Spacer(minLength: 50)
+
+                    // MARK: - Empty State
+                    if viewModel.completedServices.isEmpty && viewModel.upcomingServices.isEmpty {
+                        VStack(spacing: 16) {
+                            Text("No services yet")
+                                .foregroundColor(.gray)
+                                .font(.headline)
+                            Text("Add a new service to see it here.")
+                                .foregroundColor(.gray.opacity(0.7))
+                                .font(.subheadline)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 60)
+                    }
                 }
                 .padding(.bottom, 80)
             }
         }
         .navigationBarBackButtonHidden(true)
     }
+
+    // MARK: - Helper
+    private func formatted(_ date: Date?) -> String {
+        guard let date else { return "Unknown Date" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
 }
 
-// MARK: - Enum untuk Status Type
+// MARK: - Enum for Service Status
 enum ServiceType {
     case upcoming
     case completed
-    
+
     var title: String {
         switch self {
         case .upcoming: return "Upcoming"
         case .completed: return "Completed"
         }
     }
-    
+
     var color: Color {
         switch self {
-        case .upcoming: return Color.orange
-        case .completed: return Color.green
+        case .upcoming: return .orange
+        case .completed: return .green
         }
     }
 }
@@ -110,7 +142,7 @@ struct ServiceCard: View {
     var date: String
     var detail: String
     var type: ServiceType
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
@@ -129,8 +161,8 @@ struct ServiceCard: View {
                     Text(date)
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.9))
-                    
-                    // Status sejajar bawah
+
+                    // Status label
                     Text(type.title)
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -150,6 +182,14 @@ struct ServiceCard: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
-    MyServiceView()
+    let context = PersistenceController.preview.container.viewContext
+    let sampleVehicle = Vehicles(context: context)
+    sampleVehicle.make_model = "Honda Brio"
+
+    return NavigationView {
+        MyServiceView(vehicle: sampleVehicle, context: context)
+            .environment(\.managedObjectContext, context)
+    }
 }
