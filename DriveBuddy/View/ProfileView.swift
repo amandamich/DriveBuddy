@@ -197,7 +197,7 @@ struct ProfileView: View {
                     Spacer()
                 }
             }
-            .navigationBarHidden(true)
+//            .navigationBarHidden(true)
         }
     }
 }

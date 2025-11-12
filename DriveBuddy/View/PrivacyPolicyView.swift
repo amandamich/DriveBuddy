@@ -87,7 +87,6 @@ struct PrivacyPolicyView: View {
 				}
 			}
 		}
-		.navigationBarHidden(true)
 	}
 }
 

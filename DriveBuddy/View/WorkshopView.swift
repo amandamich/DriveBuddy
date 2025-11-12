@@ -87,7 +87,7 @@ struct WorkshopView: View {
 					.padding()
 					.background(
 						RoundedRectangle(cornerRadius: 12)
-							.fill(Color.white.opacity(0.1))
+							.fill(Color.white.opacity(0.8))
 					)
 					.padding(.horizontal)
 					.padding(.bottom, 15)
