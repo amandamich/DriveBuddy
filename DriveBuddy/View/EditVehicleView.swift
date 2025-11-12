@@ -2,19 +2,15 @@
 //  EditVehicleView.swift
 //  DriveBuddy
 //
-//  Created by student on 05/11/25.
-//
 
 import SwiftUI
 
 struct EditVehicleView: View {
     @Environment(\.dismiss) private var dismiss
-
-    // Kita edit salinan lokal
+    
     @State private var working: Vehicle
     let onSave: (Vehicle) -> Void
 
-    // Init: bawa kendaraan awal, jadikan @State
     init(vehicle: Vehicle, onSave: @escaping (Vehicle) -> Void) {
         _working = State(initialValue: vehicle)
         self.onSave = onSave
@@ -23,35 +19,47 @@ struct EditVehicleView: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
+            
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // MARK: Header
                     Text("Edit Vehicle")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top)
-
+                    
+                    // MARK: Vehicle Info
                     VStack(alignment: .leading, spacing: 12) {
                         Group {
                             Text("Make & Model").foregroundColor(.white)
                             TextField("Enter model", text: $working.makeAndModel)
                                 .textFieldStyle(CustomTextFieldStyle())
-
+                            
                             Text("License Plate").foregroundColor(.white)
                             TextField("Enter plate", text: $working.licensePlate)
                                 .textFieldStyle(CustomTextFieldStyle())
-
+                            
                             Text("Odometer").foregroundColor(.white)
                             TextField("Enter odometer", text: $working.odometer)
                                 .textFieldStyle(CustomTextFieldStyle())
                                 .keyboardType(.numberPad)
+                            
+                            Text("Tax Due Date").foregroundColor(.white)
+                            DatePicker("", selection: $working.taxDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                         }
                     }
                     .padding()
                     .background(Color.blue.opacity(0.15))
                     .cornerRadius(15)
-
+                    
+                    // MARK: Save Button
                     Button {
-                        onSave(working)   // kirim balik hasil edit
+                        onSave(working)
                         dismiss()
                     } label: {
                         Text("Save Changes")
@@ -77,6 +85,7 @@ struct EditVehicleView: View {
         }
     }
 }
+
 
 
 #Preview {

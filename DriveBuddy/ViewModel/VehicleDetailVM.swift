@@ -1,35 +1,34 @@
 //
-//  VehicleDetailVM.swift
+//  VehicleDetailViewModel.swift
 //  DriveBuddy
 //
 //  Created by Jennifer Alicia Litan on 03/11/25.
+//  Updated by ChatGPT on 12/11/25
 //
 
 import Foundation
 import CoreData
-import Combine
 import SwiftUI
+import Combine
 
-// Menggunakan @MainActor untuk memastikan semua pembaruan UI/Published dilakukan di thread utama
 @MainActor
 class VehicleDetailViewModel: ObservableObject {
-    // MARK: - Properti Inti (Model)
-    // Objek Core Data yang akan dilihat/diedit
+    // MARK: - Core Model
     @Published var activeVehicle: Vehicles
     
-    // MARK: - Properti Form Edit (State)
-    // Properti yang mengikat (bind) ke form input di View
+    // MARK: - Form Bindings
     @Published var makeModel: String = ""
     @Published var plateNumber: String = ""
-    @Published var odometer: String = "" // String untuk input teks
+    @Published var odometer: String = ""
     @Published var taxDueDate: Date = Date()
     @Published var stnkDueDate: Date = Date()
     @Published var serviceName: String = ""
     @Published var lastServiceDate: Date = Date()
-    @Published var lastOdometer: String = "" // String untuk input teks
+    @Published var lastOdometer: String = ""
     
-    // MARK: - Properti UI/Umpan Balik
+    // MARK: - UI States
     @Published var isEditing: Bool = false
+    @Published var isShowingDeleteConfirmation: Bool = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
@@ -37,54 +36,45 @@ class VehicleDetailViewModel: ObservableObject {
         errorMessage != nil
     }
 
+    // MARK: - Core Data Context
     private let viewContext: NSManagedObjectContext
 
-    // MARK: - Inisialisasi
-    
+    // MARK: - Init
     init(context: NSManagedObjectContext, vehicle: Vehicles) {
         self.viewContext = context
-        // Menerima objek kendaraan yang akan ditampilkan
         self.activeVehicle = vehicle
-        
-        // Memuat data awal ke properti @Published
         loadVehicleData()
     }
 
-    // MARK: - FUNGSI PEMUATAN DATA
-    
-    // Menyalin data dari objek Core Data ke properti @Published untuk form
+    // MARK: - Load Data from Core Data
     func loadVehicleData() {
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
-        // Konversi Double (dari Core Data) ke String (untuk form input)
-        odometer = activeVehicle.odometer.description
+        odometer = String(format: "%.0f", activeVehicle.odometer)
         taxDueDate = activeVehicle.tax_due_date ?? Date()
         stnkDueDate = activeVehicle.stnk_due_date ?? Date()
         serviceName = activeVehicle.service_name ?? ""
         lastServiceDate = activeVehicle.last_service_date ?? Date()
-        lastOdometer = activeVehicle.last_odometer.description
+        lastOdometer = String(format: "%.0f", activeVehicle.last_odometer)
     }
 
-    // MARK: - FUNGSI EDIT DAN UPDATE
-
-    // Dipanggil saat pengguna ingin mulai mengedit
+    // MARK: - Start Editing
     func startEditing() {
-        loadVehicleData() // Memastikan data di form edit adalah yang terbaru
+        loadVehicleData()
         isEditing = true
     }
-    
-    // Dipanggil saat pengguna menekan tombol Simpan (Save)
+
+    // MARK: - Update Vehicle
     func updateVehicle() {
-        // --- 1. Validasi ---
+        // Validate basic input
         guard !makeModel.isEmpty, !plateNumber.isEmpty else {
-            errorMessage = "Nama model atau plat nomor tidak boleh kosong."
+            errorMessage = "Make & Model and Plate Number cannot be empty."
             return
         }
 
-        // --- 2. Penerapan Perubahan ke Model ---
+        // Apply changes to Core Data entity
         activeVehicle.make_model = makeModel
         activeVehicle.plate_number = plateNumber.uppercased()
-        // Konversi String (dari form) ke Double (untuk Core Data)
         activeVehicle.odometer = Double(odometer) ?? 0
         activeVehicle.tax_due_date = taxDueDate
         activeVehicle.stnk_due_date = stnkDueDate
@@ -92,30 +82,45 @@ class VehicleDetailViewModel: ObservableObject {
         activeVehicle.last_service_date = lastServiceDate
         activeVehicle.last_odometer = Double(lastOdometer) ?? 0
 
-        // --- 3. Penyimpanan Data ---
         do {
             try viewContext.save()
-            successMessage = "Detail kendaraan berhasil diperbarui!"
-            isEditing = false // Keluar dari mode edit
+            successMessage = "Vehicle details updated successfully!"
+            isEditing = false
         } catch {
-            errorMessage = "Gagal memperbarui kendaraan: \(error.localizedDescription)"
+            errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
     }
-    
-    // MARK: - FUNGSI HAPUS
 
-    // Dipanggil saat pengguna ingin menghapus kendaraan
+    // MARK: - Delete Vehicle
     func deleteVehicle() {
         viewContext.delete(activeVehicle)
-        
         do {
             try viewContext.save()
-            successMessage = "Kendaraan berhasil dihapus."
-            // Catatan: Setelah ini berhasil, VehicleDetailView harus menutup dirinya (dismiss)
+            successMessage = "Vehicle deleted successfully."
         } catch {
-            errorMessage = "Gagal menghapus kendaraan: \(error.localizedDescription)"
+            errorMessage = "Failed to delete vehicle: \(error.localizedDescription)"
         }
     }
+
+    // MARK: - Computed Helpers
+    var formattedOdometer: String {
+        if let value = Double(odometer) {
+            return String(format: "%.0f km", value)
+        }
+        return "0 km"
+    }
+
+    var formattedTaxDueDate: String {
+        format(date: taxDueDate)
+    }
+
+    var formattedSTNKDueDate: String {
+        format(date: stnkDueDate)
+    }
+
+    private func format(date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
+    }
 }
-
-
