@@ -223,7 +223,26 @@ class AddServiceViewModel: ObservableObject {
         let id = notificationIdentifier(for: service)
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [id])
     }
+    func testNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Test Notification"
+        content.body = "This is a test notification from DriveBuddy 🚗"
+        content.sound = .default
 
+        // Trigger dalam 5 detik
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+        let center = UNUserNotificationCenter.current()
+        center.add(request) { error in
+            if let error = error {
+                print("❌ Failed to schedule test notification: \(error.localizedDescription)")
+            } else {
+                print("✅ Test notification scheduled in 5 seconds")
+            }
+        }
+    }
     // MARK: - Clear Fields
     private func clearFields() {
         serviceName = ""

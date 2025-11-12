@@ -131,6 +131,28 @@ struct AddServiceView: View {
                             )
                             .shadow(color: .blue, radius: 10)
                     }
+//                    // MARK: - Test Notification Button
+//                                        Button(action: {
+//                                            // Trigger test notification (this will schedule a notification in 5 seconds)
+//                                            viewModel.testNotification()
+//                                        }) {
+//                                            Text("Test Notification")
+//                                                .font(.headline)
+//                                                .foregroundColor(.white)
+//                                                .padding()
+//                                                .frame(maxWidth: .infinity)
+//                                                .background(
+//                                                    RoundedRectangle(cornerRadius: 12)
+//                                                        .stroke(Color.green, lineWidth: 2)
+//                                                        .shadow(color: .green, radius: 8)
+//                                                        .background(
+//                                                            RoundedRectangle(cornerRadius: 12)
+//                                                                .fill(Color.black.opacity(0.5))
+//                                                        )
+//                                                )
+//                                                .shadow(color: .green, radius: 10)
+//                                        }
+//                                        .padding(.top)
 
                     // MARK: - Messages
                     if let message = viewModel.errorMessage {

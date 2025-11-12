@@ -211,16 +211,14 @@ struct LoginView: View {
                             .padding(.top, 10)
                         }
                         .position(x: 160, y: 250)
-
-                        // Mascot image
-                        VStack {
-                            Image("MascotDriveBuddy")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 250)
-                                .padding(.top, 450)
-                                .offset(x: 80, y: 85)
-                        }
+                    }
+                    // ✅ Mascot image (large, right-aligned, cropped bottom)
+                    .overlay(alignment: .bottomTrailing) {
+                        Image("MascotDriveBuddy")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 590)
+                            .offset(x: 200, y: 50)
                     }
                 }
                 .padding(.horizontal, 40)
@@ -229,12 +227,10 @@ struct LoginView: View {
                 withAnimation { isAnimating = true }
                 authVM.errorMessage = nil
             }
-
-            // ✅ Auto-navigation to HomeView after login
+            // Auto-navigation to HomeView after login
             .navigationDestination(isPresented: $authVM.isAuthenticated) {
                 HomeView(authVM: authVM)
             }
-
             .navigationTitle("")
             .navigationBarBackButtonHidden(false)
         }

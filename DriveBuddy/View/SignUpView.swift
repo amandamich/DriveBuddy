@@ -92,6 +92,11 @@ struct SignUpView: View {
                                     authVM.errorMessage = "Passwords do not match"
                                     return
                                 }
+                                // Validate email format
+                                guard authVM.validateEmail(email) else {
+                                authVM.errorMessage = "Invalid email format"
+                                                                   return
+                                                               }
 
                                 authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
                                 authVM.password = password
