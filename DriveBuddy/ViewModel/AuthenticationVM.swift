@@ -9,7 +9,6 @@ import SwiftUI
 import Combine
 import CryptoKit
 
-
 @MainActor
 class AuthenticationViewModel: ObservableObject {
     @Published var email: String = ""
@@ -22,16 +21,14 @@ class AuthenticationViewModel: ObservableObject {
 
     init(context: NSManagedObjectContext) {
         self.viewContext = context
-        checkExistingSession()
     }
 
     // MARK: - Sign Up
     func signUp() {
-        // clear old error first
         errorMessage = nil
 
         guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Please enter email and password"
+            errorMessage = "Please enter email and password."
             return
         }
 
@@ -50,25 +47,25 @@ class AuthenticationViewModel: ObservableObject {
 
                 try viewContext.save()
 
-                currentUser = newUser
-                isAuthenticated = true
-                saveSession(user: newUser)
+                // ✅ Tidak langsung login:
+                currentUser = nil
+                isAuthenticated = false
                 errorMessage = nil
             } else {
-                errorMessage = "Email already registered"
+                errorMessage = "Email already registered."
             }
         } catch {
             errorMessage = "Error creating account: \(error.localizedDescription)"
         }
     }
 
+
     // MARK: - Login
     func login() {
-        // reset before each attempt
         errorMessage = nil
 
         guard !email.isEmpty, !password.isEmpty else {
-            errorMessage = "Please fill all fields"
+            errorMessage = "Please fill in all fields."
             return
         }
 
@@ -81,18 +78,24 @@ class AuthenticationViewModel: ObservableObject {
                 if user.password_hash == hash(password) {
                     currentUser = user
                     isAuthenticated = true
-                    saveSession(user: user)
                     errorMessage = nil
                 } else {
-                    errorMessage = "Invalid email or password"
+                    errorMessage = "Invalid email or password."
                 }
             } else {
-                // user not found
-                errorMessage = "Invalid email or password"
+                errorMessage = "Invalid email or password."
             }
         } catch {
             errorMessage = "Login failed: \(error.localizedDescription)"
         }
+    }
+
+    // MARK: - Logout
+    func logout() {
+        isAuthenticated = false
+        currentUser = nil
+        email = ""
+        password = ""
     }
 
     // MARK: - Hashing
@@ -100,22 +103,5 @@ class AuthenticationViewModel: ObservableObject {
         let data = Data(input.utf8)
         let hashed = SHA256.hash(data: data)
         return hashed.map { String(format: "%02x", $0) }.joined()
-    }
-
-    // MARK: - Session Handling
-    private func saveSession(user: User) {
-        UserDefaults.standard.set(user.user_id?.uuidString, forKey: "currentUserID")
-    }
-
-    private func checkExistingSession() {
-        if let idString = UserDefaults.standard.string(forKey: "currentUserID"),
-           let uuid = UUID(uuidString: idString) {
-            let request: NSFetchRequest<User> = User.fetchRequest()
-            request.predicate = NSPredicate(format: "user_id == %@", uuid as CVarArg)
-            if let user = try? viewContext.fetch(request).first {
-                currentUser = user
-                isAuthenticated = true
-            }
-        }
     }
 }

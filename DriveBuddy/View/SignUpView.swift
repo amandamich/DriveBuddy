@@ -1,8 +1,3 @@
-//
-//  SignUpView.swift
-//  DriveBuddy
-//
-
 import SwiftUI
 import CoreData
 
@@ -13,17 +8,16 @@ struct SignUpView: View {
     @State private var password = ""
     @State private var confirmpassword = ""
     @State private var isAnimating = false
+    @State private var goToLogin = false // ✅ Tambahan
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 Color.black.opacity(0.95).ignoresSafeArea()
                 FlowingLinesView().ignoresSafeArea()
 
                 VStack {
                     ZStack(alignment: .center) {
-                        // Background glow
                         Circle()
                             .fill(Color.blue.opacity(0.5))
                             .position(x: 150, y: -270)
@@ -36,15 +30,13 @@ struct SignUpView: View {
                                 value: isAnimating
                             )
 
-                        // MARK: - Main Content
                         VStack(spacing: 30) {
-                            // Title
                             Text("Sign Up")
                                 .font(.system(size: 36, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .shadow(color: .blue, radius: 10)
 
-                            // MARK: - Email
+                            // Email
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Email")
                                     .foregroundColor(.white)
@@ -53,11 +45,11 @@ struct SignUpView: View {
                                 TextField("Enter your email", text: $email)
                                     .textFieldStyle(NeonTextFieldStyle())
                                     .keyboardType(.emailAddress)
-                                    .textInputAutocapitalization(.never) // ✅ Prevent caps lock
+                                    .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled(true)
                             }
 
-                            // MARK: - Phone Number
+                            // Phone Number
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Phone Number")
                                     .foregroundColor(.white)
@@ -68,7 +60,7 @@ struct SignUpView: View {
                                     .keyboardType(.phonePad)
                             }
 
-                            // MARK: - Password
+                            // Password
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Create a Password")
                                     .foregroundColor(.white)
@@ -78,7 +70,7 @@ struct SignUpView: View {
                                     .textFieldStyle(NeonTextFieldStyle())
                             }
 
-                            // MARK: - Confirm Password
+                            // Confirm Password
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Confirm Password")
                                     .foregroundColor(.white)
@@ -104,6 +96,11 @@ struct SignUpView: View {
                                 authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
                                 authVM.password = password
                                 authVM.signUp()
+
+                                // ✅ Setelah Sign Up, arahkan ke login view
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                    goToLogin = true
+                                }
                             }) {
                                 Text("SIGN UP")
                                     .font(.headline)
@@ -122,30 +119,15 @@ struct SignUpView: View {
                                     .shadow(color: .blue, radius: 10)
                             }
 
-                            // MARK: - Feedback Messages
+                            // Feedback Messages
                             if let error = authVM.errorMessage, !error.isEmpty {
                                 Text(error)
                                     .foregroundColor(.red)
                                     .font(.caption)
                                     .padding(.top, 8)
-                                    .transition(.opacity)
-                                    .onAppear {
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                            withAnimation {
-                                                authVM.errorMessage = nil
-                                            }
-                                        }
-                                    }
                             }
 
-                            if authVM.isAuthenticated {
-                                Text("Account created successfully!")
-                                    .foregroundColor(.green)
-                                    .font(.caption)
-                                    .padding(.top, 8)
-                            }
-
-                            // MARK: - Back to Login
+                            // Back to Login
                             NavigationLink("Already have an account? Login") {
                                 LoginView(authVM: authVM)
                             }
@@ -160,16 +142,12 @@ struct SignUpView: View {
                 withAnimation { isAnimating = true }
                 authVM.errorMessage = nil
             }
-            .navigationDestination(isPresented: $authVM.isAuthenticated) {
-                HomeView(authVM: authVM)
+            // ✅ Sekarang navigasi ke LoginView, bukan Home
+            .navigationDestination(isPresented: $goToLogin) {
+                LoginView(authVM: authVM)
             }
             .navigationTitle("")
             .navigationBarBackButtonHidden(false)
         }
     }
-}
-
-// MARK: - Preview
-#Preview {
-    SignUpView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }

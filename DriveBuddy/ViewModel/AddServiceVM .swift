@@ -81,45 +81,76 @@ class AddServiceViewModel: ObservableObject {
     }
 
     // MARK: - Add Calendar Reminder (EventKit)
+    // MARK: - Add Calendar Reminder (EventKit)
     private func addCalendarReminder(for service: ServiceHistory) {
         let eventStore = EKEventStore()
+
         eventStore.requestAccess(to: .event) { [weak self] granted, error in
             guard let self = self else { return }
+            guard granted, error == nil else {
+                print("⚠️ Calendar permission denied or error: \(error?.localizedDescription ?? "unknown")")
+                return
+            }
 
-            if granted && error == nil {
-                Task { @MainActor in
+            Task { @MainActor in
+                do {
+                    // 1) Make sure we have a writable calendar
+                    let calendar = try self.ensureDriveBuddyCalendar(eventStore: eventStore)
+
+                    // 2) Build event at the REAL service date
                     let event = EKEvent(eventStore: eventStore)
-                    event.title = "Service Reminder: \(service.service_name ?? "Vehicle Service")"
+                    let serviceDate = service.service_date ?? Date()
+
+                    event.title = "Service: \(service.service_name ?? "Vehicle Service")"
                     event.notes = """
                     Vehicle: \(self.vehicle.make_model ?? "Unknown")
                     Odometer: \(service.odometer) km
                     """
+                    event.startDate = serviceDate
+                    event.endDate = serviceDate.addingTimeInterval(60 * 60) // 1 hour
+                    event.calendar = calendar
 
-                    let reminderOffset = self.daysBeforeReminder()
-                    let baseDate = service.service_date ?? Date()
-                    let reminderDate = Calendar.current.date(byAdding: .day, value: -reminderOffset, to: baseDate) ?? Date()
+                    // 3) Add an alarm N days before the service date (at 09:00 local time)
+                    let days = self.daysBeforeReminder()
+                    let secondsBefore = TimeInterval(days * 24 * 60 * 60) * -1
+                    event.alarms = [EKAlarm(relativeOffset: secondsBefore)]
 
-                    var comps = Calendar.current.dateComponents([.year, .month, .day], from: reminderDate)
-                    comps.hour = 9
-                    comps.minute = 0
-                    let start = Calendar.current.date(from: comps) ?? reminderDate
-
-                    event.startDate = start
-                    event.endDate = start.addingTimeInterval(3600)
-                    event.calendar = eventStore.defaultCalendarForNewEvents
-
-                    do {
-                        try eventStore.save(event, span: .thisEvent)
-                        print("✅ Calendar reminder added successfully for \(service.service_name ?? "")")
-                    } catch {
-                        print("❌ Failed to save calendar event: \(error.localizedDescription)")
-                    }
+                    try eventStore.save(event, span: .thisEvent)
+                    print("✅ Calendar event saved in \(calendar.title)")
+                } catch {
+                    print("❌ Failed to create/save event: \(error.localizedDescription)")
                 }
-            } else {
-                print("⚠️ Calendar permission denied or error: \(error?.localizedDescription ?? "unknown")")
             }
         }
     }
+    // MARK: - Helper: Ensure we have a DriveBuddy calendar to save events into
+    private func ensureDriveBuddyCalendar(eventStore: EKEventStore) throws -> EKCalendar {
+        // Try to find existing one first
+        if let existing = eventStore.calendars(for: .event).first(where: { $0.title == "DriveBuddy" }) {
+            return existing
+        }
+
+        // Pick a writable source (prefer local > iCloud/CalDAV)
+        guard let source = (eventStore.sources.first { $0.sourceType == .local })
+               ?? (eventStore.sources.first { $0.sourceType == .calDAV }) // fallback iCloud
+        else {
+            throw NSError(
+                domain: "DriveBuddy",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "No writable Calendar source found"]
+            )
+        }
+
+        // Create new DriveBuddy calendar
+        let calendar = EKCalendar(for: .event, eventStore: eventStore)
+        calendar.title = "DriveBuddy"
+        calendar.source = source
+        calendar.cgColor = UIColor.systemBlue.cgColor
+
+        try eventStore.saveCalendar(calendar, commit: true)
+        return calendar
+    }
+
 
     // MARK: - Local Notifications (UserNotifications)
     private func daysBeforeReminder() -> Int {

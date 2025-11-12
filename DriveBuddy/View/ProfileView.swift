@@ -28,26 +28,15 @@ struct ProfileView: View {
                 // MARK: - Background
                 Color("BackgroundPrimary")
                     .ignoresSafeArea()
+                    .preferredColorScheme(profileVM.isDarkMode ? .dark : .light) // ✅ Dynamic Theme
 
                 VStack(alignment: .leading, spacing: 0) {
                     // MARK: - Header
-//                    HStack(spacing: 12) {
-//                        Image(systemName: "car.fill")
-//                            .font(.title2)
-//                            .foregroundColor(Color("AccentNeon"))
-//
-//                        Text("DriveBuddy")
-//                            .font(.system(size: 20, weight: .semibold))
-//                            .foregroundColor(Color("TextPrimary"))
-//
-//                        Spacer()
-//                    }
-//                    .padding(.horizontal)
-//                    .padding(.top, 20)
-//                    .padding(.bottom, 40)
-					Image("LogoDriveBuddy")
-						.resizable().scaledToFit().frame(width: 180, height: 40)
-						.padding(.bottom)
+                    Image("LogoDriveBuddy")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 180, height: 40)
+                        .padding(.bottom)
 
                     // MARK: - Profile Title
                     Text("Profile")
@@ -58,11 +47,13 @@ struct ProfileView: View {
 
                     // MARK: - User Info
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(profileVM.user?.email?.components(separatedBy: "@").first ?? "User")
+                        Text(profileVM.username.isEmpty ?
+                             (profileVM.user?.email?.components(separatedBy: "@").first ?? "User") :
+                                profileVM.username)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(Color("TextPrimary"))
 
-                        Text(profileVM.user?.email ?? "No email found")
+                        Text(profileVM.email.isEmpty ? (profileVM.user?.email ?? "No email found") : profileVM.email)
                             .font(.system(size: 15))
                             .foregroundColor(.gray)
                     }
@@ -117,6 +108,9 @@ struct ProfileView: View {
                                 Toggle("", isOn: $profileVM.isDarkMode)
                                     .labelsHidden()
                                     .tint(Color("AccentNeon"))
+                                    .onChange(of: profileVM.isDarkMode) {
+                                        profileVM.toggleDarkMode(profileVM.isDarkMode)
+                                    }
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
@@ -148,19 +142,7 @@ struct ProfileView: View {
                             NavigationLink {
                                 ChangePasswordView()
                             } label: {
-                                HStack {
-                                    Text("Change Password")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(Color("TextPrimary"))
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
+                                rowLabel("Change Password")
                             }
 
                             Divider()
@@ -171,19 +153,7 @@ struct ProfileView: View {
                             NavigationLink {
                                 PrivacyPolicyView()
                             } label: {
-                                HStack {
-                                    Text("Privacy Policy")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(Color("TextPrimary"))
-
-                                    Spacer()
-
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
+                                rowLabel("Privacy Policy")
                             }
                         }
                         .background(
@@ -196,30 +166,53 @@ struct ProfileView: View {
 
                     Spacer()
                 }
+                .onAppear {
+                    profileVM.loadProfile() // ✅ Refresh data when screen appears
+                }
             }
-//            .navigationBarHidden(true)
         }
+    }
+
+    // MARK: - Row Label Reusable Component
+    @ViewBuilder
+    private func rowLabel(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 16))
+                .foregroundColor(Color("TextPrimary"))
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.gray)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
 }
 
-#Preview("Light Mode") {
-    let context = PersistenceController.shared.container.viewContext
-    let mockUser = User(context: context)
-    mockUser.email = "preview@drivebuddy.com"
-    mockUser.add_to_calendar = true
-    let mockAuthVM = AuthenticationViewModel(context: context)
-    mockAuthVM.currentUser = mockUser
-    return ProfileView(authVM: mockAuthVM)
-        .preferredColorScheme(.light)
-}
+//#Preview("Light Mode") {
+//    let context = PersistenceController.shared.container.viewContext
+//    let mockUser = User(context: context)
+//    mockUser.email = "preview@drivebuddy.com"
+//    mockUser.add_to_calendar = true
+//    mockUser.is_dark_mode = false
+//    let mockAuthVM = AuthenticationViewModel(context: context)
+//    mockAuthVM.currentUser = mockUser
+//    return ProfileView(authVM: mockAuthVM)
+//        .preferredColorScheme(.light)
+//}
+//
+//#Preview("Dark Mode") {
+//    let context = PersistenceController.shared.container.viewContext
+//    let mockUser = User(context: context)
+//    mockUser.email = "preview@drivebuddy.com"
+//    mockUser.add_to_calendar = true
+//    mockUser.is_dark_mode = true
+//    let mockAuthVM = AuthenticationViewModel(context: context)
+//    mockAuthVM.currentUser = mockUser
+//    return ProfileView(authVM: mockAuthVM)
+//        .preferredColorScheme(.dark)
+//}
 
-#Preview("Dark Mode") {
-    let context = PersistenceController.shared.container.viewContext
-    let mockUser = User(context: context)
-    mockUser.email = "preview@drivebuddy.com"
-    mockUser.add_to_calendar = true
-    let mockAuthVM = AuthenticationViewModel(context: context)
-    mockAuthVM.currentUser = mockUser
-    return ProfileView(authVM: mockAuthVM)
-        .preferredColorScheme(.dark)
-}
