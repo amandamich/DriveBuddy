@@ -3,25 +3,21 @@ import CoreData
 
 struct VehicleDetailView: View {
     
-    // 1. Mengambil Core Data Context dari Environment
     @Environment(\.managedObjectContext) private var viewContext
     @Environment(\.dismiss) private var dismiss
     
-    // 2. ViewModel sebagai Sumber Logika dan Data
     @StateObject var viewModel: VehicleDetailViewModel
-    
-    // 3. Daftar Semua Kendaraan (untuk Dropdown)
     let allVehicles: [Vehicles]
     
-    // 4. State Lokal untuk Sheet (ini diizinkan jika VM tidak mengelolanya)
     @State private var showAddService = false
+    @State private var showMyService = false
     
-    // MARK: Inisialisasi
+    // Init
     init(initialVehicle: Vehicles, allVehicles: [Vehicles], context: NSManagedObjectContext) {
         self.allVehicles = allVehicles
-        // Meneruskan objek Vehicle spesifik ke ViewModel
-        self._viewModel = StateObject(wrappedValue: VehicleDetailViewModel(context: context, vehicle: initialVehicle))
+        _viewModel = StateObject(wrappedValue: VehicleDetailViewModel(context: context, vehicle: initialVehicle))
     }
+    
     
     var body: some View {
         ZStack {
@@ -30,21 +26,23 @@ struct VehicleDetailView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     
-                    // MARK: Header
+                    // MARK: HEADER
                     HStack {
                         Image("LogoDriveBuddy")
-                            .resizable().scaledToFit().frame(width: 180, height: 40)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 180, height: 40)
                         Spacer()
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
                     
-                    // MARK: Vehicle Dropdown (Terhubung ke VM)
+                    
+                    // MARK: VEHICLE DROPDOWN
                     Menu {
-                        ForEach(allVehicles, id: \.objectID) { v in // Gunakan objectID
+                        ForEach(allVehicles, id: \.objectID) { v in
                             Button(v.make_model ?? "Unknown") {
                                 withAnimation(.easeInOut) {
-                                    // Perintahkan VM untuk mengubah data
                                     viewModel.activeVehicle = v
                                     viewModel.loadVehicleData()
                                 }
@@ -53,110 +51,146 @@ struct VehicleDetailView: View {
                     } label: {
                         HStack {
                             Image(systemName: "car.fill")
-                                .foregroundColor(.cyan).imageScale(.medium)
+                                .foregroundColor(.cyan)
+                                .imageScale(.medium)
                             
-                            // Data dari VM
                             Text(viewModel.activeVehicle.make_model ?? "N/A")
-                                .foregroundColor(.white).bold()
+                                .foregroundColor(.white)
+                                .bold()
                             
                             Spacer()
                             
                             Image(systemName: "chevron.down")
                                 .foregroundColor(.cyan.opacity(0.9))
-                                .font(.system(size: 14, weight: .semibold))
                         }
-                        // ... (Sisa styling Anda tetap dipertahankan) ...
                         .padding(.vertical, 14)
                         .padding(.horizontal, 18)
                         .background(
                             LinearGradient(
-                                gradient: Gradient(colors: [Color.black.opacity(0.35), Color.blue.opacity(0.25)]),
-                                startPoint: .topLeading, endPoint: .bottomTrailing
+                                colors: [
+                                    Color.black.opacity(0.3),
+                                    Color.blue.opacity(0.25)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.cyan.opacity(0.5), lineWidth: 1))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
                         )
                         .cornerRadius(16)
-                        .shadow(color: Color.cyan.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .shadow(color: .cyan.opacity(0.3), radius: 7, x: 0, y: 4)
                         .padding(.horizontal)
                     }
                     
-                    // MARK: Vehicle Info Card (Terhubung ke VM)
+                    
+                    // MARK: VEHICLE INFO BOX
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .center, spacing: 20) {
-                            // Data dari VM
+                        HStack(spacing: 20) {
+                            
                             Image(viewModel.activeVehicle.vehicle_type == "Car" ? "Car" : "Motorbike")
-                                .resizable().scaledToFit().frame(width: 120, height: 70)
-                                .padding(.leading, 6)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 70)
                             
                             VStack(alignment: .leading, spacing: 6) {
-                                // Data dari VM (gunakan make_model, plate_number)
-                                Text(viewModel.activeVehicle.make_model?.uppercased() ?? "N/A")
-                                    .font(.title3).fontWeight(.bold).foregroundColor(.white)
+                                Text(viewModel.activeVehicle.make_model?.uppercased() ?? "")
+                                    .font(.title3)
+                                    .bold()
+                                    .foregroundColor(.white)
                                 
-                                Text(viewModel.activeVehicle.plate_number ?? "N/A")
-                                    .font(.subheadline).foregroundColor(.gray)
+                                Text(viewModel.activeVehicle.plate_number ?? "")
+                                    .foregroundColor(.gray)
                                 
-                                Text("\(Int(viewModel.activeVehicle.odometer)) km") // Data dari VM
-                                    .font(.headline).foregroundColor(.white)
+                                Text("\(Int(viewModel.activeVehicle.odometer)) km")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
                             }
+                            
                             Spacer()
                             
-                            // Tombol Edit (Terhubung ke VM)
-                            Button(action: {
-                                viewModel.startEditing() // Panggil fungsi VM
-                            }) {
+                            Button(action: { viewModel.startEditing() }) {
                                 Image(systemName: "pencil")
-                                    .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
                             }
                         }
                     }
                     .padding()
                     .background(Color(red: 17/255, green: 33/255, blue: 66/255))
                     .cornerRadius(18)
-                    .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
+                    .shadow(color: .cyan.opacity(0.25), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     
-        // MARK: Upcoming Services & Tax Section (Masih Statis)
-            HStack(alignment: .top, spacing: 16) {
-                        InfoCard(
-                            icon: "wrench.and.screwdriver.fill", title: "Upcoming Services",
-                            subtitle: "Tire Rotation", date: "1 November 2025"
-                        )
-                        InfoCard(
-                            icon: "banknote.fill", title: "Tax Payment",
-                            subtitle: "Next Due", date: "2 January 2026"
-                        )
+                    
+                    // MARK: UPCOMING SERVICE & TAX CLICKABLE SECTION
+                    HStack(spacing: 16) {
+                        
+                        // UPCOMING SERVICES
+                        Button(action: {
+                            showMyService = true
+                        }) {
+                            ClickableCard(
+                                icon: "wrench.and.screwdriver.fill",
+                                title: "Upcoming Services",
+                                subtitle: "Tire Rotation",
+                                date: "1 November 2025"
+                            )
+                        }
+                        
+                        // TAX PAYMENT
+                        Button(action: {
+                            print("Tax clicked")
+                        }) {
+                            ClickableCard(
+                                icon: "banknote.fill",
+                                title: "Tax Payment",
+                                subtitle: "Next Due",
+                                date: "2 January 2026"
+                            )
+                        }
                     }
-                    .frame(height: 130)
+                    .frame(height: 150)
                     .padding(.horizontal)
                     
-            // MARK: Last Service Section (Tombol Terhubung)
+                    
+                    // MARK: LAST SERVICE + BUTTON
                     VStack(alignment: .leading, spacing: 10) {
+                        
                         HStack {
                             Text("Last Service")
-                                .font(.headline).foregroundColor(.white)
+                                .foregroundColor(.white)
+                                .font(.headline)
+                            
                             Spacer()
-                    Button(action: {
-                            showAddService = true // Menggunakan @State lokal
-                            }) {
-                    Text("Add a service")
-                             .font(.subheadline).fontWeight(.semibold)
-                                    .padding(.vertical, 10).padding(.horizontal, 22)
-                                    .background(Color.blue).cornerRadius(25).foregroundColor(.white)
+                            
+                            Button(action: { showAddService = true }) {
+                                Text("Add a service")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 22)
+                                    .background(Color.blue)
+                                    .cornerRadius(25)
+                                    .foregroundColor(.white)
                             }
                         }
                         
                         Divider().background(Color.white.opacity(0.2))
                         
-                        // Data statis Anda
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Oil Service"); Text("Engine Repair")
+                                Text("Oil Service")
+                                Text("Engine Repair")
                             }
                             .foregroundColor(.white)
+                            
                             Spacer()
+                            
                             VStack(alignment: .trailing, spacing: 6) {
-                                Text("10 October 2025"); Text("27 October 2025")
+                                Text("10 October 2025")
+                                Text("27 October 2025")
                             }
                             .foregroundColor(.white.opacity(0.8))
                         }
@@ -165,28 +199,21 @@ struct VehicleDetailView: View {
                     .padding()
                     .background(Color(red: 17/255, green: 33/255, blue: 66/255))
                     .cornerRadius(18)
-                    .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
+                    .shadow(color: .cyan.opacity(0.25), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     
-                    Spacer(minLength: 50)
+                    Spacer(minLength: 60)
                 }
-                .padding(.bottom, 80)
             }
         }
-        // Swipe gesture back
-        .gesture(DragGesture().onEnded { value in
-            if value.translation.width > 100 { dismiss() }
-        })
         
-        // MARK: Sheets (Terhubung ke VM dan State)
-        .sheet(isPresented: $showAddService) {
+        // SWIPE BACK
+        .sheet(isPresented: $showMyService) {
             NavigationView {
-                AddServiceView(vehicle: viewModel.activeVehicle, context: viewContext)
+                MyServiceView(vehicle: viewModel.activeVehicle, context: viewContext)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            Button(action: {
-                                showAddService = false
-                            }) {
+                            Button(action: { showMyService = false }) {
                                 Image(systemName: "chevron.left")
                                     .font(.headline)
                                     .foregroundColor(.blue)
@@ -194,36 +221,19 @@ struct VehicleDetailView: View {
                         }
                     }
             }
-            .presentationDetents([.large])
         }
 
         
-        // Sheet ini dikontrol oleh ViewModel
+        // EDIT VEHICLE SHEET
         .sheet(isPresented: $viewModel.isEditing) {
-            // Tampilkan form edit, dengan meneruskan ViewModel
             VehicleEditFormView(viewModel: viewModel)
         }
         
-        // Menampilkan pesan sukses/error dari ViewModel
-        .alert("Error", isPresented : .constant(viewModel.isShowingError)) {
-            Button("Ok") {
-                viewModel.errorMessage = nil
-            }
-        } message: {
-            Text(viewModel.errorMessage ?? "An unknown error occured.")
-        }
-        .onReceive(viewModel.$successMessage) { message in
-            if message != nil {
-                // Anda bisa menampilkan alert sukses di sini jika mau
-                // Untuk delete, kita akan dismiss
-                if message == "Kendaraan berhasil dihapus." {
-                    dismiss()
-                }
-            }
-        }
+        
         .navigationBarBackButtonHidden(true)
     }
 }
+
 
 // MARK: - Info Card Component (Tidak berubah)
 struct InfoCard: View {
@@ -258,6 +268,57 @@ struct InfoCard: View {
         .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
     }
 }
+
+struct ClickableCard: View {
+    var icon: String
+    var title: String
+    var subtitle: String
+    var date: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                Text(title)
+            }
+            .foregroundColor(.white)
+            .font(.headline)
+            
+            Text(subtitle)
+                .foregroundColor(.white)
+                .font(.subheadline)
+            
+            HStack(spacing: 6) {
+                Image(systemName: "calendar")
+                Text(date)
+            }
+            .font(.caption)
+            .foregroundColor(.white.opacity(0.85))
+            
+            Spacer()
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 20/255, green: 36/255, blue: 70/255),
+                    Color(red: 27/255, green: 56/255, blue: 112/255)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.cyan.opacity(0.7), lineWidth: 1.5)
+        )
+        .cornerRadius(18)
+        .shadow(color: .cyan.opacity(0.35), radius: 8, x: 0, y: 5)
+    }
+}
+
 
 // MARK: - Kerangka Edit Form View (Penting)
 struct VehicleEditFormView: View {

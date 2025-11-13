@@ -28,22 +28,12 @@ struct MyServiceView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: - Header
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "chevron.left")
-                                .font(.title2)
-                                .foregroundColor(.white)
-                        }
-                        Spacer()
-                        Text("My Service")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                        Spacer()
-                        Spacer().frame(width: 24)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
+                    // MARK: - HEADER (Tanpa Back Button)
+                    Text("My Service")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 10)
 
                     Spacer(minLength: 5)
 
@@ -60,7 +50,7 @@ struct MyServiceView: View {
                                     title: service.service_name ?? "Unknown",
                                     date: formatted(service.service_date),
                                     detail: "\(Int(service.odometer)) km | Next Service",
-                                    type: ServiceType.upcoming
+                                    type: .upcoming
                                 )
                             }
                         }
@@ -80,7 +70,7 @@ struct MyServiceView: View {
                                     title: service.service_name ?? "Unknown",
                                     date: formatted(service.service_date),
                                     detail: "\(Int(service.odometer)) km",
-                                    type: ServiceType.completed
+                                    type: .completed
                                 )
                             }
                         }
@@ -116,7 +106,7 @@ struct MyServiceView: View {
     }
 }
 
-// MARK: - Enum for Service Status
+// MARK: - Enum
 enum ServiceType {
     case upcoming
     case completed
@@ -150,19 +140,19 @@ struct ServiceCard: View {
                     Text(title)
                         .font(.headline)
                         .foregroundColor(.white)
+
                     Text(detail)
                         .font(.subheadline)
                         .foregroundColor(.white.opacity(0.9))
-                        .lineSpacing(4)
                         .padding(.top, 2)
                 }
+
                 Spacer()
+
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(date)
-                        .font(.subheadline)
                         .foregroundColor(.white.opacity(0.9))
 
-                    // Status label
                     Text(type.title)
                         .font(.caption)
                         .fontWeight(.semibold)
@@ -172,7 +162,6 @@ struct ServiceCard: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
-                .frame(alignment: .bottomTrailing)
             }
         }
         .padding()
@@ -182,12 +171,10 @@ struct ServiceCard: View {
     }
 }
 
-// MARK: - Preview
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let sampleVehicle = Vehicles(context: context)
     sampleVehicle.make_model = "Honda Brio"
-
     return NavigationView {
         MyServiceView(vehicle: sampleVehicle, context: context)
             .environment(\.managedObjectContext, context)
