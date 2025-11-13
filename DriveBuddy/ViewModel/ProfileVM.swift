@@ -7,21 +7,22 @@
 
 import Foundation
 import CoreData
-import Combine
 import SwiftUI
+import Combine
 
 @MainActor
 class ProfileViewModel: ObservableObject {
     // MARK: - Published Properties
     @Published var user: User?
     @Published var addToCalendar: Bool = false
-    @Published var isDarkMode: Bool = false
+    @Published var isDarkMode: Bool = true
     @Published var username: String = ""
     @Published var email: String = ""
     @Published var successMessage: String?
     @Published var errorMessage: String?
 
     private let viewContext: NSManagedObjectContext
+    var onLogout: (() -> Void)?
 
     // MARK: - Init
     init(context: NSManagedObjectContext, user: User? = nil) {
@@ -32,44 +33,41 @@ class ProfileViewModel: ObservableObject {
 
     // MARK: - Load Profile
     func loadProfile() {
-        // Jika user belum diatur, coba ambil dari Core Data
+        // Fetch user if nil
         if user == nil {
             let request: NSFetchRequest<User> = User.fetchRequest()
             request.fetchLimit = 1
+
             if let fetched = try? viewContext.fetch(request).first {
                 self.user = fetched
             } else {
-                // Buat user baru kalau belum ada sama sekali
+                // If no user found, create one
                 let newUser = User(context: viewContext)
                 newUser.add_to_calendar = false
+                newUser.is_dark_mode = true
                 saveContext()
                 self.user = newUser
             }
         }
 
-        // Ambil nilai dari Core Data
         guard let user = user else { return }
+
+        // Load values to ViewModel
         self.email = user.email ?? ""
         self.addToCalendar = user.add_to_calendar
         self.isDarkMode = user.is_dark_mode
     }
 
-    // MARK: - Update Profile Fields
+    // MARK: - Update Profile
     func updateProfile() {
         guard let user = user else { return }
-        user.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        user.email = email.trimmingCharacters(in: .whitespaces)
         user.add_to_calendar = addToCalendar
         user.is_dark_mode = isDarkMode
-        saveContext()
 
-        successMessage = "✅ Profile updated successfully!"
-    }
-
-    // MARK: - Toggle Calendar Option
-    func toggleAddToCalendar(_ newValue: Bool) {
-        addToCalendar = newValue
-        user?.add_to_calendar = newValue
         saveContext()
+        successMessage = "Profile updated successfully!"
     }
 
     // MARK: - Toggle Dark Mode
@@ -78,15 +76,20 @@ class ProfileViewModel: ObservableObject {
         user?.is_dark_mode = newValue
         saveContext()
     }
+    // Logout
+    func logout() {
+        print("🔥 ProfileViewModel.logout() called")
+        onLogout?()   // Call AuthenticationViewModel.logout()
+    }
 
-    // MARK: - Save Context
+    // MARK: - Save Context Helper
     private func saveContext() {
         do {
             try viewContext.save()
-            print("✅ Profile changes saved.")
+            print("✅ Profile saved")
         } catch {
-            errorMessage = "❌ Failed to save profile: \(error.localizedDescription)"
-            print(errorMessage ?? "")
+            errorMessage = "Failed to save: \(error.localizedDescription)"
+            print("❌ Save error: \(error.localizedDescription)")
         }
     }
 }

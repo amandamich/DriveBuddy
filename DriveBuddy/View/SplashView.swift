@@ -12,12 +12,7 @@ struct SplashView: View {
 	@State private var buttonOpacity: Double = 0
 	@State private var logoRevealProgress: CGFloat = -100
 	@State private var logoOpacity: Double = 0
-
-	// Create Core Data context and Authentication ViewModel
-	private let viewContext = PersistenceController.shared.container.viewContext
-	@StateObject private var authVM = AuthenticationViewModel(
-		context: PersistenceController.shared.container.viewContext
-	)
+    @ObservedObject var authVM: AuthenticationViewModel
 
 	var body: some View {
 		NavigationStack {
@@ -129,5 +124,5 @@ struct SplashView: View {
 }
 
 #Preview {
-	SplashView()
+	SplashView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }

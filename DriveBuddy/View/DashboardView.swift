@@ -1,43 +1,42 @@
 import SwiftUI
 import CoreData
 
+import SwiftUI
+import CoreData
+
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
-    @StateObject private var dashboardVM: DashboardViewModel
     @State private var showingAddVehicle = false
 
-    init(authVM: AuthenticationViewModel) {
-        _authVM = ObservedObject(initialValue: authVM)
-        
-        // Fallback mock user for preview or nil case
-        let user = authVM.currentUser ?? {
-            let tempUser = User(context: authVM.viewContext)
-            tempUser.user_id = UUID()
-            tempUser.email = "preview@drivebuddy.com"
-            tempUser.password_hash = "mock"
-            tempUser.created_at = Date()
-            return tempUser
-        }()
+    @FetchRequest var vehicles: FetchedResults<Vehicles>
 
-        _dashboardVM = StateObject(
-            wrappedValue: DashboardViewModel(
-                context: authVM.viewContext,
-                user: user
-            )
+    init(authVM: AuthenticationViewModel) {
+        self.authVM = authVM
+
+        let user = authVM.currentUser!
+
+        _vehicles = FetchRequest(
+            entity: Vehicles.entity(),
+            sortDescriptors: [
+                NSSortDescriptor(key: "created_at", ascending: true) // newest at bottom
+            ],
+            predicate: NSPredicate(format: "user == %@", user)
         )
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // MARK: - Background
                 Color.black.opacity(0.95).ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 15) {
-                    // MARK: - Header
+
+                    // HEADER
                     VStack(alignment: .leading, spacing: 4) {
-						Image("LogoDriveBuddy")
-							.resizable().scaledToFit().frame(width: 180, height: 40)
+                        Image("LogoDriveBuddy")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 180, height: 40)
 
                         Text("Hello, \(authVM.currentUser?.email ?? "User") 👋")
                             .font(.system(size: 18, weight: .medium))
@@ -46,16 +45,15 @@ struct DashboardView: View {
                     .padding(.horizontal)
                     .padding(.top, 30)
 
-                    // MARK: - Title
+                    // TITLE
                     Text("Your Vehicles")
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding(.horizontal)
                         .padding(.top, 10)
 
-                    // MARK: - Vehicle List
-                    if dashboardVM.userVehicles.isEmpty {
-//                        Spacer()
+                    // LIST
+                    if vehicles.isEmpty {
                         VStack {
                             Text("No vehicles added yet.")
                                 .foregroundColor(.gray)
@@ -63,71 +61,95 @@ struct DashboardView: View {
 
                             Button(action: { showingAddVehicle = true }) {
                                 Text("+ Add Vehicle")
-								.font(.headline)
-								.foregroundColor(.white)
-								.padding(.vertical, 45)
-								.frame(maxWidth: .infinity)
-								.background(
-									RoundedRectangle(cornerRadius: 12)
-										.stroke(Color.cyan, lineWidth: 2)
-										.shadow(color: .blue, radius: 8)
-										.background(
-											RoundedRectangle(cornerRadius: 12)
-												.fill(Color.black.opacity(0.5))
-										)
-								)
-								.shadow(color: .blue, radius: 10)
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 45)
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.cyan, lineWidth: 2)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.black.opacity(0.5))
+                                            )
+                                    )
+                                    .shadow(color: .blue, radius: 10)
                             }
                             .padding(.horizontal)
                         }
                         Spacer()
+
                     } else {
                         List {
-                            ForEach(dashboardVM.userVehicles, id: \.self) { vehicle in
+                            ForEach(vehicles, id: \.vehicles_id) { vehicle in
                                 VehicleCard(
                                     vehicle: vehicle,
-                                    taxStatus: dashboardVM.taxStatus(for: vehicle),
-                                    serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
+                                    taxStatus: taxStatus(for: vehicle),
+                                    serviceStatus: serviceStatus(for: vehicle)
                                 )
                                 .listRowBackground(Color.black.opacity(0.8))
                             }
-                            .onDelete(perform: dashboardVM.deleteVehicle)
+                            .onDelete(perform: deleteVehicle)
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
-						
-						// MARK: - Floating Add Button
-						VStack {
-							Spacer()
-							HStack {
-								Spacer()
-								Button(action: { showingAddVehicle = true }) {
-									Image(systemName: "plus")
-										.font(.title2)
-										.foregroundColor(.white)
-										.padding()
-										.background(Color.blue)
-										.clipShape(Circle())
-										.shadow(radius: 5)
-								}
-								.padding()
-							}
-						}
+
+                        // FLOATING BUTTON
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Button(action: { showingAddVehicle = true }) {
+                                    Image(systemName: "plus")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .background(Color.blue)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 5)
+                                }
+                                .padding()
+                            }
+                        }
                     }
                 }
-
-                
             }
-            // MARK: - Add Vehicle Sheet
-            .sheet(isPresented: $showingAddVehicle, onDismiss: {
-                dashboardVM.fetchVehicles()
-            }) {
+            .sheet(isPresented: $showingAddVehicle) {
                 AddVehicleView(authVM: authVM)
             }
         }
     }
-}
 
+    // DELETE VEHICLE
+    private func deleteVehicle(at offsets: IndexSet) {
+        offsets.map { vehicles[$0] }.forEach { authVM.viewContext.delete($0) }
+        try? authVM.viewContext.save()
+    }
+
+    // TAX STATUS
+    private func taxStatus(for vehicle: Vehicles) -> VehicleTaxStatus {
+        guard let due = vehicle.tax_due_date else { return .unknown }
+        let days = Calendar.current.dateComponents([.day], from: Date(), to: due).day ?? 0
+
+        if days < 0 { return .overdue }
+        if days <= 7 { return .dueSoon }
+        return .valid
+    }
+
+    // SERVICE STATUS
+    private func serviceStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
+        guard let last = vehicle.last_service_date else { return .unknown }
+        guard let next = Calendar.current.date(byAdding: .month, value: 6, to: last) else { return .unknown }
+
+        let days = Calendar.current.dateComponents([.day], from: Date(), to: next).day ?? 0
+
+        if days < 0 { return .overdue }
+        if days == 1 { return .tomorrow }
+        if days <= 7 { return .soon }
+        if days <= 30 { return .upcoming }
+        return .notYet
+    }
+}
 // MARK: - Vehicle Card Component
 struct VehicleCard: View {
     var vehicle: Vehicles
@@ -136,7 +158,7 @@ struct VehicleCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // MARK: - Vehicle Info
+
             Text(vehicle.make_model ?? "Unknown Vehicle")
                 .font(.headline)
                 .foregroundColor(.white)
@@ -145,13 +167,15 @@ struct VehicleCard: View {
                 .foregroundColor(.gray)
                 .font(.subheadline)
 
-            // MARK: - Tax Info
             HStack {
-                Label("Tax: \(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")", systemImage: "calendar")
-                    .foregroundColor(.white)
-                    .font(.caption)
-                Spacer()
+                Label(
+                    "Tax: \(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")",
+                    systemImage: "calendar"
+                )
+                .foregroundColor(.white)
+                .font(.caption)
 
+                Spacer()
                 Text(taxStatus.label)
                     .font(.caption)
                     .padding(.vertical, 4)
@@ -161,13 +185,15 @@ struct VehicleCard: View {
                     .foregroundColor(.white)
             }
 
-            // MARK: - Service Info
             HStack {
-                Label("Next Service: \(nextServiceDateText(for: vehicle))", systemImage: "wrench.and.screwdriver.fill")
-                    .foregroundColor(.white)
-                    .font(.caption)
-                Spacer()
+                Label(
+                    "Next Service: \(nextServiceDateText)",
+                    systemImage: "wrench.and.screwdriver.fill"
+                )
+                .foregroundColor(.white)
+                .font(.caption)
 
+                Spacer()
                 Text(serviceStatus.label)
                     .font(.caption)
                     .padding(.vertical, 4)
@@ -186,40 +212,13 @@ struct VehicleCard: View {
         )
     }
 
-    // MARK: - Compute Next Service Date Text
-    private func nextServiceDateText(for vehicle: Vehicles) -> String {
-        guard let lastServiceDate = vehicle.last_service_date else { return "N/A" }
-        if let nextService = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate) {
-            return nextService.formatted(date: .abbreviated, time: .omitted)
+    // 🔥 FIX: THIS MUST BE INSIDE VEHICLECARD, NOT IN DASHBOARDVIEW
+    private var nextServiceDateText: String {
+        guard let last = vehicle.last_service_date else { return "N/A" }
+        if let next = Calendar.current.date(byAdding: .month, value: 6, to: last) {
+            return next.formatted(date: .abbreviated, time: .omitted)
         }
         return "N/A"
     }
 }
 
-// MARK: - Preview
-#Preview {
-    let context = PersistenceController.shared.container.viewContext
-
-    // Mock user
-    let mockUser = User(context: context)
-    mockUser.user_id = UUID()
-    mockUser.email = "preview@drivebuddy.com"
-    mockUser.password_hash = "mockhash"
-    mockUser.created_at = Date()
-
-    // Mock vehicle
-    let mockVehicle = Vehicles(context: context)
-    mockVehicle.make_model = "Honda Brio"
-    mockVehicle.vehicle_type = "Car"
-    mockVehicle.plate_number = "B 9876 FG"
-    mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-    mockVehicle.odometer = 25000
-    mockVehicle.user = mockUser
-
-    let mockAuthVM = AuthenticationViewModel(context: context)
-    mockAuthVM.currentUser = mockUser
-    mockAuthVM.isAuthenticated = true
-
-    return DashboardView(authVM: mockAuthVM)
-}

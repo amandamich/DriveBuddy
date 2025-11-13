@@ -44,6 +44,7 @@ class AuthenticationViewModel: ObservableObject {
                 newUser.password_hash = hash(password)
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
+                newUser.is_dark_mode = true 
 
                 try viewContext.save()
 
@@ -102,6 +103,7 @@ class AuthenticationViewModel: ObservableObject {
         currentUser = nil
         email = ""
         password = ""
+        
     }
 
     // MARK: - Hashing
