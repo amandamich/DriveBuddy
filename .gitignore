@@ -9,3 +9,4 @@
 # Ini juga bagus untuk ditambahkan (file konfigurasi Core Data sementara)
 *.sqlite-shm
 *.sqlite-wal
+*.xcuserstate
