@@ -19,6 +19,7 @@ struct PersistenceController {
             // --- TAMBAHKAN DUMMY DATA KE CONTEXT ---
             // Contoh: Membuat satu Vehicles untuk Preview
             let newVehicle = Vehicles(context: viewContext)
+            newVehicle.vehicles_id = UUID()
             newVehicle.make_model = "Avanza Merah"
             newVehicle.plate_number = "N 1234 XX"
             newVehicle.odometer = 50000
