@@ -188,7 +188,7 @@ struct ProfileView: View {
                         )
                         .padding(.horizontal)
                     }
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 25)
 
                     // MARK: - Logout Button (di luar Account Section)
                     
@@ -378,15 +378,49 @@ struct EditProfileView: View {
         }
     }
 }
-
 // MARK: - Preview
 
 #Preview {
-    let context = PersistenceController.preview.container.viewContext
-    let authVM = AuthenticationViewModel(context: context)
-    authVM.email = "preview@drivebuddy.com"
-
-    return ProfileView(authVM: authVM)
-        .environment(\.managedObjectContext, context)
+	let context = PersistenceController.shared.container.viewContext
+	let authVM = AuthenticationViewModel(context: context)
+	
+	// Create a mock user for preview
+	let mockUser = User(context: context)
+	mockUser.email = "preview@drivebuddy.com"
+	mockUser.add_to_calendar = true
+	
+	authVM.currentUser = mockUser
+	
+	return ProfileView(authVM: authVM)
+		.environment(\.managedObjectContext, context)
 }
 
+#Preview("Dark Mode") {
+	let context = PersistenceController.shared.container.viewContext
+	let authVM = AuthenticationViewModel(context: context)
+	
+	let mockUser = User(context: context)
+	mockUser.email = "preview@drivebuddy.com"
+	mockUser.add_to_calendar = true
+	
+	authVM.currentUser = mockUser
+	
+	return ProfileView(authVM: authVM)
+		.preferredColorScheme(.dark)
+		.environment(\.managedObjectContext, context)
+}
+
+#Preview("Light Mode") {
+	let context = PersistenceController.shared.container.viewContext
+	let authVM = AuthenticationViewModel(context: context)
+	
+	let mockUser = User(context: context)
+	mockUser.email = "preview@drivebuddy.com"
+	mockUser.add_to_calendar = true
+	
+	authVM.currentUser = mockUser
+	
+	return ProfileView(authVM: authVM)
+		.preferredColorScheme(.light)
+		.environment(\.managedObjectContext, context)
+}
