@@ -44,18 +44,13 @@ struct VehicleDetailView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-                    // Di dalam VehicleDetailView, di bawah header logo
-                    Text("Debug: Total Kendaraan = \(allVehicles.count)")
-                        .font(.caption)
-                        .foregroundColor(.red)
                     
                     // MARK: VEHICLE DROPDOWN
                     Menu {
                         ForEach(allVehicles, id: \.objectID) { v in
                             Button(v.make_model ?? "Unknown") {
                                 withAnimation(.easeInOut) {
-                                    // cek jika relasi user di v sama dengan user aktif di VM, ini memastikan User B tidak bisa pindah ke mobil milik User A
-                                    if v.user == viewModel.activeUser {
+                        if v.user == viewModel.activeUser {
                                         viewModel.activeVehicle = v
                                         viewModel.loadVehicleData()
                                         
@@ -142,32 +137,32 @@ struct VehicleDetailView: View {
                     .padding(.horizontal)
                     
                     
-                    // MARK: UPCOMING SERVICE & TAX CLICKABLE SECTION
+                    // MARK: UPCOMING SERVICE & TAX CLICKABLE SECTION (CONNECTED TO CORE DATA)
                     HStack(spacing: 16) {
                         
-                        // UPCOMING SERVICES
+                        // UPCOMING SERVICES - Connected to Core Data
                         Button(action: {
                             showMyService = true
                         }) {
                             ClickableCard(
                                 icon: "wrench.and.screwdriver.fill",
                                 title: "Upcoming Services",
-                                subtitle: "Tire Rotation",
-                                date: "1 November 2025"
+                                subtitle: viewModel.serviceName.isEmpty ? "No service scheduled" : viewModel.serviceName,
+                                date: viewModel.formatDate(viewModel.lastServiceDate)
                             )
                         }
                         .buttonStyle(CardButtonStyle())
                         .frame(maxWidth: .infinity)
                         
-                        // TAX PAYMENT
+                        // TAX PAYMENT - Connected to Core Data
                         Button(action: {
-                            print("Tax clicked")
+                            print("Tax clicked - Due: \(viewModel.formatDate(viewModel.taxDueDate))")
                         }) {
                             ClickableCard(
                                 icon: "banknote.fill",
                                 title: "Tax Payment",
                                 subtitle: "Next Due",
-                                date: "2 January 2026"
+                                date: viewModel.formatDate(viewModel.taxDueDate)
                             )
                         }
                         .buttonStyle(CardButtonStyle())
@@ -236,7 +231,6 @@ struct VehicleDetailView: View {
         // SWIPE BACK
         .sheet(isPresented: $showMyService) {
             NavigationView {
-                // Catatan: MyServiceView harus didefinisikan untuk kompilasi berhasil
                 MyServiceView(
                     vehicle: viewModel.activeVehicle,
                     context: viewContext,
@@ -257,7 +251,6 @@ struct VehicleDetailView: View {
         
         // EDIT VEHICLE SHEET
         .sheet(isPresented: $viewModel.isEditing) {
-            // PENTING: Nama View ini harus sesuai dengan struct di bawah
             EditVehicleView(viewModel: viewModel)
         }
         
@@ -357,55 +350,6 @@ struct ClickableCard: View {
 }
 
 
-// MARK: - Edit Form View
-// Saya mengubah nama dari VehicleEditFormView menjadi EditVehicleView agar sesuai dengan panggilan di baris 254
-//struct EditVehicleView: View {
-//    // Menerima ViewModel yang sama
-//    @ObservedObject var viewModel: VehicleDetailViewModel
-//    @Environment(\.dismiss) private var dismiss
-//    
-//    var body: some View {
-//        NavigationView {
-//            Form {
-//                Section(header: Text("Informasi Kendaraan")) {
-//                    // Binding ($) ke properti di VM
-//                    TextField("Make and Model", text: $viewModel.makeModel)
-//                    TextField("Plate Number", text: $viewModel.plateNumber)
-//                }
-//                Section(header: Text("Data")) {
-//                    TextField("Odometer", text: $viewModel.odometer)
-//                        .keyboardType(.numberPad)
-//                    DatePicker("Tax Due Date", selection: $viewModel.taxDueDate, displayedComponents: .date)
-//                }
-//                
-//                Section {
-//                    Button("Delete Vehicle", role: .destructive) {
-//                        viewModel.deleteVehicle()
-//                        dismiss() // Tutup form
-//                    }
-//                }
-//            }
-//            .navigationTitle("Edit Vehicle")
-//            .toolbar {
-//                ToolbarItem(placement: .navigationBarLeading) {
-//                    Button("Cancel") {
-//                        dismiss() // Tutup sheet
-//                    }
-//                }
-//                ToolbarItem(placement: .navigationBarTrailing) {
-//                    Button("Save") {
-//                        viewModel.updateVehicle() // Panggil fungsi save di VM
-//                        // VM akan otomatis menutup sheet jika sukses
-//                        if viewModel.successMessage != nil {
-//                            dismiss()
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
-
 // MARK: - Preview Helper Functions
 
 private func setupUser(context: NSManagedObjectContext) -> User {
@@ -421,8 +365,10 @@ private func setupVehicle(context: NSManagedObjectContext, makeModel: String, pl
     vehicle.plate_number = plate
     vehicle.vehicle_type = "Car"
     vehicle.odometer = odometer
-    vehicle.tax_due_date = Date().addingTimeInterval(86400 * 365) // Set 1 tahun ke depan
-    vehicle.user = user // <<< PENTING: Menautkan ke User
+    vehicle.tax_due_date = Date().addingTimeInterval(86400 * 60) // 60 days from now
+    vehicle.service_name = "Oil Change"
+    vehicle.last_service_date = Date().addingTimeInterval(86400 * 30) // 30 days from now
+    vehicle.user = user
     return vehicle
 }
 
@@ -442,7 +388,7 @@ private func setupVehicle(context: NSManagedObjectContext, makeModel: String, pl
         initialVehicle: dummyVehicle,
         allVehicles: [dummyVehicle, dummyVehicle2],
         context: context,
-        activeUser: dummyUser // <<< Perbaikan Krusial: User Aktif harus ada
+        activeUser: dummyUser
     )
     .environment(\.managedObjectContext, context)
 }

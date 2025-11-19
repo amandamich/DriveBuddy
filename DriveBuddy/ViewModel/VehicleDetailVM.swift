@@ -3,7 +3,7 @@
 //  DriveBuddy
 //
 //  Created by Jennifer Alicia Litan on 03/11/25.
-//  Updated by ChatGPT on 12/11/25
+//
 //
 
 import Foundation
@@ -150,4 +150,10 @@ class VehicleDetailViewModel: ObservableObject {
         formatter.dateStyle = .medium
         return formatter.string(from: date)
     }
+
+    func formatDate(_ date: Date) -> String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "d MMMM yyyy"
+            return formatter.string(from: date)
+        }
 }
