@@ -121,7 +121,7 @@ struct VehicleDetailView: View {
                                 Text(viewModel.plateNumber.isEmpty ? "No Plat" : viewModel.plateNumber)
                                     .foregroundColor(.gray)
                                 
-                                Text("\(viewModel.formattedOdometer)") // Pastikan Anda punya computed property ini di VM, atau gunakan viewModel.odometer
+                                Text("\(viewModel.formattedOdometer)")
                                     .foregroundColor(.white)
                                     .font(.headline)
                             }
@@ -229,9 +229,9 @@ struct VehicleDetailView: View {
             }
         }
         .onAppear {
-                print("[Debug] VehicleDetailView Muncul")
-                viewModel.loadVehicleData() // Paksa muat ulang data saat layar tampil
-            }
+            print("[Debug] VehicleDetailView Muncul")
+            viewModel.loadVehicleData() // Paksa muat ulang data saat layar tampil
+        }
         
         // SWIPE BACK
         .sheet(isPresented: $showMyService) {
@@ -242,21 +242,22 @@ struct VehicleDetailView: View {
                     context: viewContext,
                     activeUser: viewModel.activeUser
                 )
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button(action: { showMyService = false }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
-                            }
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: { showMyService = false }) {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                                .foregroundColor(.blue)
                         }
                     }
+                }
             }
         }
         
         
         // EDIT VEHICLE SHEET
         .sheet(isPresented: $viewModel.isEditing) {
+            // PENTING: Nama View ini harus sesuai dengan struct di bawah
             EditVehicleView(viewModel: viewModel)
         }
         
@@ -356,60 +357,57 @@ struct ClickableCard: View {
 }
 
 
-<<<<<<< Updated upstream
-// MARK: - Preview
-private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double) -> Vehicles {
-=======
-// MARK: - Kerangka Edit Form View (Penting)
-struct VehicleEditFormView: View {
-    // Menerima ViewModel yang sama
-    @ObservedObject var viewModel: VehicleDetailViewModel
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Informasi Kendaraan")) {
-                    // Binding ($) ke properti di VM
-                    TextField("Make and Model", text: $viewModel.makeModel)
-                    TextField("Plate Number", text: $viewModel.plateNumber)
-                }
-                Section(header: Text("Data")) {
-                    TextField("Odometer", text: $viewModel.odometer)
-                        .keyboardType(.numberPad)
-                    DatePicker("Tax Due Date", selection: $viewModel.taxDueDate, displayedComponents: .date)
-                }
-                
-                Section {
-                    Button("Delete Vehicle", role: .destructive) {
-                        viewModel.deleteVehicle()
-                        dismiss() // Tutup form
-                    }
-                }
-            }
-            .navigationTitle("Edit Vehicle")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss() // Tutup sheet
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        viewModel.updateVehicle() // Panggil fungsi save di VM
-                        // VM akan otomatis menutup sheet jika sukses
-                        if viewModel.successMessage != nil {
-                            dismiss()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
+// MARK: - Edit Form View
+// Saya mengubah nama dari VehicleEditFormView menjadi EditVehicleView agar sesuai dengan panggilan di baris 254
+//struct EditVehicleView: View {
+//    // Menerima ViewModel yang sama
+//    @ObservedObject var viewModel: VehicleDetailViewModel
+//    @Environment(\.dismiss) private var dismiss
+//    
+//    var body: some View {
+//        NavigationView {
+//            Form {
+//                Section(header: Text("Informasi Kendaraan")) {
+//                    // Binding ($) ke properti di VM
+//                    TextField("Make and Model", text: $viewModel.makeModel)
+//                    TextField("Plate Number", text: $viewModel.plateNumber)
+//                }
+//                Section(header: Text("Data")) {
+//                    TextField("Odometer", text: $viewModel.odometer)
+//                        .keyboardType(.numberPad)
+//                    DatePicker("Tax Due Date", selection: $viewModel.taxDueDate, displayedComponents: .date)
+//                }
+//                
+//                Section {
+//                    Button("Delete Vehicle", role: .destructive) {
+//                        viewModel.deleteVehicle()
+//                        dismiss() // Tutup form
+//                    }
+//                }
+//            }
+//            .navigationTitle("Edit Vehicle")
+//            .toolbar {
+//                ToolbarItem(placement: .navigationBarLeading) {
+//                    Button("Cancel") {
+//                        dismiss() // Tutup sheet
+//                    }
+//                }
+//                ToolbarItem(placement: .navigationBarTrailing) {
+//                    Button("Save") {
+//                        viewModel.updateVehicle() // Panggil fungsi save di VM
+//                        // VM akan otomatis menutup sheet jika sukses
+//                        if viewModel.successMessage != nil {
+//                            dismiss()
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
 
-// MARK: - Preview (Diperbarui untuk Core Data)
-// Tambahkan fungsi pembantu ini di luar struct View Anda
+// MARK: - Preview Helper Functions
+
 private func setupUser(context: NSManagedObjectContext) -> User {
     let user = User(context: context)
     user.user_id = UUID()
@@ -418,7 +416,6 @@ private func setupUser(context: NSManagedObjectContext) -> User {
 }
 
 private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double, user: User) -> Vehicles {
->>>>>>> Stashed changes
     let vehicle = Vehicles(context: context)
     vehicle.make_model = makeModel
     vehicle.plate_number = plate
@@ -433,20 +430,15 @@ private func setupVehicle(context: NSManagedObjectContext, makeModel: String, pl
 #Preview {
     let context = PersistenceController.preview.container.viewContext
 
-<<<<<<< Updated upstream
-    let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000)
-    let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000)
-=======
     // 1. Buat Dummy User
     let dummyUser = setupUser(context: context)
     
     // 2. Buat Dummy Vehicles yang terikat ke User
     let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000, user: dummyUser)
     let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000, user: dummyUser)
->>>>>>> Stashed changes
 
     // 3. Inisialisasi View dengan User Aktif
-    VehicleDetailView(
+    return VehicleDetailView(
         initialVehicle: dummyVehicle,
         allVehicles: [dummyVehicle, dummyVehicle2],
         context: context,

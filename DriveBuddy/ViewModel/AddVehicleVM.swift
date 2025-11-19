@@ -27,12 +27,7 @@ class AddVehicleViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
-<<<<<<< Updated upstream
-    
-    private let viewContext: NSManagedObjectContext
-=======
     private let context: NSManagedObjectContext
->>>>>>> Stashed changes
     private let user: User
 
     // MARK: - Init

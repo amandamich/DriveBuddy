@@ -113,7 +113,6 @@ final class AuthenticationViewModel: ObservableObject {
     
     // MARK: - Validate Email
     func validateEmail(_ email: String) -> Bool {
-<<<<<<< Updated upstream
             let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
             let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
             return emailPredicate.evaluate(with: email)
@@ -171,11 +170,6 @@ final class AuthenticationViewModel: ObservableObject {
             errorMessage = "Failed to update password: \(error.localizedDescription)"
             return false
         }
-=======
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
-        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-        return emailPredicate.evaluate(with: email)
->>>>>>> Stashed changes
     }
 
     // MARK: - Logout (Diperbaiki)
