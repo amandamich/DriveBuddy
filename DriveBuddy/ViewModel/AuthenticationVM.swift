@@ -1,6 +1,6 @@
 //
-//  AuthenticationVM.swift
-//  DriveBuddy
+//  AuthenticationViewModel.swift
+//  DriveBuddy
 //
 
 import Foundation
@@ -10,13 +10,15 @@ import Combine
 import CryptoKit
 
 @MainActor
-class AuthenticationViewModel: ObservableObject {
+final class AuthenticationViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
     @Published var isAuthenticated: Bool = false
-    @Published var currentUser: User?
     @Published var errorMessage: String?
-
+    @Published var currentUser: User?
+    // Properti ini digunakan oleh HomeView untuk fetch data yang relevan
+    @Published var currentUserID: String? // Menyimpan UUID pengguna aktif sebagai String
+    
     let viewContext: NSManagedObjectContext
 
     init(context: NSManagedObjectContext) {
@@ -31,6 +33,11 @@ class AuthenticationViewModel: ObservableObject {
             errorMessage = "Please enter email and password."
             return
         }
+        
+        guard validateEmail(email) else {
+            errorMessage = "Invalid email format."
+            return
+        }
 
         let request: NSFetchRequest<User> = User.fetchRequest()
         request.predicate = NSPredicate(format: "email == %@", email.lowercased())
@@ -39,7 +46,10 @@ class AuthenticationViewModel: ObservableObject {
             let users = try viewContext.fetch(request)
             if users.isEmpty {
                 let newUser = User(context: viewContext)
-                newUser.user_id = UUID()
+                // Pastikan user_id disimpan sebagai UUID
+                let newUserID = UUID()
+                
+                newUser.user_id = newUserID
                 newUser.email = email.lowercased()
                 newUser.password_hash = hash(password)
                 newUser.add_to_calendar = false
@@ -47,10 +57,13 @@ class AuthenticationViewModel: ObservableObject {
 
                 try viewContext.save()
 
-                // ✅ Tidak langsung login:
+                // Memberikan pesan sukses dan mereset status
+                errorMessage = "Registration successful! Please login."
+                
+                // Reset status login
                 currentUser = nil
                 isAuthenticated = false
-                errorMessage = nil
+                currentUserID = nil
             } else {
                 errorMessage = "Email already registered."
             }
@@ -60,7 +73,7 @@ class AuthenticationViewModel: ObservableObject {
     }
 
 
-    // MARK: - Login
+    // MARK: - Login (Perbaikan Utama di sini)
     func login() {
         errorMessage = nil
 
@@ -75,10 +88,18 @@ class AuthenticationViewModel: ObservableObject {
         do {
             let users = try viewContext.fetch(request)
             if let user = users.first {
+                // Verifikasi password
                 if user.password_hash == hash(password) {
+                    
+                    // ✅ PENTING: SET STATUS LOGIN DAN ID PENGGUNA
                     currentUser = user
                     isAuthenticated = true
                     errorMessage = nil
+                    
+                    // **PERBAIKAN:** Set currentUserID dengan UUID pengguna yang dikonversi ke String
+                    // Ini adalah kunci yang akan digunakan HomeView untuk filtering.
+                    currentUserID = user.user_id?.uuidString
+                    
                 } else {
                     errorMessage = "Invalid email or password."
                 }
@@ -89,8 +110,10 @@ class AuthenticationViewModel: ObservableObject {
             errorMessage = "Login failed: \(error.localizedDescription)"
         }
     }
-    // Validate Email
+    
+    // MARK: - Validate Email
     func validateEmail(_ email: String) -> Bool {
+<<<<<<< Updated upstream
             let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
             let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
             return emailPredicate.evaluate(with: email)
@@ -148,12 +171,18 @@ class AuthenticationViewModel: ObservableObject {
             errorMessage = "Failed to update password: \(error.localizedDescription)"
             return false
         }
+=======
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
+>>>>>>> Stashed changes
     }
 
-    // MARK: - Logout
+    // MARK: - Logout (Diperbaiki)
     func logout() {
         isAuthenticated = false
         currentUser = nil
+        currentUserID = nil // Reset ID pengguna saat logout
         email = ""
         password = ""
     }

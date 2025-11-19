@@ -1,3 +1,5 @@
+// VehicleDetailView
+
 import SwiftUI
 import CoreData
 
@@ -12,10 +14,16 @@ struct VehicleDetailView: View {
     @State private var showAddService = false
     @State private var showMyService = false
     
-    // Init
-    init(initialVehicle: Vehicles, allVehicles: [Vehicles], context: NSManagedObjectContext) {
+    // Init untuk menerima objek User Aktif
+    init(initialVehicle: Vehicles, allVehicles: [Vehicles], context: NSManagedObjectContext, activeUser: User) {
         self.allVehicles = allVehicles
-        _viewModel = StateObject(wrappedValue: VehicleDetailViewModel(context: context, vehicle: initialVehicle))
+        
+        // Init viewmodel dengan meneruskan objek user
+        _viewModel = StateObject(wrappedValue: VehicleDetailViewModel(
+            context: context,
+            vehicle: initialVehicle,
+            activeUser: activeUser
+        ))
     }
     
     
@@ -36,15 +44,24 @@ struct VehicleDetailView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-                    
+                    // Di dalam VehicleDetailView, di bawah header logo
+                    Text("Debug: Total Kendaraan = \(allVehicles.count)")
+                        .font(.caption)
+                        .foregroundColor(.red)
                     
                     // MARK: VEHICLE DROPDOWN
                     Menu {
                         ForEach(allVehicles, id: \.objectID) { v in
                             Button(v.make_model ?? "Unknown") {
                                 withAnimation(.easeInOut) {
-                                    viewModel.activeVehicle = v
-                                    viewModel.loadVehicleData()
+                                    // cek jika relasi user di v sama dengan user aktif di VM, ini memastikan User B tidak bisa pindah ke mobil milik User A
+                                    if v.user == viewModel.activeUser {
+                                        viewModel.activeVehicle = v
+                                        viewModel.loadVehicleData()
+                                        
+                                    } else {
+                                        print ("User B coba pindah mobil ke milik User A")
+                                    }
                                 }
                             }
                         }
@@ -54,9 +71,10 @@ struct VehicleDetailView: View {
                                 .foregroundColor(.cyan)
                                 .imageScale(.medium)
                             
-                            Text(viewModel.activeVehicle.make_model ?? "N/A")
-                                .foregroundColor(.white)
+                            Text(viewModel.makeModel.isEmpty ? "Nama Kosong" : viewModel.makeModel.uppercased())
+                                .font(.title3)
                                 .bold()
+                                .foregroundColor(.white)
                             
                             Spacer()
                             
@@ -100,10 +118,10 @@ struct VehicleDetailView: View {
                                     .bold()
                                     .foregroundColor(.white)
                                 
-                                Text(viewModel.activeVehicle.plate_number ?? "")
+                                Text(viewModel.plateNumber.isEmpty ? "No Plat" : viewModel.plateNumber)
                                     .foregroundColor(.gray)
                                 
-                                Text("\(Int(viewModel.activeVehicle.odometer)) km")
+                                Text("\(viewModel.formattedOdometer)") // Pastikan Anda punya computed property ini di VM, atau gunakan viewModel.odometer
                                     .foregroundColor(.white)
                                     .font(.headline)
                             }
@@ -210,11 +228,20 @@ struct VehicleDetailView: View {
                 }
             }
         }
+        .onAppear {
+                print("[Debug] VehicleDetailView Muncul")
+                viewModel.loadVehicleData() // Paksa muat ulang data saat layar tampil
+            }
         
         // SWIPE BACK
         .sheet(isPresented: $showMyService) {
             NavigationView {
-                MyServiceView(vehicle: viewModel.activeVehicle, context: viewContext)
+                // Catatan: MyServiceView harus didefinisikan untuk kompilasi berhasil
+                MyServiceView(
+                    vehicle: viewModel.activeVehicle,
+                    context: viewContext,
+                    activeUser: viewModel.activeUser
+                )
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
                             Button(action: { showMyService = false }) {
@@ -226,7 +253,7 @@ struct VehicleDetailView: View {
                     }
             }
         }
-
+        
         
         // EDIT VEHICLE SHEET
         .sheet(isPresented: $viewModel.isEditing) {
@@ -329,27 +356,101 @@ struct ClickableCard: View {
 }
 
 
+<<<<<<< Updated upstream
 // MARK: - Preview
 private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double) -> Vehicles {
+=======
+// MARK: - Kerangka Edit Form View (Penting)
+struct VehicleEditFormView: View {
+    // Menerima ViewModel yang sama
+    @ObservedObject var viewModel: VehicleDetailViewModel
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Informasi Kendaraan")) {
+                    // Binding ($) ke properti di VM
+                    TextField("Make and Model", text: $viewModel.makeModel)
+                    TextField("Plate Number", text: $viewModel.plateNumber)
+                }
+                Section(header: Text("Data")) {
+                    TextField("Odometer", text: $viewModel.odometer)
+                        .keyboardType(.numberPad)
+                    DatePicker("Tax Due Date", selection: $viewModel.taxDueDate, displayedComponents: .date)
+                }
+                
+                Section {
+                    Button("Delete Vehicle", role: .destructive) {
+                        viewModel.deleteVehicle()
+                        dismiss() // Tutup form
+                    }
+                }
+            }
+            .navigationTitle("Edit Vehicle")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss() // Tutup sheet
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        viewModel.updateVehicle() // Panggil fungsi save di VM
+                        // VM akan otomatis menutup sheet jika sukses
+                        if viewModel.successMessage != nil {
+                            dismiss()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Preview (Diperbarui untuk Core Data)
+// Tambahkan fungsi pembantu ini di luar struct View Anda
+private func setupUser(context: NSManagedObjectContext) -> User {
+    let user = User(context: context)
+    user.user_id = UUID()
+    user.email = "preview@user.com"
+    return user
+}
+
+private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double, user: User) -> Vehicles {
+>>>>>>> Stashed changes
     let vehicle = Vehicles(context: context)
     vehicle.make_model = makeModel
     vehicle.plate_number = plate
     vehicle.vehicle_type = "Car"
     vehicle.odometer = odometer
-    vehicle.tax_due_date = Date()
+    vehicle.tax_due_date = Date().addingTimeInterval(86400 * 365) // Set 1 tahun ke depan
+    vehicle.user = user // <<< PENTING: Menautkan ke User
     return vehicle
 }
+
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
 
+<<<<<<< Updated upstream
     let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000)
     let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000)
+=======
+    // 1. Buat Dummy User
+    let dummyUser = setupUser(context: context)
+    
+    // 2. Buat Dummy Vehicles yang terikat ke User
+    let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000, user: dummyUser)
+    let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000, user: dummyUser)
+>>>>>>> Stashed changes
 
+    // 3. Inisialisasi View dengan User Aktif
     VehicleDetailView(
         initialVehicle: dummyVehicle,
         allVehicles: [dummyVehicle, dummyVehicle2],
-        context: context
+        context: context,
+        activeUser: dummyUser // <<< Perbaikan Krusial: User Aktif harus ada
     )
     .environment(\.managedObjectContext, context)
 }

@@ -27,13 +27,17 @@ class AddVehicleViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
+<<<<<<< Updated upstream
     
     private let viewContext: NSManagedObjectContext
+=======
+    private let context: NSManagedObjectContext
+>>>>>>> Stashed changes
     private let user: User
 
     // MARK: - Init
     init(context: NSManagedObjectContext, user: User) {
-        self.viewContext = context
+        self.context = context
         self.user = user
     }
 
@@ -47,7 +51,7 @@ class AddVehicleViewModel: ObservableObject {
             return
         }
 
-        let newVehicle = Vehicles(context: viewContext)
+        let newVehicle = Vehicles(context: context)
         newVehicle.vehicles_id = UUID()
         newVehicle.make_model = makeModel
         newVehicle.vehicle_type = vehicleType
@@ -65,7 +69,7 @@ class AddVehicleViewModel: ObservableObject {
         print("Created vehicle with ID:", newVehicle.vehicles_id!)
 
         do {
-            try viewContext.save()
+            try context.save()
             successMessage = "Vehicle added successfully!"
             clearFields()
         } catch {

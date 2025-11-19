@@ -2,113 +2,134 @@
 //  HomeView.swift
 //  DriveBuddy
 //
-//  Created by Timothy on 28/10/25.
-//
 
 import SwiftUI
 import CoreData
+import Combine
 
+// MARK: - AppState Class
+class AppState: ObservableObject {
+    @Published var currentUserID: String = ""
+}
+
+// MARK: - 1. HOME VIEW (WRAPPER)
+// Tugasnya hanya mendengarkan perubahan Auth dan memanggil MainContent
 struct HomeView: View {
     @ObservedObject var authVM: AuthenticationViewModel
-    @State private var selectedTab: Int = 0
-    
-    @Environment(\.managedObjectContext) private var viewContext
-        
-        // Ambil semua Vehicles dari Core Data
-        @FetchRequest(
-            sortDescriptors: [NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)],
-            animation: .default)
-    private var allVehicles: FetchedResults<Vehicles>
+    @EnvironmentObject var appState: AppState
     
     var body: some View {
+        // Ambil ID Pengguna saat ini
+        // Jika nil, gunakan string kosong (User belum login)
+        let currentID = authVM.currentUserID ?? ""
         
-        // 1. Tentukan Kendaraan Aktif (pertama dalam daftar, atau nil jika kosong)
-        let activeVehicle = allVehicles.first
+        // Panggil MainContent dan kirim ID-nya
+        // .id(currentID) memaksa View dibuat ulang jika ID berubah
+        MainContentView(authVM: authVM, userIDString: currentID)
+            .id(currentID)
+    }
+}
+
+// MARK: - 2. MAIN CONTENT VIEW (LOGIC UTAMA)
+// View ini baru akan dibuat setelah kita punya User ID yang valid
+struct MainContentView: View {
+    @ObservedObject var authVM: AuthenticationViewModel
+    @State private var selectedTab: Int = 0
+    @Environment(\.managedObjectContext) private var viewContext
+    
+    // Fetch Request untuk Vehicles
+    @FetchRequest var userVehicles: FetchedResults<Vehicles>
+    
+    // Fetch Request untuk User Owner
+    @FetchRequest var userResult: FetchedResults<User>
+    
+    init(authVM: AuthenticationViewModel, userIDString: String) {
+        self.authVM = authVM
         
-        // MARK: - Main Tab View
+        // Konversi String ID ke UUID untuk Predicate Core Data
+        let targetUUID = UUID(uuidString: userIDString) ?? UUID()
+        
+        // A. FETCH VEHICLES: Ambil kendaraan milik User ID ini
+        // Sortir berdasarkan tanggal dibuat agar yang baru muncul
+        _userVehicles = FetchRequest(
+            entity: Vehicles.entity(),
+            sortDescriptors: [
+                NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)
+            ],
+            predicate: NSPredicate(format: "user.user_id == %@", targetUUID as CVarArg)
+        )
+        
+        // B. FETCH USER: Ambil data User itu sendiri
+        _userResult = FetchRequest(
+            entity: User.entity(),
+            sortDescriptors: [],
+            predicate: NSPredicate(format: "user_id == %@", targetUUID as CVarArg)
+        )
+    }
+    
+    var body: some View {
+        let activeUser = userResult.first
+        // Ambil kendaraan pertama dari hasil fetch
+        let activeVehicle = userVehicles.first
+        
         TabView(selection: $selectedTab) {
             
-            // MARK: Dashboard / Home
+            // TAB 1: Dashboard
             DashboardView(authVM: authVM)
-                .tabItem {
-                    Label("Home", systemImage: "house")
-                }
+                .tabItem { Label("Home", systemImage: "house") }
                 .tag(0)
             
-            // MARK: Vehicles → langsung ke VehicleDetailView
+            // TAB 2: Vehicles
             NavigationStack {
-                // 2. Gunakan 'if let' untuk memastikan ada kendaraan sebelum memanggil View
-                if let activeVehicle = activeVehicle {
+                // Cek apakah ada kendaraan
+                if let vehicle = activeVehicle, let user = activeUser {
+                    
+                    // TAMPILKAN DETAIL
                     VehicleDetailView(
-                        // Menggunakan parameter baru dan data Core Data
-                        initialVehicle: activeVehicle,
-                        allVehicles: Array(allVehicles), // Konversi FetchedResults ke Array
-                        context: viewContext // Meneruskan Core Data context
+                        initialVehicle: vehicle,
+                        allVehicles: Array(userVehicles), // Kirim semua hasil fetch ke dropdown
+                        context: viewContext,
+                        activeUser: user
                     )
+                    
                 } else {
-                    // Tampilkan pesan atau View untuk menambahkan kendaraan jika allVehicles kosong
-                    // Atau mungkin langsung menampilkan AddVehicleView jika user belum ada data kendaraan yang tersimpan di Core Data
-                    VStack {
-                        Image(systemName: "car.fill").font(.largeTitle)
-                        Text("Anda belum memiliki kendaraan. Silakan tambahkan kendaraan pertama Anda.")
-                            .multilineTextAlignment(.center)
+                    // TAMPILAN KOSONG (EMPTY STATE)
+                    VStack(spacing: 20) {
+                        if activeUser == nil {
+                            Text("Menunggu Data Pengguna...")
+                                .foregroundColor(.gray)
+                        } else {
+                            Image(systemName: "car.circle.fill")
+                                .font(.system(size: 80))
+                                .foregroundColor(.gray.opacity(0.5))
+                            
+                            Text("Total Kendaraan: \(userVehicles.count)") // Debug Text
+                                .font(.caption).foregroundColor(.red)
+                            
+                            Text("Belum ada kendaraan.\nTambahkan di Dashboard.")
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.gray)
+                        }
                     }
-                    .padding()
                 }
             }
-            .tabItem {
-                Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent")
-            }
+            .tabItem { Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent") }
             .tag(1)
             
-            // MARK: Workshops
+            // TAB 3: Workshops
             WorkshopView()
-                .tabItem {
-                    Label("Workshops", systemImage: "wrench.and.screwdriver.fill")
-                }
+                .tabItem { Label("Workshops", systemImage: "wrench.and.screwdriver.fill") }
                 .tag(2)
             
-            // MARK: Profile
+            // TAB 4: Profile
             ProfileView(authVM: authVM)
-                .tabItem {
-                    Label("Profile", systemImage: "person")
-                }
+                .tabItem { Label("Profile", systemImage: "person") }
                 .tag(3)
         }
         .tint(.blue)
     }
 }
 
-//
-// MARK: - Subviews
-//
-
-//struct WorkshopsView: View {
-//    var body: some View {
-//        VStack {
-//            Text("🛞🛠️ Nearby Workshops")
-//                .font(.largeTitle)
-//                .foregroundColor(.white)
-//        }
-//        .frame(maxWidth: .infinity, maxHeight: .infinity)
-//        .background(Color.black.opacity(0.95))
-//        .ignoresSafeArea()
-//    }
-//}
-
-//struct ProfileView: View {
-//    var body: some View {
-//        VStack {
-//            Text("👀 PROFILE")
-//                .font(.largeTitle)
-//                .foregroundColor(.white)
-//        }
-//        .frame(maxWidth: .infinity, maxHeight: .infinity)
-//        .background(Color.black.opacity(0.95))
-//        .ignoresSafeArea()
-//    }
-//}
-
-#Preview {
-    HomeView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
-}
+// MARK: - Placeholder Views (JANGAN LUPA HAPUS JIKA SUDAH ADA FILE ASLINYA)
+// struct WorkshopView: View { var body: some View { Text("Workshop") } }
+// struct ProfileView: View { @ObservedObject var authVM: AuthenticationViewModel; var body: some View { Text("Profile") } }

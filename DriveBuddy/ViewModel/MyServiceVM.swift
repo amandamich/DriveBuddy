@@ -12,19 +12,21 @@ import Combine
 
 @MainActor
 class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
+    // MARK: - Core Data
+    private let context: NSManagedObjectContext
+    private let vehicle: Vehicles
+    
     // MARK: - Published properties
     @Published var upcomingServices: [ServiceHistory] = []
     @Published var completedServices: [ServiceHistory] = []
 
-    // MARK: - Core Data
-    private let viewContext: NSManagedObjectContext
-    private let vehicle: Vehicles
+    
     private var fetchedResultsController: NSFetchedResultsController<ServiceHistory>!
     private var timer: Timer?
 
     // MARK: - Init
     init(context: NSManagedObjectContext, vehicle: Vehicles) {
-        self.viewContext = context
+        self.context = context
         self.vehicle = vehicle
         super.init()
         setupFetchedResultsController()
@@ -40,7 +42,7 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
 
         fetchedResultsController = NSFetchedResultsController(
             fetchRequest: request,
-            managedObjectContext: viewContext,
+            managedObjectContext: context,
             sectionNameKeyPath: nil,
             cacheName: nil
         )
@@ -85,9 +87,9 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
 
     // MARK: - Delete a service
     func deleteService(_ service: ServiceHistory) {
-        viewContext.delete(service)
+        context.delete(service)
         do {
-            try viewContext.save()
+            try context.save()
         } catch {
             print("❌ Failed to delete service: \(error.localizedDescription)")
         }

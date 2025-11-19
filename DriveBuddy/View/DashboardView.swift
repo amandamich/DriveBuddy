@@ -1,5 +1,8 @@
+// DashboardView.swift
+
 import SwiftUI
 import CoreData
+import Combine
 
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel

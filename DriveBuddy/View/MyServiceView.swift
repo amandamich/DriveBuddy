@@ -14,9 +14,14 @@ struct MyServiceView: View {
 
     // MARK: - ViewModel
     @StateObject private var viewModel: MyServiceViewModel
+    
+    // Property User (Opsional, untuk konsistensi navigasi)
+    var activeUser: User?
 
     // MARK: - Init
-    init(vehicle: Vehicles, context: NSManagedObjectContext) {
+    // Init disesuaikan dengan ViewModel Anda yang sudah ada
+    init(vehicle: Vehicles, context: NSManagedObjectContext, activeUser: User?) {
+        self.activeUser = activeUser
         _viewModel = StateObject(wrappedValue: MyServiceViewModel(context: context, vehicle: vehicle))
     }
 
@@ -28,7 +33,7 @@ struct MyServiceView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: - HEADER (Tanpa Back Button)
+                    // MARK: - HEADER
                     Text("My Service")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
@@ -45,6 +50,7 @@ struct MyServiceView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
 
+                            // Menggunakan ServiceHistory
                             ForEach(viewModel.upcomingServices, id: \.objectID) { service in
                                 ServiceCard(
                                     title: service.service_name ?? "Unknown",
@@ -65,6 +71,7 @@ struct MyServiceView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
 
+                            // Menggunakan ServiceHistory
                             ForEach(viewModel.completedServices, id: \.objectID) { service in
                                 ServiceCard(
                                     title: service.service_name ?? "Unknown",
@@ -106,7 +113,7 @@ struct MyServiceView: View {
     }
 }
 
-// MARK: - Enum
+// MARK: - Enum & Card Components (Tidak berubah, pastikan ini ada di file)
 enum ServiceType {
     case upcoming
     case completed
@@ -126,7 +133,6 @@ enum ServiceType {
     }
 }
 
-// MARK: - Service Card Component
 struct ServiceCard: View {
     var title: String
     var date: String
@@ -171,12 +177,26 @@ struct ServiceCard: View {
     }
 }
 
+// MARK: - Preview (Diperbarui)
 #Preview {
     let context = PersistenceController.preview.container.viewContext
+    
+    // 1. Buat User
+    let user = User(context: context)
+    user.user_id = UUID()
+    user.email = "test@user.com"
+
+    // 2. Buat Vehicle
     let sampleVehicle = Vehicles(context: context)
     sampleVehicle.make_model = "Honda Brio"
+    sampleVehicle.user = user
+
     return NavigationView {
-        MyServiceView(vehicle: sampleVehicle, context: context)
-            .environment(\.managedObjectContext, context)
+        MyServiceView(
+            vehicle: sampleVehicle,
+            context: context,
+            activeUser: user // Sesuaikan dengan init baru
+        )
+        .environment(\.managedObjectContext, context)
     }
 }
