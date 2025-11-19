@@ -138,6 +138,8 @@ struct VehicleDetailView: View {
                                 date: "1 November 2025"
                             )
                         }
+                        .buttonStyle(CardButtonStyle())
+                        .frame(maxWidth: .infinity)
                         
                         // TAX PAYMENT
                         Button(action: {
@@ -150,8 +152,10 @@ struct VehicleDetailView: View {
                                 date: "2 January 2026"
                             )
                         }
+                        .buttonStyle(CardButtonStyle())
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(height: 150)
+                    .frame(height: 140)
                     .padding(.horizontal)
                     
                     
@@ -226,49 +230,34 @@ struct VehicleDetailView: View {
         
         // EDIT VEHICLE SHEET
         .sheet(isPresented: $viewModel.isEditing) {
-            VehicleEditFormView(viewModel: viewModel)
+            EditVehicleView(viewModel: viewModel)
         }
         
         
         .navigationBarBackButtonHidden(true)
     }
+    
 }
 
 
-// MARK: - Info Card Component (Tidak berubah)
-struct InfoCard: View {
-    var icon: String
-    var title: String
-    var subtitle: String
-    var date: String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                Text(title)
-            }
-            .foregroundColor(.white).font(.headline)
-            
-            Text(subtitle)
-                .foregroundColor(.white).font(.subheadline)
-            
-            HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                Text(date)
-            }
-            .font(.caption).foregroundColor(.white.opacity(0.8))
-            
-            Spacer()
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
-        .cornerRadius(18)
-        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 4)
+// MARK: - Custom Button Style for Cards (Enhanced with Spring Animation)
+struct CardButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .brightness(configuration.isPressed ? 0.08 : 0)
+            .shadow(
+                color: .cyan.opacity(configuration.isPressed ? 0.5 : 0.3),
+                radius: configuration.isPressed ? 12 : 10,
+                x: 0,
+                y: configuration.isPressed ? 3 : 5
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
+
+// MARK: - Clickable Card Component (Compact Version)
 struct ClickableCard: View {
     var icon: String
     var title: String
@@ -276,100 +265,71 @@ struct ClickableCard: View {
     var date: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             
+            // Icon and title section
             HStack(spacing: 8) {
                 Image(systemName: icon)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                
                 Text(title)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .minimumScaleFactor(0.85)
+                    .foregroundColor(.white)
+                    .font(.system(size: 14, weight: .semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .foregroundColor(.white)
-            .font(.headline)
             
             Text(subtitle)
-                .foregroundColor(.white)
-                .font(.subheadline)
+                .lineLimit(1)
+                .foregroundColor(.white.opacity(0.85))
+                .font(.system(size: 13, weight: .regular))
             
+            Spacer(minLength: 2)
+            
+            // Date section at bottom
             HStack(spacing: 6) {
                 Image(systemName: "calendar")
+                    .font(.system(size: 10, weight: .medium))
                 Text(date)
+                    .font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                // Chevron indicator
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.cyan.opacity(0.9))
             }
-            .font(.caption)
-            .foregroundColor(.white.opacity(0.85))
-            
-            Spacer()
+            .foregroundColor(.white.opacity(0.8))
         }
-        .padding()
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             LinearGradient(
                 colors: [
-                    Color(red: 20/255, green: 36/255, blue: 70/255),
-                    Color(red: 27/255, green: 56/255, blue: 112/255)
+                    Color.black.opacity(0.3),
+                    Color.blue.opacity(0.25)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .stroke(Color.cyan.opacity(0.7), lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
         )
-        .cornerRadius(18)
-        .shadow(color: .cyan.opacity(0.35), radius: 8, x: 0, y: 5)
+        .cornerRadius(16)
+        .shadow(color: .cyan.opacity(0.3), radius: 7, x: 0, y: 4)
     }
 }
 
 
-// MARK: - Kerangka Edit Form View (Penting)
-struct VehicleEditFormView: View {
-    // Menerima ViewModel yang sama
-    @ObservedObject var viewModel: VehicleDetailViewModel
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Informasi Kendaraan")) {
-                    // Binding ($) ke properti di VM
-                    TextField("Make and Model", text: $viewModel.makeModel)
-                    TextField("Plate Number", text: $viewModel.plateNumber)
-                }
-                Section(header: Text("Data")) {
-                    TextField("Odometer", text: $viewModel.odometer)
-                        .keyboardType(.numberPad)
-                    DatePicker("Tax Due Date", selection: $viewModel.taxDueDate, displayedComponents: .date)
-                }
-                
-                Section {
-                    Button("Delete Vehicle", role: .destructive) {
-                        viewModel.deleteVehicle()
-                        dismiss() // Tutup form
-                    }
-                }
-            }
-            .navigationTitle("Edit Vehicle")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss() // Tutup sheet
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        viewModel.updateVehicle() // Panggil fungsi save di VM
-                        // VM akan otomatis menutup sheet jika sukses
-                        if viewModel.successMessage != nil {
-                            dismiss()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Preview (Diperbarui untuk Core Data)
-// Tambahkan fungsi pembantu ini di luar struct View Anda
+// MARK: - Preview
 private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double) -> Vehicles {
     let vehicle = Vehicles(context: context)
     vehicle.make_model = makeModel
@@ -383,7 +343,6 @@ private func setupVehicle(context: NSManagedObjectContext, makeModel: String, pl
 #Preview {
     let context = PersistenceController.preview.container.viewContext
 
-    // 💡 PERBAIKAN: Panggil fungsi yang mengembalikan Vehicles
     let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000)
     let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000)
 

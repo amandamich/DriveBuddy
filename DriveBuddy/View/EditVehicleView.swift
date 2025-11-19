@@ -7,59 +7,98 @@ import SwiftUI
 
 struct EditVehicleView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: VehicleDetailViewModel
     
-    @State private var working: Vehicle
-    let onSave: (Vehicle) -> Void
-
-    init(vehicle: Vehicle, onSave: @escaping (Vehicle) -> Void) {
-        _working = State(initialValue: vehicle)
-        self.onSave = onSave
-    }
-
+    
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
             
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    // MARK: Header
+                    
+                    // MARK: - Title
                     Text("Edit Vehicle")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top)
                     
-                    // MARK: Vehicle Info
+                    // MARK: - Vehicle Info Section
                     VStack(alignment: .leading, spacing: 12) {
+                        
                         Group {
-                            Text("Make & Model").foregroundColor(.white)
-                            TextField("Enter model", text: $working.makeAndModel)
+                            // Make & Model
+                            Text("Make & Model")
+                                .foregroundColor(.white)
+                            TextField("Honda Brio", text: $viewModel.makeModel)
                                 .textFieldStyle(CustomTextFieldStyle())
                             
-                            Text("License Plate").foregroundColor(.white)
-                            TextField("Enter plate", text: $working.licensePlate)
+                            // Plate Number
+                            Text("Plate Number")
+                                .foregroundColor(.white)
+                            TextField("L 567 GX", text: $viewModel.plateNumber)
                                 .textFieldStyle(CustomTextFieldStyle())
+                                .textInputAutocapitalization(.characters)
                             
-                            Text("Odometer").foregroundColor(.white)
-                            TextField("Enter odometer", text: $working.odometer)
+                            // Odometer
+                            Text("Odometer (km)")
+                                .foregroundColor(.white)
+                            TextField("45000", text: $viewModel.odometer)
                                 .textFieldStyle(CustomTextFieldStyle())
                                 .keyboardType(.numberPad)
-                            
-                            Text("Tax Due Date").foregroundColor(.white)
-                            DatePicker("", selection: $working.taxDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .datePickerStyle(.compact)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
                         }
+                        
+                        // Tax Date
+                        Text("Tax Due Date")
+                            .foregroundColor(.white)
+                        DatePicker("", selection: $viewModel.taxDueDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                        
+                        // STNK
+                        Text("STNK Due Date")
+                            .foregroundColor(.white)
+                        DatePicker("", selection: $viewModel.stnkDueDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                        
+                        // Last Service Name
+                        Text("Last Service Name")
+                            .foregroundColor(.white)
+                        TextField("Tune-Up", text: $viewModel.serviceName)
+                            .textFieldStyle(CustomTextFieldStyle())
+                        
+                        // Last Service Date
+                        Text("Last Service Date")
+                            .foregroundColor(.white)
+                        DatePicker("", selection: $viewModel.lastServiceDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(10)
+                        
+                        // Last Odometer
+                        Text("Last Odometer (km)")
+                            .foregroundColor(.white)
+                        TextField("42000", text: $viewModel.lastOdometer)
+                            .textFieldStyle(CustomTextFieldStyle())
+                            .keyboardType(.numberPad)
+                        
                     }
                     .padding()
                     .background(Color.blue.opacity(0.15))
                     .cornerRadius(15)
                     
-                    // MARK: Save Button
+                    // MARK: - Save Button
                     Button {
-                        onSave(working)
+                        viewModel.updateVehicle()
                         dismiss()
                     } label: {
                         Text("Save Changes")
@@ -84,21 +123,17 @@ struct EditVehicleView: View {
             }
         }
     }
+    struct CustomTextFieldStyle: TextFieldStyle {
+        func _body(configuration: TextField<Self._Label>) -> some View {
+            configuration
+                .padding()
+                .background(Color.white)
+                .cornerRadius(10)
+        }
+    }
 }
-
-
-
 #Preview {
-    EditVehicleView(
-        vehicle: Vehicle(
-            makeAndModel: "Pajero Sport",
-            vehicleType: "Car",
-            licensePlate: "AB 1234 CD",
-            year: "2021",
-            odometer: "25000",
-            taxDate: Date()
-        ),
-        onSave: { _ in } // closure dummy untuk preview
-    )
+    
 }
+    
 
