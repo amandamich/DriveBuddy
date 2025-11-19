@@ -6,92 +6,79 @@
 //
 
 import SwiftUI
+import SwiftUI
+import CoreData
+
 
 struct ChangePasswordView: View {
-    @Environment(\.dismiss) var dismiss
-    @State private var currentPassword = ""
-    @State private var newPassword = ""
-    @State private var confirmedPassword = ""
-    @State private var showError = false
-    @State private var errorMessage = ""
-    
+    @ObservedObject var authVM: AuthenticationViewModel
+
+    @State private var currentPassword: String = ""
+    @State private var newPassword: String = ""
+    @State private var confirmPassword: String = ""
+
+    @State private var showAlert: Bool = false
+    @State private var alertMessage: String = ""
+
+    @Environment(\.dismiss) private var dismiss
+
     var body: some View {
         ZStack {
-            // MARK: - Background
-            Color.black.opacity(0.95)
+            Color("BackgroundPrimary")
                 .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // MARK: - Header with Back Button
-                HStack {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    
-                    Spacer()
-                    
-                    Text("Change Password")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    // Invisible spacer for centering
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.clear)
+
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Change Password")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(Color("TextPrimary"))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
+
+                VStack(spacing: 16) {
+                    passwordField(
+                        title: "Current Password",
+                        text: $currentPassword
+                    )
+
+                    passwordField(
+                        title: "New Password",
+                        text: $newPassword
+                    )
+
+                    passwordField(
+                        title: "Confirm New Password",
+                        text: $confirmPassword
+                    )
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 40)
-                
-                // MARK: - Password Fields
-                VStack(spacing: 24) {
-                    // Current Password
-                    SecureField("Current Password", text: $currentPassword)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                        .font(.system(size: 16))
-                        .foregroundColor(.gray)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white)
-                        )
-                    
-                    // New Password
-                    SecureField("New Password", text: $newPassword)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                        .font(.system(size: 16))
-                        .foregroundColor(.gray)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white)
-                        )
-                    
-                    // Confirmed Password
-                    SecureField("Confirmed Password", text: $confirmedPassword)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                        .font(.system(size: 16))
-                        .foregroundColor(.gray)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.white)
-                        )
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
-                
-                // MARK: - Change Password Button
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color("CardBackground"))
+                )
+
+                Spacer()
+
+                // Save Button (glow style seperti Add Service / Login)
                 Button(action: {
-                    handlePasswordChange()
+                    let success = authVM.changePassword(
+                        currentPassword: currentPassword,
+                        newPassword: newPassword,
+                        confirmPassword: confirmPassword
+                    )
+
+                    if success {
+                        alertMessage = "Password updated successfully."
+                        // reset field
+                        currentPassword = ""
+                        newPassword = ""
+                        confirmPassword = ""
+                    } else {
+                        alertMessage = authVM.errorMessage ?? "Failed to change password."
+                    }
+
+                    showAlert = true
                 }) {
-                    Text("Change Password")
+                    Text("Save Password")
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding()
@@ -99,71 +86,58 @@ struct ChangePasswordView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.cyan, lineWidth: 2)
-                                .shadow(color: .blue, radius: 8)
+                                .shadow(color: .blue, radius: 8)             // outline glow
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(Color.black.opacity(0.5))
+                                        .fill(Color.black.opacity(0.5))      // inner fill
                                 )
                         )
-                        .shadow(color: .blue, radius: 10)
+                        .shadow(color: .blue, radius: 10)                    // outer glow
                 }
-                .padding(.horizontal, 32)
-                
-                // MARK: - Error Message
-                if showError {
-                    Text(errorMessage)
-                        .font(.system(size: 14))
-                        .foregroundColor(.red)
-                        .padding(.top, 16)
-                        .padding(.horizontal, 32)
-                }
-                
-                Spacer()
             }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
         }
-        .navigationBarHidden(true)
+        .alert(isPresented: $showAlert) {
+            Alert(
+                title: Text("Change Password"),
+                message: Text(alertMessage),
+                dismissButton: .default(Text("OK")) {
+                    // Kalau sukses, balik ke previous screen
+                    if alertMessage == "Password updated successfully." {
+                        dismiss()
+                    }
+                }
+            )
+        }
     }
-    
-    // MARK: - Password Validation
-    private func handlePasswordChange() {
-        // Reset error
-        showError = false
-        errorMessage = ""
-        
-        // Validate fields
-        guard !currentPassword.isEmpty else {
-            showError = true
-            errorMessage = "Please enter your current password"
-            return
+
+    // MARK: - Reusable Password Field
+    private func passwordField(
+        title: String,
+        text: Binding<String>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(Color("TextPrimary"))
+
+            SecureField("Enter \(title.lowercased())", text: text)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.white.opacity(0.9))
+                        .shadow(color: Color.cyan.opacity(0.4), radius: 6)
+                )
         }
-        
-        guard !newPassword.isEmpty else {
-            showError = true
-            errorMessage = "Please enter a new password"
-            return
-        }
-        
-        guard newPassword.count >= 6 else {
-            showError = true
-            errorMessage = "New password must be at least 6 characters"
-            return
-        }
-        
-        guard newPassword == confirmedPassword else {
-            showError = true
-            errorMessage = "Passwords do not match"
-            return
-        }
-        
-        // TODO: Implement actual password change logic with your backend
-        // For now, simulate success
-        print("Password changed successfully")
-        dismiss()
     }
 }
 
+// MARK: - Preview
+
 #Preview {
-    NavigationStack {
-        ChangePasswordView()
-    }
+    let context = PersistenceController.preview.container.viewContext
+    let authVM = AuthenticationViewModel(context: context)
+    return ChangePasswordView(authVM: authVM)
 }

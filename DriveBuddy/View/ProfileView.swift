@@ -154,10 +154,10 @@ struct ProfileView: View {
                         VStack(spacing: 0) {
                             // Edit Profile
                             NavigationLink {
-                                EditProfileView(profileVM: profileVM)
-                            } label: {
-                                rowLabel("Edit Profile")
-                            }
+                                        EditProfileView(profileVM: profileVM)
+                                    } label: {
+                                        rowLabel("Edit Profile")
+                                    }
 
                             Divider()
                                 .background(Color("TextPrimary").opacity(0.15))
@@ -165,10 +165,11 @@ struct ProfileView: View {
 
                             // Change Password
                             NavigationLink {
-                                ChangePasswordView()
+                                ChangePasswordView(authVM: authVM)
                             } label: {
                                 rowLabel("Change Password")
                             }
+
 
                             Divider()
                                 .background(Color("TextPrimary").opacity(0.15))
@@ -388,3 +389,4 @@ struct EditProfileView: View {
     return ProfileView(authVM: authVM)
         .environment(\.managedObjectContext, context)
 }
+

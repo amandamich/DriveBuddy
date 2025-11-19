@@ -95,6 +95,60 @@ class AuthenticationViewModel: ObservableObject {
             let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
             return emailPredicate.evaluate(with: email)
         }
+    
+    // MARK: - Change Password
+    func changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ) -> Bool {
+        errorMessage = nil
+
+        guard let user = currentUser else {
+            errorMessage = "No user is logged in."
+            return false
+        }
+
+        // 1. Validasi form
+        guard !currentPassword.isEmpty,
+              !newPassword.isEmpty,
+              !confirmPassword.isEmpty else {
+            errorMessage = "Please fill in all fields."
+            return false
+        }
+
+        // 2. Cek password lama
+        let currentHash = hash(currentPassword)
+        guard user.password_hash == currentHash else {
+            errorMessage = "Current password is incorrect."
+            return false
+        }
+
+        // 3. Cek konfirmasi password baru
+        guard newPassword == confirmPassword else {
+            errorMessage = "New password and confirmation do not match."
+            return false
+        }
+
+        // 4. (Opsional) panjang minimal
+        guard newPassword.count >= 6 else {
+            errorMessage = "New password must be at least 6 characters."
+            return false
+        }
+
+        // 5. Simpan password baru
+        user.password_hash = hash(newPassword)
+
+        do {
+            try viewContext.save()
+            // kosongkan field password di VM kalau mau
+            password = ""
+            return true
+        } catch {
+            errorMessage = "Failed to update password: \(error.localizedDescription)"
+            return false
+        }
+    }
 
     // MARK: - Logout
     func logout() {
