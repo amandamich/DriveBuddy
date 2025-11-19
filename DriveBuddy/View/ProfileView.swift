@@ -7,10 +7,14 @@
 
 import SwiftUI
 import CoreData
+import PhotosUI
+import UIKit
 
 struct ProfileView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var profileVM: ProfileViewModel
+
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     init(authVM: AuthenticationViewModel) {
         _authVM = ObservedObject(initialValue: authVM)
@@ -28,34 +32,44 @@ struct ProfileView: View {
                 // MARK: - Background
                 Color("BackgroundPrimary")
                     .ignoresSafeArea()
-                    .preferredColorScheme(profileVM.isDarkMode ? .dark : .light) // ✅ Dynamic Theme
+                    .preferredColorScheme(profileVM.isDarkMode ? .dark : .light)
 
                 VStack(alignment: .leading, spacing: 0) {
-                    // MARK: - Header
+                    // MARK: - Header Logo
                     Image("LogoDriveBuddy")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 180, height: 40)
                         .padding(.bottom)
-
-                    // MARK: - Profile Title
-                    Text("Profile")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(Color("TextPrimary"))
                         .padding(.horizontal)
-                        .padding(.bottom, 8)
 
-                    // MARK: - User Info
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(profileVM.username.isEmpty ?
-                             (profileVM.user?.email?.components(separatedBy: "@").first ?? "User") :
-                                profileVM.username)
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(Color("TextPrimary"))
+                    // MARK: - Profile Header (Avatar + Info + Edit Photo)
+                    HStack(alignment: .center, spacing: 16) {
+                        avatarView
 
-                        Text(profileVM.email.isEmpty ? (profileVM.user?.email ?? "No email found") : profileVM.email)
-                            .font(.system(size: 15))
-                            .foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(displayName)
+                                .font(.system(size: 24, weight: .semibold))
+                                .foregroundColor(Color("TextPrimary"))
+
+                            Text(displayEmail)
+                                .font(.system(size: 15))
+                                .foregroundColor(.gray)
+                        }
+
+                        Spacer()
+
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            Text("Edit")
+                                .font(.system(size: 14, weight: .semibold))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(
+                                    Capsule()
+                                        .fill(Color("AccentNeon").opacity(0.15))
+                                )
+                                .foregroundColor(Color("AccentNeon"))
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 30)
@@ -138,6 +152,17 @@ struct ProfileView: View {
                         .padding(.bottom, 16)
 
                         VStack(spacing: 0) {
+                            // Edit Profile
+                            NavigationLink {
+                                EditProfileView(profileVM: profileVM)
+                            } label: {
+                                rowLabel("Edit Profile")
+                            }
+
+                            Divider()
+                                .background(Color("TextPrimary").opacity(0.15))
+                                .padding(.leading, 16)
+
                             // Change Password
                             NavigationLink {
                                 ChangePasswordView()
@@ -162,14 +187,106 @@ struct ProfileView: View {
                         )
                         .padding(.horizontal)
                     }
-                    .padding(.bottom, 24)
+                    .padding(.bottom, 16)
+
+                    // MARK: - Logout Button (di luar Account Section)
+                    
+                    Button(action: {
+                        authVM.logout()
+                    }) {
+                        Text("Log Out")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            // 🟦 WARNA TEXT BERBEDA UNTUK LIGHT & DARK MODE
+                            .foregroundColor(profileVM.isDarkMode ? .white : .black)
+
+                            .background(
+                                Group {
+                                    if profileVM.isDarkMode {
+                                        // 🌙 DARK MODE — glow seperti tombol LOGIN
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.cyan, lineWidth: 4)
+                                            .shadow(color: Color.blue.opacity(0.6), radius: 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.black.opacity(0.5))
+                                            )
+                                            .shadow(color: Color.blue.opacity(0.5), radius: 6)
+                                    } else {
+                                        // ☀️ LIGHT MODE — putih + soft blue glow
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.white)
+                                            .stroke(Color.cyan, lineWidth: 4)
+                                            .shadow(color: Color.cyan.opacity(0.5), radius: 6)
+                                    }
+                                }
+                            )
+                            .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
 
                     Spacer()
                 }
                 .onAppear {
-                    profileVM.loadProfile() // ✅ Refresh data when screen appears
+                    profileVM.loadProfile()
+                }
+                .onChange(of: selectedPhotoItem, initial: false) { _, newValue in
+                    guard let newValue else { return }
+                    Task {
+                        if let data = try? await newValue.loadTransferable(type: Data.self) {
+                            await MainActor.run {
+                                profileVM.updateAvatar(with: data)
+                            }
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    // MARK: - Computed helpers
+    private var displayName: String {
+        if !profileVM.username.isEmpty {
+            return profileVM.username
+        }
+        return profileVM.user?.email?
+            .components(separatedBy: "@").first ?? "User"
+    }
+
+    private var displayEmail: String {
+        if !profileVM.email.isEmpty {
+            return profileVM.email
+        }
+        return profileVM.user?.email ?? "No email found"
+    }
+
+    private var initials: String {
+        let components = displayName.split(separator: " ")
+        let first = components.first?.first.map(String.init) ?? ""
+        let last  = components.dropFirst().first?.first.map(String.init) ?? ""
+        return (first + last).uppercased()
+    }
+
+    // MARK: - Avatar View
+    @ViewBuilder
+    private var avatarView: some View {
+        if let img = profileVM.avatarImage {
+            img
+                .resizable()
+                .scaledToFill()
+                .frame(width: 64, height: 64)
+                .clipShape(Circle())
+        } else {
+            ZStack {
+                Circle()
+                    .fill(Color("AccentNeon").opacity(0.15))
+                Text(initials.isEmpty ? "DB" : initials)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color("AccentNeon"))
+            }
+            .frame(width: 64, height: 64)
         }
     }
 
@@ -192,27 +309,82 @@ struct ProfileView: View {
     }
 }
 
-//#Preview("Light Mode") {
-//    let context = PersistenceController.shared.container.viewContext
-//    let mockUser = User(context: context)
-//    mockUser.email = "preview@drivebuddy.com"
-//    mockUser.add_to_calendar = true
-//    mockUser.is_dark_mode = false
-//    let mockAuthVM = AuthenticationViewModel(context: context)
-//    mockAuthVM.currentUser = mockUser
-//    return ProfileView(authVM: mockAuthVM)
-//        .preferredColorScheme(.light)
-//}
-//
-//#Preview("Dark Mode") {
-//    let context = PersistenceController.shared.container.viewContext
-//    let mockUser = User(context: context)
-//    mockUser.email = "preview@drivebuddy.com"
-//    mockUser.add_to_calendar = true
-//    mockUser.is_dark_mode = true
-//    let mockAuthVM = AuthenticationViewModel(context: context)
-//    mockAuthVM.currentUser = mockUser
-//    return ProfileView(authVM: mockAuthVM)
-//        .preferredColorScheme(.dark)
-//}
+// MARK: - Edit Profile Screen
 
+struct EditProfileView: View {
+    @ObservedObject var profileVM: ProfileViewModel
+
+    @State private var fullName: String = ""
+    @State private var phoneNumber: String = ""
+    @State private var email: String = ""
+    @State private var gender: String = ""
+    @State private var dateOfBirth: Date = Date()
+    @State private var city: String = ""
+
+    @Environment(\.dismiss) private var dismiss
+
+    // Simple gender options
+    private let genderOptions = ["Male", "Female", "Prefer not to say"]
+
+    var body: some View {
+        Form {
+            Section(header: Text("Personal Info")) {
+                TextField("Full Name", text: $fullName)
+                TextField("Phone Number", text: $phoneNumber)
+                    .keyboardType(.phonePad)
+                TextField("Email", text: $email)
+                    .keyboardType(.emailAddress)
+
+                Picker("Gender", selection: $gender) {
+                    ForEach(genderOptions, id: \.self) { g in
+                        Text(g).tag(g)
+                    }
+                }
+
+                DatePicker("Date of Birth",
+                           selection: $dateOfBirth,
+                           displayedComponents: .date)
+                TextField("City", text: $city)
+            }
+
+            Section {
+                Button {
+                    profileVM.saveProfileChanges(
+                        name: fullName,
+                        phone: phoneNumber,
+                        email: email,
+                        gender: gender,
+                        dateOfBirth: dateOfBirth,
+                        city: city
+                    )
+                    dismiss()
+                } label: {
+                    Text("Save Changes")
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
+        }
+        .navigationTitle("Edit Profile")
+        .onAppear {
+            fullName    = profileVM.username
+            phoneNumber = profileVM.phoneNumber
+            email       = profileVM.email.isEmpty
+                ? (profileVM.user?.email ?? "")
+                : profileVM.email
+            gender      = profileVM.gender
+            city        = profileVM.city
+            dateOfBirth = profileVM.dateOfBirth ?? Date()
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    let context = PersistenceController.preview.container.viewContext
+    let authVM = AuthenticationViewModel(context: context)
+    authVM.email = "preview@drivebuddy.com"
+
+    return ProfileView(authVM: authVM)
+        .environment(\.managedObjectContext, context)
+}

@@ -254,9 +254,6 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "DriveBuddy need to access to your calendar to remind about vehicle services";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -290,9 +287,6 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "DriveBuddy need to access to your calendar to remind about vehicle services";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
