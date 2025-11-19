@@ -27,6 +27,7 @@ class AddVehicleViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
+    
     private let viewContext: NSManagedObjectContext
     private let user: User
 
@@ -61,7 +62,7 @@ class AddVehicleViewModel: ObservableObject {
         newVehicle.user = user
         newVehicle.tax_reminder = taxReminder
         newVehicle.last_odometer = Double(lastOdometer) ?? 0
-        
+        print("Created vehicle with ID:", newVehicle.vehicles_id!)
 
         do {
             try viewContext.save()

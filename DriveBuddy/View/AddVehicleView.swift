@@ -9,16 +9,9 @@ struct AddVehicleView: View {
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
         
-        // Safe mock user for preview mode
-        let user = authVM.currentUser ?? {
-            let tempUser = User(context: PersistenceController.shared.container.viewContext)
-            tempUser.user_id = UUID()
-            tempUser.email = "preview@drivebuddy.com"
-            tempUser.password_hash = "mock"
-            tempUser.created_at = Date()
-            return tempUser
-        }()
-        
+        guard let user = authVM.currentUser else {
+            fatalError("currentUser must not be nil in AddVehicleView")
+        }
         _addVehicleVM = StateObject(
             wrappedValue: AddVehicleViewModel(
                 context: PersistenceController.shared.container.viewContext,
