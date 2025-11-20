@@ -25,15 +25,17 @@ class DashboardViewModel: ObservableObject {
 
     // MARK: - Fetch Vehicles
     func fetchVehicles() {
+        viewContext.refreshAllObjects()
+        print("Refresh context dipanggil sebelum fetch.") // DEBUG
         let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
         request.predicate = NSPredicate(format: "user == %@", user)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.created_at, ascending: false)]
-        print("Fetched vehicles:")
-        userVehicles.forEach { print($0.vehicles_id!) }
-
 
         do {
             userVehicles = try viewContext.fetch(request)
+            print("Fetched vehicles (Updated):")
+            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id!))")}
+            
         } catch {
             print("Error fetching vehicles: \(error.localizedDescription)")
         }

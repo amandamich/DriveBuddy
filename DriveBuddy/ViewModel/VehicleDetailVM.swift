@@ -91,9 +91,11 @@ class VehicleDetailViewModel: ObservableObject {
 
         do {
             try context.save()
+            print("✅ SUCCESS: Data saved to Core Data.") // Tambahkan ini
             successMessage = "Vehicle details updated successfully!"
             isEditing = false
         } catch {
+            print("❌ FAILED TO SAVE: \(error.localizedDescription)") // Tambahkan ini
             errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
     }

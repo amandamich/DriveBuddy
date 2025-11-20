@@ -16,8 +16,7 @@ final class AuthenticationViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var errorMessage: String?
     @Published var currentUser: User?
-    // Properti ini digunakan oleh HomeView untuk fetch data yang relevan
-    @Published var currentUserID: String? // Menyimpan UUID pengguna aktif sebagai String
+    @Published var currentUserID: String?
     
     let viewContext: NSManagedObjectContext
 
@@ -92,19 +91,17 @@ final class AuthenticationViewModel: ObservableObject {
             // 2. Cek apakah ada user yang ditemukan dari hasil fetch.
             if let user = users.first {
                 
-                // **USER DITEMUKAN**
+                // KETIKA USER DITEMUKAN
                 
                 // 3. Verifikasi password
                 if user.password_hash == hash(password) {
                     
                     // PASSWORD COCOK: LOGIN BERHASIL
                     
-                    // PENTING: SET STATUS LOGIN DAN ID PENGGUNA
+                    // SET STATUS LOGIN DAN ID PENGGUNA
                     currentUser = user
                     isAuthenticated = true
                     errorMessage = nil
-                    
-                    // **PERBAIKAN:** Set currentUserID dengan UUID pengguna
                     currentUserID = user.user_id?.uuidString
                     
                 } else {
@@ -114,13 +111,12 @@ final class AuthenticationViewModel: ObservableObject {
                 }
             } else {
                 
-                // **USER TIDAK DITEMUKAN** (Email tidak terdaftar)
-                // Pesan yang lebih baik: menyarankan user untuk mendaftar.
+                // USER TIDAK DITEMUKAN (Email tidak terdaftar)
                 errorMessage = "User not found. Please sign up first."
             }
         } catch {
             
-            // **ERROR TEKNIS** (Misalnya Core Data crash/gagal fetch)
+            // ERROR TEKNIS (Misalnya Core Data crash/gagal fetch)
             print("Core Data Fetch Error: \(error)") // Untuk tujuan debugging
             errorMessage = "Login failed: An internal error occurred. Please try again later."
         }
