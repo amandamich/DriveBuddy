@@ -161,4 +161,12 @@ enum ServiceReminderStatus {
         }
     }
 }
+func extractUsername(from email: String?) -> String {
+    guard let email = email else { return "User" }
+    if let atIndex = email.firstIndex(of: "@") {
+        let username = String(email[..<atIndex])
+        return username.prefix(1).uppercased() + username.dropFirst()
+    }
+    return email
+}
 

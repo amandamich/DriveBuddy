@@ -66,7 +66,7 @@ struct VehicleDetailView: View {
                                 .foregroundColor(.cyan)
                                 .imageScale(.medium)
                             
-                            Text(viewModel.makeModel.isEmpty ? "Nama Kosong" : viewModel.makeModel.uppercased())
+                            Text(viewModel.makeModel.isEmpty ? "Nama Kosong" : viewModel.makeModel)
                                 .font(.title3)
                                 .bold()
                                 .foregroundColor(.white)
@@ -108,7 +108,7 @@ struct VehicleDetailView: View {
                                 .frame(width: 120, height: 70)
                             
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(viewModel.activeVehicle.make_model?.uppercased() ?? "")
+                                Text(viewModel.activeVehicle.make_model ?? "")
                                     .font(.title3)
                                     .bold()
                                     .foregroundColor(.white)
@@ -174,14 +174,14 @@ struct VehicleDetailView: View {
                     
                     // MARK: LAST SERVICE + BUTTON
                     VStack(alignment: .leading, spacing: 10) {
-                        
+
                         HStack {
                             Text("Last Service")
                                 .foregroundColor(.white)
                                 .font(.headline)
-                            
+
                             Spacer()
-                            
+
                             Button(action: { showAddService = true }) {
                                 Text("Add a service")
                                     .font(.subheadline)
@@ -193,21 +193,19 @@ struct VehicleDetailView: View {
                                     .foregroundColor(.white)
                             }
                         }
-                        
+
                         Divider().background(Color.white.opacity(0.2))
-                        
+
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Oil Service")
-                                Text("Engine Repair")
+                                Text(viewModel.serviceName.isEmpty ? "No service recorded" : viewModel.serviceName)
                             }
                             .foregroundColor(.white)
-                            
+
                             Spacer()
-                            
+
                             VStack(alignment: .trailing, spacing: 6) {
-                                Text("10 October 2025")
-                                Text("27 October 2025")
+                                Text(viewModel.formatDate(viewModel.lastServiceDate))
                             }
                             .foregroundColor(.white.opacity(0.8))
                         }
@@ -218,6 +216,7 @@ struct VehicleDetailView: View {
                     .cornerRadius(18)
                     .shadow(color: .cyan.opacity(0.25), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
+
                     
                     Spacer(minLength: 60)
                 }
@@ -249,16 +248,44 @@ struct VehicleDetailView: View {
         }
         
         
-        // EDIT VEHICLE SHEET
-        .sheet(isPresented: $viewModel.isEditing) {
-            EditVehicleView(viewModel: viewModel)
-        }
-        
-        
-        .navigationBarBackButtonHidden(true)
-    }
+        // MARK: - My Service Sheet (no NavigationView wrapper)
+               .sheet(isPresented: $showMyService) {
+                   MyServiceView(
+                       vehicle: viewModel.activeVehicle,
+                       context: viewContext,
+                       activeUser: viewModel.activeUser
+                   )
+               }
+               
+               // MARK: - Add Service Sheet (this is the important part)
+               .sheet(isPresented: $showAddService) {
+                   NavigationStack {
+                       AddServiceView(
+                           vehicle: viewModel.activeVehicle,
+                           context: viewContext
+                       )
+                       .toolbar {
+                           ToolbarItem(placement: .navigationBarLeading) {
+                               Button {
+                                   showAddService = false    // closes the sheet → back to VehicleDetailView
+                               } label: {
+                                   Image(systemName: "chevron.left")
+                                       .font(.headline)
+                                       .foregroundColor(.blue)
+                               }
+                           }
+                       }
+                   }
+               }
+               
+               .sheet(isPresented: $viewModel.isEditing) {
+                   EditVehicleView(viewModel: viewModel)
+               }
+               
+               .navigationBarBackButtonHidden(false)
+           }
+       }
     
-}
 
 
 // MARK: - Custom Button Style for Cards (Enhanced with Spring Animation)
