@@ -81,6 +81,7 @@ struct DashboardView: View {
                         ZStack(alignment: .bottomTrailing){
                             List {
                                 ForEach(dashboardVM.userVehicles, id: \.vehicles_id) { vehicle in
+                                    
                                     VehicleCard(
                                         vehicle: vehicle,
                                         taxStatus: dashboardVM.taxStatus(for: vehicle),
@@ -108,20 +109,20 @@ struct DashboardView: View {
                     }
                 }
             }
-                    
-                    // MARK: - Add Vehicle Sheet
-                        .sheet(isPresented: $showingAddVehicle, onDismiss: {
-                            dashboardVM.fetchVehicles()
-                        }) {
-                            AddVehicleView(authVM: authVM)
-                        }
-                }
+            // MARK: - Add Vehicle Sheet
+            .sheet(isPresented: $showingAddVehicle, onDismiss: {dashboardVM.fetchVehicles()}) {
+            AddVehicleView(authVM: authVM)
             }
         }
+        .onAppear {
+            dashboardVM.fetchVehicles()
+        }
+    }
+}
         
         // MARK: - Vehicle Card Component
         struct VehicleCard: View {
-            var vehicle: Vehicles
+            @ObservedObject var vehicle: Vehicles
             var taxStatus: VehicleTaxStatus
             var serviceStatus: ServiceReminderStatus
             
