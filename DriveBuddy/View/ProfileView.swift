@@ -74,161 +74,167 @@ struct ProfileView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 30)
 
-                    // MARK: - Settings Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(Color("AccentNeon"))
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 24) {
+                            // MARK: - Settings Section
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(Color("AccentNeon"))
 
-                            Text("Settings")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
+                                    Text("Settings")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color("TextPrimary"))
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom, 16)
 
-                        VStack(spacing: 0) {
-                            // Add to Calendar Toggle
-                            HStack {
-                                Text("Add to Calendar")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(Color("TextPrimary"))
+                                VStack(spacing: 0) {
+                                    // Add to Calendar Toggle
+                                    HStack {
+                                        Text("Add to Calendar")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(Color("TextPrimary"))
 
-                                Spacer()
+                                        Spacer()
 
-                                Toggle("", isOn: $profileVM.addToCalendar)
-                                    .labelsHidden()
-                                    .tint(Color("AccentNeon"))
-                                    .onChange(of: profileVM.addToCalendar) {
-                                        profileVM.toggleAddToCalendar(profileVM.addToCalendar)
+                                        Toggle("", isOn: $profileVM.addToCalendar)
+                                            .labelsHidden()
+                                            .tint(Color("AccentNeon"))
+                                            .onChange(of: profileVM.addToCalendar) {
+                                                profileVM.toggleAddToCalendar(profileVM.addToCalendar)
+                                            }
                                     }
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
 
-                            Divider()
-                                .background(Color("TextPrimary").opacity(0.15))
-                                .padding(.leading, 16)
+                                    Divider()
+                                        .background(Color("TextPrimary").opacity(0.15))
+                                        .padding(.leading, 16)
 
-                            // Theme Toggle
-                            HStack {
-                                Text("Theme")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(Color("TextPrimary"))
+                                    // Theme Toggle
+                                    HStack {
+                                        Text("Theme")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(Color("TextPrimary"))
 
-                                Spacer()
+                                        Spacer()
 
-                                Toggle("", isOn: $profileVM.isDarkMode)
-                                    .labelsHidden()
-                                    .tint(Color("AccentNeon"))
-                                    .onChange(of: profileVM.isDarkMode) {
-                                        profileVM.toggleDarkMode(profileVM.isDarkMode)
+                                        Toggle("", isOn: $profileVM.isDarkMode)
+                                            .labelsHidden()
+                                            .tint(Color("AccentNeon"))
+                                            .onChange(of: profileVM.isDarkMode) {
+                                                profileVM.toggleDarkMode(profileVM.isDarkMode)
+                                            }
                                     }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color("CardBackground"))
+                                )
+                                .padding(.horizontal)
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color("CardBackground"))
-                        )
-                        .padding(.horizontal)
-                    }
-                    .padding(.bottom, 24)
 
-                    // MARK: - Account Section
-                    VStack(alignment: .leading, spacing: 0) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(Color("AccentNeon"))
+                            // MARK: - Account Section
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(Color("AccentNeon"))
 
-                            Text("Account")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(Color("TextPrimary"))
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
+                                    Text("Account")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(Color("TextPrimary"))
+                                }
+                                .padding(.horizontal)
+                                .padding(.bottom, 16)
 
-                        VStack(spacing: 0) {
-                            // Edit Profile
-                            NavigationLink {
+                                VStack(spacing: 0) {
+                                    // Edit Profile
+                                    NavigationLink {
                                         EditProfileView(profileVM: profileVM)
                                     } label: {
                                         rowLabel("Edit Profile")
                                     }
 
-                            Divider()
-                                .background(Color("TextPrimary").opacity(0.15))
-                                .padding(.leading, 16)
+                                    Divider()
+                                        .background(Color("TextPrimary").opacity(0.15))
+                                        .padding(.leading, 16)
 
-                            // Change Password
-                            NavigationLink {
-                                ChangePasswordView(authVM: authVM)
-                            } label: {
-                                rowLabel("Change Password")
-                            }
+                                    // 🆕 Favorite Workshops
+                                    NavigationLink {
+                                        FavoriteWorkshopsView()
+                                    } label: {
+                                        rowLabel("Favorite Workshops")
+                                    }
 
+                                    Divider()
+                                        .background(Color("TextPrimary").opacity(0.15))
+                                        .padding(.leading, 16)
 
-                            Divider()
-                                .background(Color("TextPrimary").opacity(0.15))
-                                .padding(.leading, 16)
+                                    // Change Password
+                                    NavigationLink {
+                                        ChangePasswordView(authVM: authVM)
+                                    } label: {
+                                        rowLabel("Change Password")
+                                    }
 
-                            // Privacy Policy
-                            NavigationLink {
-                                PrivacyPolicyView()
-                            } label: {
-                                rowLabel("Privacy Policy")
-                            }
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color("CardBackground"))
-                        )
-                        .padding(.horizontal)
-                    }
-                    .padding(.bottom, 25)
+                                    Divider()
+                                        .background(Color("TextPrimary").opacity(0.15))
+                                        .padding(.leading, 16)
 
-                    // MARK: - Logout Button (di luar Account Section)
-                    
-                    Button(action: {
-                        authVM.logout()
-                    }) {
-                        Text("Log Out")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            // 🟦 WARNA TEXT BERBEDA UNTUK LIGHT & DARK MODE
-                            .foregroundColor(profileVM.isDarkMode ? .white : .black)
-
-                            .background(
-                                Group {
-                                    if profileVM.isDarkMode {
-                                        // 🌙 DARK MODE — glow seperti tombol LOGIN
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.cyan, lineWidth: 4)
-                                            .shadow(color: Color.blue.opacity(0.6), radius: 8)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.black.opacity(0.5))
-                                            )
-                                            .shadow(color: Color.blue.opacity(0.5), radius: 6)
-                                    } else {
-                                        // ☀️ LIGHT MODE — putih + soft blue glow
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white)
-                                            .stroke(Color.cyan, lineWidth: 4)
-                                            .shadow(color: Color.cyan.opacity(0.5), radius: 6)
+                                    // Privacy Policy
+                                    NavigationLink {
+                                        PrivacyPolicyView()
+                                    } label: {
+                                        rowLabel("Privacy Policy")
                                     }
                                 }
-                            )
-                            .cornerRadius(12)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color("CardBackground"))
+                                )
+                                .padding(.horizontal)
+                            }
 
-                    Spacer()
+                            // MARK: - Logout Button
+                            Button(action: {
+                                authVM.logout()
+                            }) {
+                                Text("Log Out")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 14)
+                                    .foregroundColor(profileVM.isDarkMode ? .white : .black)
+                                    .background(
+                                        Group {
+                                            if profileVM.isDarkMode {
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.cyan, lineWidth: 4)
+                                                    .shadow(color: Color.blue.opacity(0.6), radius: 8)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 12)
+                                                            .fill(Color.black.opacity(0.5))
+                                                    )
+                                                    .shadow(color: Color.blue.opacity(0.5), radius: 6)
+                                            } else {
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.white)
+                                                    .stroke(Color.cyan, lineWidth: 4)
+                                                    .shadow(color: Color.cyan.opacity(0.5), radius: 6)
+                                            }
+                                        }
+                                    )
+                                    .cornerRadius(12)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 20)
+                        }
+                        .padding(.bottom, 100)
+                    }
                 }
                 .onAppear {
                     profileVM.loadProfile()
@@ -378,49 +384,49 @@ struct EditProfileView: View {
         }
     }
 }
+
 // MARK: - Preview
 
 #Preview {
-	let context = PersistenceController.shared.container.viewContext
-	let authVM = AuthenticationViewModel(context: context)
-	
-	// Create a mock user for preview
-	let mockUser = User(context: context)
-	mockUser.email = "preview@drivebuddy.com"
-	mockUser.add_to_calendar = true
-	
-	authVM.currentUser = mockUser
-	
-	return ProfileView(authVM: authVM)
-		.environment(\.managedObjectContext, context)
+    let context = PersistenceController.shared.container.viewContext
+    let authVM = AuthenticationViewModel(context: context)
+
+    let mockUser = User(context: context)
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.add_to_calendar = true
+
+    authVM.currentUser = mockUser
+
+    return ProfileView(authVM: authVM)
+        .environment(\.managedObjectContext, context)
 }
 
 #Preview("Dark Mode") {
-	let context = PersistenceController.shared.container.viewContext
-	let authVM = AuthenticationViewModel(context: context)
-	
-	let mockUser = User(context: context)
-	mockUser.email = "preview@drivebuddy.com"
-	mockUser.add_to_calendar = true
-	
-	authVM.currentUser = mockUser
-	
-	return ProfileView(authVM: authVM)
-		.preferredColorScheme(.dark)
-		.environment(\.managedObjectContext, context)
+    let context = PersistenceController.shared.container.viewContext
+    let authVM = AuthenticationViewModel(context: context)
+
+    let mockUser = User(context: context)
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.add_to_calendar = true
+
+    authVM.currentUser = mockUser
+
+    return ProfileView(authVM: authVM)
+        .preferredColorScheme(.dark)
+        .environment(\.managedObjectContext, context)
 }
 
 #Preview("Light Mode") {
-	let context = PersistenceController.shared.container.viewContext
-	let authVM = AuthenticationViewModel(context: context)
-	
-	let mockUser = User(context: context)
-	mockUser.email = "preview@drivebuddy.com"
-	mockUser.add_to_calendar = true
-	
-	authVM.currentUser = mockUser
-	
-	return ProfileView(authVM: authVM)
-		.preferredColorScheme(.light)
-		.environment(\.managedObjectContext, context)
+    let context = PersistenceController.shared.container.viewContext
+    let authVM = AuthenticationViewModel(context: context)
+
+    let mockUser = User(context: context)
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.add_to_calendar = true
+
+    authVM.currentUser = mockUser
+
+    return ProfileView(authVM: authVM)
+        .preferredColorScheme(.light)
+        .environment(\.managedObjectContext, context)
 }
