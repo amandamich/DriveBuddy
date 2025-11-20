@@ -264,7 +264,7 @@ struct FilterChip: View {
         switch filter {
         case "car wash": return "car"
         case "oil": return "drop.fill"
-        case "brake": return "brake.signal"
+        case "brake": return "pedal.brake"
         case "tire": return "circle.circle"
         case "engine": return "engine.combustion"
         default: return "wrench"
