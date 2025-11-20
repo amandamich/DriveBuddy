@@ -86,28 +86,43 @@ final class AuthenticationViewModel: ObservableObject {
         request.predicate = NSPredicate(format: "email == %@", email.lowercased())
 
         do {
+            // 1. Lakukan fetch. Jika gagal, akan langsung masuk ke block catch.
             let users = try viewContext.fetch(request)
+
+            // 2. Cek apakah ada user yang ditemukan dari hasil fetch.
             if let user = users.first {
-                // Verifikasi password
+                
+                // **USER DITEMUKAN**
+                
+                // 3. Verifikasi password
                 if user.password_hash == hash(password) {
                     
-                    // ✅ PENTING: SET STATUS LOGIN DAN ID PENGGUNA
+                    // PASSWORD COCOK: LOGIN BERHASIL
+                    
+                    // PENTING: SET STATUS LOGIN DAN ID PENGGUNA
                     currentUser = user
                     isAuthenticated = true
                     errorMessage = nil
                     
-                    // **PERBAIKAN:** Set currentUserID dengan UUID pengguna yang dikonversi ke String
-                    // Ini adalah kunci yang akan digunakan HomeView untuk filtering.
+                    // **PERBAIKAN:** Set currentUserID dengan UUID pengguna
                     currentUserID = user.user_id?.uuidString
                     
                 } else {
+                    
+                    // PASSWORD SALAH
                     errorMessage = "Invalid email or password."
                 }
             } else {
-                errorMessage = "Invalid email or password."
+                
+                // **USER TIDAK DITEMUKAN** (Email tidak terdaftar)
+                // Pesan yang lebih baik: menyarankan user untuk mendaftar.
+                errorMessage = "User not found. Please sign up first."
             }
         } catch {
-            errorMessage = "Login failed: \(error.localizedDescription)"
+            
+            // **ERROR TEKNIS** (Misalnya Core Data crash/gagal fetch)
+            print("Core Data Fetch Error: \(error)") // Untuk tujuan debugging
+            errorMessage = "Login failed: An internal error occurred. Please try again later."
         }
     }
     
