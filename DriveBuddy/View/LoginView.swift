@@ -217,8 +217,8 @@ struct LoginView: View {
                         Image("MascotDriveBuddy")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 590)
-                            .offset(x: 200, y: 50)
+                            .frame(width: 500)
+                            .offset(x: 180, y: 50)
                     }
                 }
                 .padding(.horizontal, 40)
