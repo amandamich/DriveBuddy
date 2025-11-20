@@ -107,7 +107,7 @@ struct SignUpView: View {
                                     goToLogin = true
                                 }
                             }) {
-                                Text("SIGN UP")
+                                Text("Sign Up")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .padding()
@@ -133,7 +133,7 @@ struct SignUpView: View {
                             }
 
                             // Back to Login
-                            NavigationLink("Already have an account? Login") {
+                            NavigationLink("Already have an account? Sign In") {
                                 LoginView(authVM: authVM)
                             }
                             .foregroundColor(.cyan)

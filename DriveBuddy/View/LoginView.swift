@@ -134,7 +134,7 @@ struct LoginView: View {
                         // MARK: - Main Content
                         VStack(spacing: 30) {
                             // Title
-                            Text("LOGIN")
+                            Text("Sign In")
                                 .font(.system(size: 36, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .shadow(color: .blue, radius: 10)
@@ -170,7 +170,7 @@ struct LoginView: View {
                                 authVM.password = password
                                 authVM.login()
                             }) {
-                                Text("LOGIN")
+                                Text("Sign In")
                                     .font(.headline)
                                     .foregroundColor(.white)
                                     .padding()
