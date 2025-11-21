@@ -8,7 +8,17 @@ struct SignUpView: View {
     @State private var password = ""
     @State private var confirmpassword = ""
     @State private var isAnimating = false
-    @State private var goToLogin = false // ✅ Tambahan
+    @State private var goToLogin = false
+    
+    // ✅ Computed property to check if form is valid
+    private var isFormValid: Bool {
+        !email.isEmpty &&
+        !phoneNumber.isEmpty &&
+        !password.isEmpty &&
+        !confirmpassword.isEmpty &&
+        password == confirmpassword &&
+        authVM.validateEmail(email)
+    }
 
     var body: some View {
         NavigationStack {
@@ -49,16 +59,46 @@ struct SignUpView: View {
                                     .autocorrectionDisabled(true)
                             }
 
-                            // Phone Number
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Phone Number")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                     .shadow(color: .blue, radius: 5)
-                                TextField("+62", text: $phoneNumber)
-                                    .textFieldStyle(NeonTextFieldStyle())
-                                    .keyboardType(.phonePad)
+                                
+                                HStack(spacing: 0) {
+                                    // Fixed +62 prefix
+                                    Text("+62")
+                                        .foregroundColor(.black)
+                                        .font(.body)
+                                        .padding(.leading, 16)
+                                        .padding(.trailing, 12)
+                                    
+                                    // Divider line
+                                    Rectangle()
+                                        .fill(Color.cyan.opacity(0.3))
+                                        .frame(width: 1)
+                                        .padding(.vertical, 10)
+                                    
+                                    // Phone Number Input
+                                    HStack {
+                                        TextField("812-3456-7890", text: $phoneNumber)
+                                            .foregroundColor(.black)
+                                            .keyboardType(.phonePad)
+                                            .padding(.leading, 16)
+                                            .padding(.trailing, 16)
+                                            .onChange(of: phoneNumber) { newValue in
+                                                phoneNumber = formatPhoneNumber(newValue)
+                                            }
+                                    }
+                                }
+                                .frame(height: 56)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.white)
+                                )
+                                .shadow(color: .blue, radius: 8)
                             }
+                            .padding(.bottom, 2)
 
                             // Password
                             VStack(alignment: .leading, spacing: 8) {
@@ -84,45 +124,32 @@ struct SignUpView: View {
                             // MARK: - Sign Up Button
                             Button(action: {
                                 authVM.errorMessage = nil
-                                guard !email.isEmpty, !password.isEmpty else {
-                                    authVM.errorMessage = "Please fill all fields"
-                                    return
-                                }
-                                guard password == confirmpassword else {
-                                    authVM.errorMessage = "Passwords do not match"
-                                    return
-                                }
-                                // Validate email format
-                                guard authVM.validateEmail(email) else {
-                                authVM.errorMessage = "Invalid email format"
-                                                                   return
-                                                               }
-
+                                
                                 authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
                                 authVM.password = password
                                 authVM.signUp()
 
-                                // ✅ Setelah Sign Up, arahkan ke login view
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                     goToLogin = true
                                 }
                             }) {
                                 Text("Sign Up")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(isFormValid ? .white : .gray)
                                     .padding()
                                     .frame(maxWidth: .infinity)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.cyan, lineWidth: 2)
-                                            .shadow(color: .blue, radius: 8)
+                                            .stroke(isFormValid ? Color.cyan : Color.gray.opacity(0.5), lineWidth: 2)
+                                            .shadow(color: isFormValid ? .blue : .clear, radius: 8)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
                                                     .fill(Color.black.opacity(0.5))
                                             )
                                     )
-                                    .shadow(color: .blue, radius: 10)
+                                    .shadow(color: isFormValid ? .blue : .clear, radius: 10)
                             }
+                            .disabled(!isFormValid) // ✅ Disable button when form is invalid
 
                             // Feedback Messages
                             if let error = authVM.errorMessage, !error.isEmpty {
@@ -147,7 +174,6 @@ struct SignUpView: View {
                 withAnimation { isAnimating = true }
                 authVM.errorMessage = nil
             }
-            // ✅ Sekarang navigasi ke LoginView, bukan Home
             .navigationDestination(isPresented: $goToLogin) {
                 LoginView(authVM: authVM)
             }
@@ -155,4 +181,27 @@ struct SignUpView: View {
             .navigationBarBackButtonHidden(false)
         }
     }
+    
+    private func formatPhoneNumber(_ value: String) -> String {
+        let cleaned = value.filter { $0.isNumber }
+        
+        // Limit to 12 digits
+        let limited = String(cleaned.prefix(12))
+        
+        // Format: XXX-XXXX-XXXX
+        if limited.count <= 3 {
+            return limited
+        } else if limited.count <= 7 {
+            let index = limited.index(limited.startIndex, offsetBy: 3)
+            return "\(limited[..<index])-\(limited[index...])"
+        } else {
+            let index1 = limited.index(limited.startIndex, offsetBy: 3)
+            let index2 = limited.index(limited.startIndex, offsetBy: 7)
+            return "\(limited[..<index1])-\(limited[index1..<index2])-\(limited[index2...])"
+        }
+    }
+}
+
+#Preview{
+    SignUpView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }

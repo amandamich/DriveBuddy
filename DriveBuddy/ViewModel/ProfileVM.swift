@@ -18,7 +18,7 @@ class ProfileViewModel: ObservableObject {
 
     // Settings
     @Published var addToCalendar: Bool = false
-    @Published var isDarkMode: Bool = false
+    @Published var isDarkMode: Bool = true
 
     // Profile data (disimpan via UserDefaults untuk sementara)
     @Published var username: String = ""      // full name
@@ -69,7 +69,7 @@ class ProfileViewModel: ObservableObject {
                 // Buat user baru kalau belum ada sama sekali (minimal untuk settings)
                 let newUser = User(context: viewContext)
                 newUser.add_to_calendar = false
-                newUser.is_dark_mode = false
+                newUser.is_dark_mode = true
                 saveContext()
                 self.user = newUser
             }
