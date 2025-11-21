@@ -12,6 +12,7 @@ struct AddVehicleView: View {
         guard let user = authVM.currentUser else {
             fatalError("currentUser must not be nil in AddVehicleView")
         }
+        
         _addVehicleVM = StateObject(
             wrappedValue: AddVehicleViewModel(
                 context: PersistenceController.shared.container.viewContext,

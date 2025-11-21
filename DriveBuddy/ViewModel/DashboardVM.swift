@@ -15,9 +15,9 @@ class DashboardViewModel: ObservableObject {
     @Published var userVehicles: [Vehicles] = []
 
     private let viewContext: NSManagedObjectContext
-    private let user: User
+    private let user: User?
 
-    init(context: NSManagedObjectContext, user: User) {
+    init(context: NSManagedObjectContext, user: User?) {
         self.viewContext = context
         self.user = user
         fetchVehicles()
@@ -25,17 +25,22 @@ class DashboardViewModel: ObservableObject {
 
     // MARK: - Fetch Vehicles
     func fetchVehicles() {
+        guard let currentUser = user else {
+            print("No user logged in, cannot fetch vehicles")
+            userVehicles = []
+            return
+        }
+        
         viewContext.refreshAllObjects()
-        print("Refresh context dipanggil sebelum fetch.") // DEBUG
+        print("Refresh context dipanggil sebelum fetch.")
         let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
-        request.predicate = NSPredicate(format: "user == %@", user)
+        request.predicate = NSPredicate(format: "user == %@", currentUser)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.created_at, ascending: false)]
 
         do {
             userVehicles = try viewContext.fetch(request)
             print("Fetched vehicles (Updated):")
-            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id!))")}
-            
+            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id?.uuidString ?? "No ID"))")}
         } catch {
             print("Error fetching vehicles: \(error.localizedDescription)")
         }
@@ -73,6 +78,15 @@ class DashboardViewModel: ObservableObject {
         } else {
             return .valid
         }
+    }
+    
+    func extractUsername(from email: String?) -> String {
+        guard let email = email else { return "User" }
+        if let atIndex = email.firstIndex(of: "@") {
+            let username = String(email[..<atIndex])
+            return username.prefix(1).uppercased() + username.dropFirst()
+        }
+        return email
     }
 
     // MARK: - Service Reminder Logic
@@ -161,12 +175,5 @@ enum ServiceReminderStatus {
         }
     }
 }
-func extractUsername(from email: String?) -> String {
-    guard let email = email else { return "User" }
-    if let atIndex = email.firstIndex(of: "@") {
-        let username = String(email[..<atIndex])
-        return username.prefix(1).uppercased() + username.dropFirst()
-    }
-    return email
-}
+
 

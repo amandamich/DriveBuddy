@@ -10,7 +10,7 @@ struct DashboardView: View {
     @State private var showingAddVehicle = false
     
     init(authVM: AuthenticationViewModel) {
-        _authVM = ObservedObject(initialValue: authVM)
+        self.authVM = authVM
         guard let user = authVM.currentUser else {
             fatalError("currentUser should not be nil in DashboardView")
         }
@@ -35,7 +35,7 @@ struct DashboardView: View {
                         Image("LogoDriveBuddy")
                             .resizable().scaledToFit().frame(width: 180, height: 40)
                         
-                        Text("Hello, \(authVM.currentUser?.email ?? "User") 👋")
+                        Text("Hello, \(dashboardVM.extractUsername(from: authVM.currentUser?.email)) 👋")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.gray)
                     }
