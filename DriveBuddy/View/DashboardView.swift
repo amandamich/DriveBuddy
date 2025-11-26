@@ -1,5 +1,3 @@
-// DashboardView.swift
-
 import SwiftUI
 import CoreData
 import Combine
@@ -8,6 +6,9 @@ struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var dashboardVM: DashboardViewModel
     @State private var showingAddVehicle = false
+    
+    // Add @FetchRequest for automatic updates
+    @FetchRequest var vehicles: FetchedResults<Vehicles>
     
     init(authVM: AuthenticationViewModel) {
         self.authVM = authVM
@@ -20,6 +21,16 @@ struct DashboardView: View {
                 context: authVM.viewContext,
                 user: user
             )
+        )
+        
+        // Setup FetchRequest for user's vehicles
+        let userId = user.user_id ?? UUID()
+        let predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
+        let sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)]
+        
+        _vehicles = FetchRequest<Vehicles>(
+            sortDescriptors: sortDescriptors,
+            predicate: predicate
         )
     }
     
@@ -50,8 +61,7 @@ struct DashboardView: View {
                         .padding(.top, 10)
                     
                     // MARK: - Vehicle List
-                    if dashboardVM.userVehicles.isEmpty {
-                        //                        Spacer()
+                    if vehicles.isEmpty {
                         VStack {
                             Text("No vehicles added yet.")
                                 .foregroundColor(.gray)
@@ -80,8 +90,7 @@ struct DashboardView: View {
                     } else {
                         ZStack(alignment: .bottomTrailing){
                             List {
-                                ForEach(dashboardVM.userVehicles, id: \.vehicles_id) { vehicle in
-                                    
+                                ForEach(Array(vehicles), id: \.vehicles_id) { vehicle in
                                     VehicleCard(
                                         vehicle: vehicle,
                                         taxStatus: dashboardVM.taxStatus(for: vehicle),
@@ -89,11 +98,12 @@ struct DashboardView: View {
                                     )
                                     .listRowBackground(Color.black.opacity(0.8))
                                 }
-                                .onDelete(perform: dashboardVM.deleteVehicle)
+                                .onDelete(perform: deleteVehicles)
                             }
                             .listStyle(.plain)
                             .scrollContentBackground(.hidden)
                             .padding(.top, 10)
+                            
                             Button(action: { showingAddVehicle = true }) {
                                 Image(systemName: "plus")
                                     .font(.title2)
@@ -110,17 +120,28 @@ struct DashboardView: View {
                 }
             }
             // MARK: - Add Vehicle Sheet
-            .sheet(isPresented: $showingAddVehicle, onDismiss: {dashboardVM.fetchVehicles()}) {
-            AddVehicleView(authVM: authVM)
+            .sheet(isPresented: $showingAddVehicle) {
+                AddVehicleView(authVM: authVM)
             }
         }
-        .onAppear {
-            dashboardVM.fetchVehicles()
+    }
+    
+    // MARK: - Delete Function
+    private func deleteVehicles(at offsets: IndexSet) {
+        for index in offsets {
+            let vehicle = Array(vehicles)[index]
+            authVM.viewContext.delete(vehicle)
+        }
+        
+        do {
+            try authVM.viewContext.save()
+        } catch {
+            print("Error deleting vehicle: \(error)")
         }
     }
 }
-        
-        // MARK: - Vehicle Card Component
+
+// MARK: - Vehicle Card Component
 struct VehicleCard: View {
     var vehicle: Vehicles
     var taxStatus: VehicleTaxStatus
@@ -194,7 +215,7 @@ struct VehicleCard: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color(red: 0.05, green: 0.07, blue: 0.10))   // Deep dark inner background
+                .fill(Color(red: 0.05, green: 0.07, blue: 0.10))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
@@ -220,31 +241,30 @@ struct VehicleCard: View {
     }
 }
 
-        
-        // MARK: - Preview
-        #Preview {
-            let context = PersistenceController.shared.container.viewContext
-            
-            // Mock user
-            let mockUser = User(context: context)
-            mockUser.user_id = UUID()
-            mockUser.email = "preview@drivebuddy.com"
-            mockUser.password_hash = "mockhash"
-            mockUser.created_at = Date()
-            
-            // Mock vehicle
-            let mockVehicle = Vehicles(context: context)
-            mockVehicle.make_model = "Honda Brio"
-            mockVehicle.vehicle_type = "Car"
-            mockVehicle.plate_number = "B 9876 FG"
-            mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-            mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-            mockVehicle.odometer = 25000
-            mockVehicle.user = mockUser
-            
-            let mockAuthVM = AuthenticationViewModel(context: context)
-            mockAuthVM.currentUser = mockUser
-            mockAuthVM.isAuthenticated = true
-            
-            return DashboardView(authVM: mockAuthVM)
-        }
+// MARK: - Preview
+#Preview {
+    let context = PersistenceController.shared.container.viewContext
+    
+    // Mock user
+    let mockUser = User(context: context)
+    mockUser.user_id = UUID()
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.password_hash = "mockhash"
+    mockUser.created_at = Date()
+    
+    // Mock vehicle
+    let mockVehicle = Vehicles(context: context)
+    mockVehicle.make_model = "Honda Brio"
+    mockVehicle.vehicle_type = "Car"
+    mockVehicle.plate_number = "B 9876 FG"
+    mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
+    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
+    mockVehicle.odometer = 25000
+    mockVehicle.user = mockUser
+    
+    let mockAuthVM = AuthenticationViewModel(context: context)
+    mockAuthVM.currentUser = mockUser
+    mockAuthVM.isAuthenticated = true
+    
+    return DashboardView(authVM: mockAuthVM)
+}
