@@ -162,130 +162,130 @@ struct LoginView: View {
                         value: isAnimating
                     )
 
-                VStack(spacing: 0) {
-                    // Title at top
-                    Text("Sign In")
-                        .font(.system(size: 42, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .shadow(color: .blue, radius: 10)
-                        .padding(.top, 80)
-                        .padding(.bottom, 40)
-                    
-                    // Email Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email")
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            .shadow(color: .blue, radius: 5)
-                        TextField("Enter your email", text: $email)
-                            .textFieldStyle(NeonTextFieldStyle())
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled(true)
-                            .focused($focusedField, equals: .email)
-                            .submitLabel(.next)
-                            .onSubmit {
-                                focusedField = .password
-                            }
-                    }
-                    .padding(.horizontal, 30)
-
-                    // Password Field
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Password")
-                            .foregroundColor(.white)
-                            .font(.headline)
-                            .shadow(color: .blue, radius: 5)
-                        SecureField("Enter your password", text: $password)
-                            .textFieldStyle(NeonTextFieldStyle())
-                            .focused($focusedField, equals: .password)
-                            .submitLabel(.go)
-                            .onSubmit {
-                                if isFormValid {
-                                    authVM.errorMessage = nil
-                                    authVM.email = email
-                                    authVM.password = password
-                                    authVM.login()
-                                }
-                            }
-                    }
-                    .padding(.horizontal, 30)
-                    .padding(.top, 20)
-
-                    // MARK: - Login Button
-                    Button(action: {
-                        focusedField = nil
-                        authVM.errorMessage = nil
-                        authVM.email = email
-                        authVM.password = password
-                        authVM.login()
-                    }) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Title at top
                         Text("Sign In")
-                            .font(.headline)
-                            .foregroundColor(isFormValid ? .white : .gray)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(isFormValid ? Color.cyan : Color.gray.opacity(0.5), lineWidth: 2)
-                                    .shadow(color: isFormValid ? .blue : .clear, radius: 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.black.opacity(0.5))
-                                    )
-                            )
-                            .shadow(color: isFormValid ? .blue : .clear, radius: 10)
-                    }
-                    .disabled(!isFormValid)
-                    .padding(.horizontal, 30)
-                    .padding(.top, 30)
+                            .font(.system(size: 36, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.top, 60)
+                            .padding(.bottom, 30)
+                        
+                        // Email Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Email")
+                                .foregroundColor(.white)
+                                .font(.headline)
+                                .shadow(color: .blue, radius: 5)
+                            TextField("Enter your email", text: $email)
+                                .textFieldStyle(NeonTextFieldStyle())
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled(true)
+                                .focused($focusedField, equals: .email)
+                                .submitLabel(.next)
+                                .onSubmit {
+                                    focusedField = .password
+                                }
+                        }
+                        .padding(.horizontal, 30)
 
-                    // MARK: - Validation Message
-                    if let message = validationMessage {
-                        Text(message)
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                            .padding(.top, 8)
-                            .transition(.opacity)
-                    }
-
-                    // MARK: - Error Message (from auth)
-                    if let error = authVM.errorMessage, !error.isEmpty {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .padding(.top, 8)
-                            .transition(.opacity)
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    withAnimation {
+                        // Password Field
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Password")
+                                .foregroundColor(.white)
+                                .font(.headline)
+                                .shadow(color: .blue, radius: 5)
+                            SecureField("Enter your password", text: $password)
+                                .textFieldStyle(NeonTextFieldStyle())
+                                .focused($focusedField, equals: .password)
+                                .submitLabel(.go)
+                                .onSubmit {
+                                    if isFormValid {
                                         authVM.errorMessage = nil
+                                        authVM.email = email
+                                        authVM.password = password
+                                        authVM.login()
                                     }
                                 }
-                            }
-                    }
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.top, 20)
 
-                    // MARK: - Navigate to Sign Up
-                    NavigationLink("Don't have an account ? Sign Up") {
-                        SignUpView(authVM: authVM)
-                    }
-                    .foregroundColor(.cyan)
-                    .padding(.top, 15)
-                    
-                    Spacer()
-                    
-                    // MARK: - Mascot Image (positioned to the right)
-                    if focusedField == nil {
+                        // MARK: - Login Button
+                        Button(action: {
+                            focusedField = nil
+                            authVM.errorMessage = nil
+                            authVM.email = email
+                            authVM.password = password
+                            authVM.login()
+                        }) {
+                            Text("Sign In")
+                                .font(.headline)
+                                .foregroundColor(isFormValid ? .white : .gray)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(isFormValid ? Color.cyan : Color.gray.opacity(0.5), lineWidth: 2)
+                                        .shadow(color: isFormValid ? .blue : .clear, radius: 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.black.opacity(0.5))
+                                        )
+                                )
+                                .shadow(color: isFormValid ? .blue : .clear, radius: 10)
+                        }
+                        .disabled(!isFormValid)
+                        .padding(.horizontal, 30)
+                        .padding(.top, 30)
+
+                        // MARK: - Validation Message
+                        if let message = validationMessage {
+                            Text(message)
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                                .padding(.top, 8)
+                                .transition(.opacity)
+                        }
+
+                        // MARK: - Error Message (from auth)
+                        if let error = authVM.errorMessage, !error.isEmpty {
+                            Text(error)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .padding(.top, 8)
+                                .transition(.opacity)
+                                .onAppear {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                        withAnimation {
+                                            authVM.errorMessage = nil
+                                        }
+                                    }
+                                }
+                        }
+
+                        // MARK: - Navigate to Sign Up
+                        NavigationLink("Don't have an account ? Sign Up") {
+                            SignUpView(authVM: authVM)
+                        }
+                        .foregroundColor(.cyan)
+                        .padding(.top, 15)
+                        
+                        Spacer(minLength: 50)
+                        
+                        // MARK: - Mascot Image (always visible, positioned to the right)
                         HStack {
                             Spacer()
                             Image("MascotDriveBuddy")
                                 .resizable()
                                 .scaledToFit()
-                                .frame(height: 550)
-                                .padding(.trailing, -20)
+                                .frame(height: 280)
+                                .padding(.trailing, -135)
+                                .padding(.bottom, 20)
                         }
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .onTapGesture {
