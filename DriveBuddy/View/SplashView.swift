@@ -75,7 +75,7 @@ struct SplashView: View {
 							NavigationLink(
 								destination: LoginView(authVM: authVM)
 							) {
-								Text("Log In")
+								Text("Sign In")
 									.font(.headline)
 									.foregroundColor(.white)
 									.padding()

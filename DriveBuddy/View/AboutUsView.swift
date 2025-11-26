@@ -258,7 +258,7 @@ struct AboutUsView: View {
 							.font(.headline)
 							.foregroundColor(.cyan)
 						
-						Text("© 2024 DriveBuddy. All rights reserved.")
+						Text("© 2025 DriveBuddy. All rights reserved.")
 							.font(.caption)
 							.foregroundColor(.white.opacity(0.6))
 					}
