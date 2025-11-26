@@ -22,9 +22,9 @@ struct ChangePasswordView: View {
             Color.black.opacity(0.95)
                 .ignoresSafeArea()
             
-            FlowingLinesView()
-                .opacity(0.25)
-                .ignoresSafeArea()
+//            FlowingLinesView()
+//                .opacity(0.25)
+//                .ignoresSafeArea()
             
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
@@ -83,51 +83,22 @@ struct ChangePasswordView: View {
                     // SAVE BUTTON (Updated to match Add Service button style)
                     Button(action: handleChangePassword) {
                         Text("Save Password")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.headline)
                             .foregroundColor(.white)
-                            .padding(.vertical, 16)
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [
-                                                Color(red: 0.0, green: 0.7, blue: 1.0), // Bright cyan
-                                                Color(red: 0.0, green: 0.5, blue: 0.9)  // Darker blue
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
+                                    .padding()
+                                    .frame(maxWidth: .infinity)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.cyan, lineWidth: 2)
+                                            .shadow(color: .blue, radius: 8)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.black.opacity(0.5))
+                                            )
                                     )
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [
-                                                Color.cyan.opacity(0.8),
-                                                Color.blue.opacity(0.6)
-                                            ],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 1
-                                    )
-                            )
-                            .shadow(
-                                color: Color.cyan.opacity(0.5),
-                                radius: 8,
-                                x: 0,
-                                y: 4
-                            )
-                            .shadow(
-                                color: Color.blue.opacity(0.3),
-                                radius: 16,
-                                x: 0,
-                                y: 8
-                            )
-                    }
-                    .padding(.top, 10)
+                                    .shadow(color: .blue, radius: 10)
+                            }
+                            .padding(.top, 10)
                 }
                 .padding(20)
             }
