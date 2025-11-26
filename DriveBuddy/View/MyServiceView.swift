@@ -35,7 +35,7 @@ struct MyServiceView: View {
 
                     // MARK: - HEADER
                     Text("My Service")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 10)

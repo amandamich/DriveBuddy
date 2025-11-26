@@ -13,7 +13,7 @@ struct PrivacyPolicyView: View {
 					VStack(spacing: 8) {
 
 						Text("Privacy Policy")
-							.font(.system(size: 36, weight: .bold, design: .rounded))
+							.font(.system(size: 34, weight: .bold, design: .rounded))
 							.foregroundColor(.white)
 							.shadow(color: .blue, radius: 10)
 //							.font(.system(size: 28, weight: .bold, design: .rounded))

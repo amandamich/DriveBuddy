@@ -266,7 +266,6 @@ struct AboutUsView: View {
 				}
 			}
 		}
-		.navigationBarHidden(true)
 	}
 }
 

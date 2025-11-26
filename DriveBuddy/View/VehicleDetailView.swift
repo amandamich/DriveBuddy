@@ -13,6 +13,7 @@ struct VehicleDetailView: View {
     
     @State private var showAddService = false
     @State private var showMyService = false
+	@State private var showMyTax = false
     
     // Init untuk menerima objek User Aktif
     init(initialVehicle: Vehicles, allVehicles: [Vehicles], context: NSManagedObjectContext, activeUser: User) {
@@ -156,7 +157,8 @@ struct VehicleDetailView: View {
                         
                         // TAX PAYMENT - Connected to Core Data
                         Button(action: {
-                            print("Tax clicked - Due: \(viewModel.formatDate(viewModel.taxDueDate))")
+							showMyTax = true
+//                            print("Tax clicked - Due: \(viewModel.formatDate(viewModel.taxDueDate))")
                         }) {
                             ClickableCard(
                                 icon: "banknote.fill",
@@ -246,6 +248,21 @@ struct VehicleDetailView: View {
                 }
             }
         }
+		
+		.sheet(isPresented: $showMyTax) {
+			NavigationView {
+				TaxHistoryView()
+				.toolbar {
+					ToolbarItem(placement: .navigationBarLeading) {
+						Button(action: { showMyTax = false }) {
+							Image(systemName: "chevron.left")
+								.font(.headline)
+								.foregroundColor(.blue)
+						}
+					}
+				}
+			}
+		}
         
         
         // MARK: - My Service Sheet (no NavigationView wrapper)
