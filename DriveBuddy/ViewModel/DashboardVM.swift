@@ -12,7 +12,6 @@ import Combine
 
 @MainActor
 class DashboardViewModel: ObservableObject {
-    @Published var userVehicles: [Vehicles] = []
 
     private let viewContext: NSManagedObjectContext
     private let user: User?
@@ -20,46 +19,46 @@ class DashboardViewModel: ObservableObject {
     init(context: NSManagedObjectContext, user: User?) {
         self.viewContext = context
         self.user = user
-        fetchVehicles()
+//        fetchVehicles()
     }
 
-    // MARK: - Fetch Vehicles
-    func fetchVehicles() {
-        guard let currentUser = user else {
-            print("No user logged in, cannot fetch vehicles")
-            userVehicles = []
-            return
-        }
-        
-        viewContext.refreshAllObjects()
-        print("Refresh context dipanggil sebelum fetch.")
-        let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
-        request.predicate = NSPredicate(format: "user == %@", currentUser)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.created_at, ascending: false)]
+//    // MARK: - Fetch Vehicles
+//    func fetchVehicles() {
+//        guard let currentUser = user else {
+//            print("No user logged in, cannot fetch vehicles")
+//            userVehicles = []
+//            return
+//        }
+//        
+//        viewContext.refreshAllObjects()
+//        print("Refresh context dipanggil sebelum fetch.")
+//        let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+//        request.predicate = NSPredicate(format: "user == %@", currentUser)
+//        request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.created_at, ascending: false)]
+//
+//        do {
+//            userVehicles = try viewContext.fetch(request)
+//            print("Fetched vehicles (Updated):")
+//            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id?.uuidString ?? "No ID"))")}
+//        } catch {
+//            print("Error fetching vehicles: \(error.localizedDescription)")
+//        }
+//    }
 
-        do {
-            userVehicles = try viewContext.fetch(request)
-            print("Fetched vehicles (Updated):")
-            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id?.uuidString ?? "No ID"))")}
-        } catch {
-            print("Error fetching vehicles: \(error.localizedDescription)")
-        }
-    }
-
-    // MARK: - Delete Vehicle
-    func deleteVehicle(at offsets: IndexSet) {
-        for index in offsets {
-            let vehicleToDelete = userVehicles[index]
-            viewContext.delete(vehicleToDelete)
-        }
-
-        do {
-            try viewContext.save()
-            fetchVehicles()
-        } catch {
-            print("Error deleting vehicle: \(error.localizedDescription)")
-        }
-    }
+//    // MARK: - Delete Vehicle
+//    func deleteVehicle(at offsets: IndexSet) {
+//        for index in offsets {
+//            let vehicleToDelete = userVehicles[index]
+//            viewContext.delete(vehicleToDelete)
+//        }
+//
+//        do {
+//            try viewContext.save()
+//            fetchVehicles()
+//        } catch {
+//            print("Error deleting vehicle: \(error.localizedDescription)")
+//        }
+//    }
 
     // MARK: - Tax Status Logic
     func taxStatus(for vehicle: Vehicles) -> VehicleTaxStatus {

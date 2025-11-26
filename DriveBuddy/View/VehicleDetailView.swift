@@ -9,34 +9,37 @@ struct VehicleDetailView: View {
     @Environment(\.dismiss) private var dismiss
     
     @StateObject var viewModel: VehicleDetailViewModel
-    let allVehicles: [Vehicles]
+    let allVehicles: FetchedResults<Vehicles>
     
     @State private var showAddService = false
     @State private var showMyService = false
-	@State private var showMyTax = false
+    @State private var showMyTax = false
     @ObservedObject var profileVM: ProfileViewModel
+    
+    // Add onDismiss callback
+    var onDismiss: (() -> Void)?
 
     // Init untuk menerima objek User Aktif
     init(initialVehicle: Vehicles,
-         allVehicles: [Vehicles],
+         allVehicles: FetchedResults<Vehicles>,
          context: NSManagedObjectContext,
          activeUser: User,
-         profileVM: ProfileViewModel) {
+         profileVM: ProfileViewModel,
+         onDismiss: (() -> Void)? = nil) {
 
         self.allVehicles = allVehicles
         self.profileVM = profileVM
+        self.onDismiss = onDismiss
 
         _viewModel = StateObject(wrappedValue:
             VehicleDetailViewModel(
                 context: context,
                 vehicle: initialVehicle,
-                activeUser: activeUser,
+                activeUser: activeUser
             )
         )
     }
 
-    
-    
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
@@ -60,12 +63,11 @@ struct VehicleDetailView: View {
                         ForEach(allVehicles, id: \.objectID) { v in
                             Button(v.make_model ?? "Unknown") {
                                 withAnimation(.easeInOut) {
-                        if v.user == viewModel.activeUser {
+                                    if v.user == viewModel.activeUser {
                                         viewModel.activeVehicle = v
                                         viewModel.loadVehicleData()
-                                        
                                     } else {
-                                        print ("User B coba pindah mobil ke milik User A")
+                                        print("User B coba pindah mobil ke milik User A")
                                     }
                                 }
                             }
@@ -147,10 +149,10 @@ struct VehicleDetailView: View {
                     .padding(.horizontal)
                     
                     
-                    // MARK: UPCOMING SERVICE & TAX CLICKABLE SECTION (CONNECTED TO CORE DATA)
+                    // MARK: UPCOMING SERVICE & TAX CLICKABLE SECTION
                     HStack(spacing: 16) {
                         
-                        // UPCOMING SERVICES - Connected to Core Data
+                        // UPCOMING SERVICES
                         Button(action: {
                             showMyService = true
                         }) {
@@ -164,10 +166,9 @@ struct VehicleDetailView: View {
                         .buttonStyle(CardButtonStyle())
                         .frame(maxWidth: .infinity)
                         
-                        // TAX PAYMENT - Connected to Core Data
+                        // TAX PAYMENT
                         Button(action: {
-							showMyTax = true
-//                            print("Tax clicked - Due: \(viewModel.formatDate(viewModel.taxDueDate))")
+                            showMyTax = true
                         }) {
                             ClickableCard(
                                 icon: "banknote.fill",
@@ -235,10 +236,14 @@ struct VehicleDetailView: View {
         }
         .onAppear {
             print("[Debug] VehicleDetailView Muncul")
-            viewModel.loadVehicleData() // Paksa muat ulang data saat layar tampil
+            viewModel.loadVehicleData()
+        }
+        .onDisappear {
+            // Call onDismiss when view disappears
+            onDismiss?()
         }
         
-        // SWIPE BACK
+        // MARK: - My Service Sheet
         .sheet(isPresented: $showMyService) {
             NavigationView {
                 MyServiceView(
@@ -257,66 +262,60 @@ struct VehicleDetailView: View {
                 }
             }
         }
-		
-		.sheet(isPresented: $showMyTax) {
-			NavigationView {
-				TaxHistoryView()
-				.toolbar {
-					ToolbarItem(placement: .navigationBarLeading) {
-						Button(action: { showMyTax = false }) {
-							Image(systemName: "chevron.left")
-								.font(.headline)
-								.foregroundColor(.blue)
-						}
-					}
-				}
-			}
-		}
         
+        // MARK: - Tax History Sheet
+        .sheet(isPresented: $showMyTax) {
+            NavigationView {
+                TaxHistoryView()
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { showMyTax = false }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+            }
+        }
         
-        // MARK: - My Service Sheet (no NavigationView wrapper)
-               .sheet(isPresented: $showMyService) {
-                   MyServiceView(
-                       vehicle: viewModel.activeVehicle,
-                       context: viewContext,
-                       activeUser: viewModel.activeUser
-                   )
-               }
-               
-               // MARK: - Add Service Sheet (this is the important part)
-               .sheet(isPresented: $showAddService) {
-                   NavigationStack {
-                       AddServiceView(
-                           vehicle: viewModel.activeVehicle,
-                           context: viewContext,
-                           profileVM: profileVM  
-                       )
-
-                       .toolbar {
-                           ToolbarItem(placement: .navigationBarLeading) {
-                               Button {
-                                   showAddService = false    // closes the sheet → back to VehicleDetailView
-                               } label: {
-                                   Image(systemName: "chevron.left")
-                                       .font(.headline)
-                                       .foregroundColor(.blue)
-                               }
-                           }
-                       }
-                   }
-               }
-               
-               .sheet(isPresented: $viewModel.isEditing) {
-                   EditVehicleView(viewModel: viewModel)
-               }
-               
-               .navigationBarBackButtonHidden(false)
-           }
-       }
-    
+        // MARK: - Add Service Sheet
+        .sheet(isPresented: $showAddService) {
+            NavigationStack {
+                AddServiceView(
+                    vehicle: viewModel.activeVehicle,
+                    context: viewContext,
+                    profileVM: profileVM
+                )
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button {
+                            showAddService = false
+                            viewModel.loadVehicleData() // Reload after adding service
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // MARK: - Edit Vehicle Sheet
+        .sheet(isPresented: $viewModel.isEditing) {
+            // Refresh data when edit sheet is dismissed
+            viewModel.loadVehicleData()
+        } content: {
+            EditVehicleView(viewModel: viewModel)
+        }
+        
+        .navigationBarBackButtonHidden(false)
+    }
+}
 
 
-// MARK: - Custom Button Style for Cards (Enhanced with Spring Animation)
+// MARK: - Custom Button Style for Cards
 struct CardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -333,7 +332,7 @@ struct CardButtonStyle: ButtonStyle {
 }
 
 
-// MARK: - Clickable Card Component (Compact Version)
+// MARK: - Clickable Card Component
 struct ClickableCard: View {
     var icon: String
     var title: String
@@ -402,56 +401,4 @@ struct ClickableCard: View {
         .cornerRadius(16)
         .shadow(color: .cyan.opacity(0.3), radius: 7, x: 0, y: 4)
     }
-}
-
-
-// MARK: - Preview Helper Functions
-
-private func setupUser(context: NSManagedObjectContext) -> User {
-    let user = User(context: context)
-    user.user_id = UUID()
-    user.email = "preview@user.com"
-    return user
-}
-
-private func setupVehicle(context: NSManagedObjectContext, makeModel: String, plate: String, odometer: Double, user: User) -> Vehicles {
-    let vehicle = Vehicles(context: context)
-    vehicle.make_model = makeModel
-    vehicle.plate_number = plate
-    vehicle.vehicle_type = "Car"
-    vehicle.odometer = odometer
-    vehicle.tax_due_date = Date().addingTimeInterval(86400 * 60) // 60 days from now
-    vehicle.service_name = "Oil Change"
-    vehicle.last_service_date = Date().addingTimeInterval(86400 * 30) // 30 days from now
-    vehicle.user = user
-    return vehicle
-}
-
-
-#Preview {
-    let context = PersistenceController.preview.container.viewContext
-
-    let dummyUser = setupUser(context: context)
-    let profileVM = ProfileViewModel(context: context, user: dummyUser)   // ← WAJIB
-
-    let dummyVehicle = setupVehicle(context: context,
-                                    makeModel: "Pajero Sport",
-                                    plate: "AB 1234 CD",
-                                    odometer: 25000,
-                                    user: dummyUser)
-
-    let dummyVehicle2 = setupVehicle(context: context,
-                                     makeModel: "Honda Brio",
-                                     plate: "B 9876 FG",
-                                     odometer: 30000,
-                                     user: dummyUser)
-
-    return VehicleDetailView(
-        initialVehicle: dummyVehicle,
-        allVehicles: [dummyVehicle, dummyVehicle2],
-        context: context,
-        activeUser: dummyUser,
-        profileVM: profileVM          // ← FIXED
-    )
-    .environment(\.managedObjectContext, context)
 }

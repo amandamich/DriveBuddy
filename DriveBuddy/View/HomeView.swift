@@ -87,7 +87,7 @@ struct MainContentView: View {
                     // TAMPILKAN DETAIL
                     VehicleDetailView(
                         initialVehicle: vehicle,
-                        allVehicles: Array(userVehicles), // Kirim semua hasil fetch ke dropdown
+                        allVehicles: userVehicles,
                         context: viewContext,
                         activeUser: user,
                         profileVM: profileVM

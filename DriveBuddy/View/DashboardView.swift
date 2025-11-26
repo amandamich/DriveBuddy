@@ -5,7 +5,10 @@ import Combine
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var dashboardVM: DashboardViewModel
+    @StateObject private var profileVM: ProfileViewModel
     @State private var showingAddVehicle = false
+    @State private var selectedVehicle: Vehicles?
+    @State private var refreshID = UUID()
     
     // Add @FetchRequest for automatic updates
     @FetchRequest var vehicles: FetchedResults<Vehicles>
@@ -18,6 +21,13 @@ struct DashboardView: View {
         
         _dashboardVM = StateObject(
             wrappedValue: DashboardViewModel(
+                context: authVM.viewContext,
+                user: user
+            )
+        )
+        
+        _profileVM = StateObject(
+            wrappedValue: ProfileViewModel(
                 context: authVM.viewContext,
                 user: user
             )
@@ -90,12 +100,17 @@ struct DashboardView: View {
                     } else {
                         ZStack(alignment: .bottomTrailing){
                             List {
-                                ForEach(Array(vehicles), id: \.vehicles_id) { vehicle in
-                                    VehicleCard(
-                                        vehicle: vehicle,
-                                        taxStatus: dashboardVM.taxStatus(for: vehicle),
-                                        serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
-                                    )
+                                ForEach(vehicles, id: \.vehicles_id) { vehicle in
+                                    Button(action: {
+                                        selectedVehicle = vehicle
+                                    }) {
+                                        VehicleCard(
+                                            vehicle: vehicle,
+                                            taxStatus: dashboardVM.taxStatus(for: vehicle),
+                                            serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
+                                        )
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
                                     .listRowBackground(Color.black.opacity(0.8))
                                 }
                                 .onDelete(perform: deleteVehicles)
@@ -103,6 +118,7 @@ struct DashboardView: View {
                             .listStyle(.plain)
                             .scrollContentBackground(.hidden)
                             .padding(.top, 10)
+                            .id(refreshID) // Force refresh with ID
                             
                             Button(action: { showingAddVehicle = true }) {
                                 Image(systemName: "plus")
@@ -121,20 +137,45 @@ struct DashboardView: View {
             }
             // MARK: - Add Vehicle Sheet
             .sheet(isPresented: $showingAddVehicle) {
+                // Refresh when sheet is dismissed
+                refreshID = UUID()
+            } content: {
                 AddVehicleView(authVM: authVM)
+                    .environment(\.managedObjectContext, authVM.viewContext)
             }
+            // MARK: - Vehicle Detail Sheet
+            .sheet(item: $selectedVehicle) { vehicle in
+                VehicleDetailView(
+                    initialVehicle: vehicle,
+                    allVehicles: vehicles,
+                    context: authVM.viewContext,
+                    activeUser: authVM.currentUser!,
+                    profileVM: profileVM,
+                    onDismiss: {
+                        // Force refresh when returning from detail view
+                        refreshID = UUID()
+                        authVM.viewContext.refreshAllObjects()
+                    }
+                )
+                .environment(\.managedObjectContext, authVM.viewContext)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
+            // Refresh when context changes
+            refreshID = UUID()
         }
     }
     
     // MARK: - Delete Function
     private func deleteVehicles(at offsets: IndexSet) {
         for index in offsets {
-            let vehicle = Array(vehicles)[index]
+            let vehicle = vehicles[index]
             authVM.viewContext.delete(vehicle)
         }
         
         do {
             try authVM.viewContext.save()
+            refreshID = UUID() // Force refresh after delete
         } catch {
             print("Error deleting vehicle: \(error)")
         }
@@ -143,7 +184,7 @@ struct DashboardView: View {
 
 // MARK: - Vehicle Card Component
 struct VehicleCard: View {
-    var vehicle: Vehicles
+    @ObservedObject var vehicle: Vehicles // Changed to @ObservedObject
     var taxStatus: VehicleTaxStatus
     var serviceStatus: ServiceReminderStatus
     

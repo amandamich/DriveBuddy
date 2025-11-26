@@ -45,7 +45,7 @@ class VehicleDetailViewModel: ObservableObject {
     // MARK: - Init
     init(context: NSManagedObjectContext, vehicle: Vehicles, activeUser: User) {
         self.context = context
-        //self.viewContext = context
+        self.context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy // Add this
         self.activeVehicle = vehicle
         self.activeUser = activeUser
         loadVehicleData()
@@ -91,7 +91,9 @@ class VehicleDetailViewModel: ObservableObject {
 
         do {
             try context.save()
-            print("✅ SUCCESS: Data saved to Core Data.") // Tambahkan ini
+            print("✅ SUCCESS: Data saved to Core Data.")
+            context.refresh(activeVehicle, mergeChanges: false)
+            loadVehicleData()
             successMessage = "Vehicle details updated successfully!"
             isEditing = false
         } catch {

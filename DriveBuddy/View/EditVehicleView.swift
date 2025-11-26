@@ -99,7 +99,9 @@ struct EditVehicleView: View {
                     // MARK: - Save Button
                     Button {
                         viewModel.updateVehicle()
-                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            dismiss()
+                        }
                     } label: {
                         Text("Save Changes")
                             .font(.headline)
