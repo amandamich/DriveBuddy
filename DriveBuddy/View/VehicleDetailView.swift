@@ -14,18 +14,27 @@ struct VehicleDetailView: View {
     @State private var showAddService = false
     @State private var showMyService = false
 	@State private var showMyTax = false
-    
+    @ObservedObject var profileVM: ProfileViewModel
+
     // Init untuk menerima objek User Aktif
-    init(initialVehicle: Vehicles, allVehicles: [Vehicles], context: NSManagedObjectContext, activeUser: User) {
+    init(initialVehicle: Vehicles,
+         allVehicles: [Vehicles],
+         context: NSManagedObjectContext,
+         activeUser: User,
+         profileVM: ProfileViewModel) {
+
         self.allVehicles = allVehicles
-        
-        // Init viewmodel dengan meneruskan objek user
-        _viewModel = StateObject(wrappedValue: VehicleDetailViewModel(
-            context: context,
-            vehicle: initialVehicle,
-            activeUser: activeUser
-        ))
+        self.profileVM = profileVM
+
+        _viewModel = StateObject(wrappedValue:
+            VehicleDetailViewModel(
+                context: context,
+                vehicle: initialVehicle,
+                activeUser: activeUser,
+            )
+        )
     }
+
     
     
     var body: some View {
@@ -279,8 +288,10 @@ struct VehicleDetailView: View {
                    NavigationStack {
                        AddServiceView(
                            vehicle: viewModel.activeVehicle,
-                           context: viewContext
+                           context: viewContext,
+                           profileVM: profileVM  
                        )
+
                        .toolbar {
                            ToolbarItem(placement: .navigationBarLeading) {
                                Button {
@@ -420,19 +431,27 @@ private func setupVehicle(context: NSManagedObjectContext, makeModel: String, pl
 #Preview {
     let context = PersistenceController.preview.container.viewContext
 
-    // 1. Buat Dummy User
     let dummyUser = setupUser(context: context)
-    
-    // 2. Buat Dummy Vehicles yang terikat ke User
-    let dummyVehicle = setupVehicle(context: context, makeModel: "Pajero Sport", plate: "AB 1234 CD", odometer: 25000, user: dummyUser)
-    let dummyVehicle2 = setupVehicle(context: context, makeModel: "Honda Brio", plate: "B 9876 FG", odometer: 30000, user: dummyUser)
+    let profileVM = ProfileViewModel(context: context, user: dummyUser)   // ← WAJIB
 
-    // 3. Inisialisasi View dengan User Aktif
+    let dummyVehicle = setupVehicle(context: context,
+                                    makeModel: "Pajero Sport",
+                                    plate: "AB 1234 CD",
+                                    odometer: 25000,
+                                    user: dummyUser)
+
+    let dummyVehicle2 = setupVehicle(context: context,
+                                     makeModel: "Honda Brio",
+                                     plate: "B 9876 FG",
+                                     odometer: 30000,
+                                     user: dummyUser)
+
     return VehicleDetailView(
         initialVehicle: dummyVehicle,
         allVehicles: [dummyVehicle, dummyVehicle2],
         context: context,
-        activeUser: dummyUser
+        activeUser: dummyUser,
+        profileVM: profileVM          // ← FIXED
     )
     .environment(\.managedObjectContext, context)
 }

@@ -95,51 +95,6 @@ struct AddVehicleView: View {
                         }
                     }
 
-                    // MARK: Tax Info Section
-                    SectionBox(title: "Tax Info", icon: "doc.text.fill") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Tax Expiry Date")
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                HStack {
-                                    DatePicker("", selection: $addVehicleVM.taxDueDate, displayedComponents: .date)
-                            .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
-                            }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("STNK Expiry Date")
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                HStack {
-                                    DatePicker("", selection: $addVehicleVM.stnkDueDate, displayedComponents: .date)
-                                        .labelsHidden()
-                            .datePickerStyle(.compact)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                                     
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
-                            }
-                            HStack {
-                                Text("Tax Reminder")
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                Spacer()
-                                Toggle("", isOn: $addVehicleVM.taxReminder)
-                                    .toggleStyle(SwitchToggleStyle(tint: .blue))
-                            }
-                            .padding(.top, 6)
-                        }
-                    }
-
                     // MARK: Last Service Section
                     SectionBox(title: "History Last Service", icon: "wrench.and.screwdriver.fill") {
                         VStack(alignment: .leading, spacing: 12) {

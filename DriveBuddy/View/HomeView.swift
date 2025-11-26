@@ -83,13 +83,14 @@ struct MainContentView: View {
             NavigationStack {
                 // Cek apakah ada kendaraan
                 if let vehicle = activeVehicle, let user = activeUser {
-                    
+                    let profileVM = ProfileViewModel(context: viewContext, user: user)
                     // TAMPILKAN DETAIL
                     VehicleDetailView(
                         initialVehicle: vehicle,
                         allVehicles: Array(userVehicles), // Kirim semua hasil fetch ke dropdown
                         context: viewContext,
-                        activeUser: user
+                        activeUser: user,
+                        profileVM: profileVM
                     )
                     
                 } else {

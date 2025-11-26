@@ -27,7 +27,6 @@
         <attribute name="add_to_calendar" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="email" optional="YES" attributeType="String"/>
-        <attribute name="is_dark_mode" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="password_hash" optional="YES" attributeType="String"/>
         <attribute name="user_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <relationship name="vehicles" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Vehicles" inverseName="user" inverseEntity="Vehicles"/>

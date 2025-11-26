@@ -14,10 +14,17 @@ struct AddServiceView: View {
 
     // MARK: - ViewModel
     @StateObject private var viewModel: AddServiceViewModel
-
+    @ObservedObject var profileVM: ProfileViewModel 
     // MARK: - Init
-    init(vehicle: Vehicles, context: NSManagedObjectContext) {
-        _viewModel = StateObject(wrappedValue: AddServiceViewModel(context: context, vehicle: vehicle))
+    init(vehicle: Vehicles, context: NSManagedObjectContext, profileVM: ProfileViewModel) {
+        self.profileVM = profileVM
+        _viewModel = StateObject(
+            wrappedValue: AddServiceViewModel(
+                context: context,
+                vehicle: vehicle,
+                profileVM: profileVM
+            )
+        )
     }
 
     var body: some View {
@@ -70,7 +77,7 @@ struct AddServiceView: View {
                         }
                     }
 
-                    // MARK: Reminder Section
+
                     SectionBoxService(title: "Reminder Settings", icon: "bell.badge.fill") {
                         VStack(alignment: .leading, spacing: 15) {
 
@@ -94,15 +101,6 @@ struct AddServiceView: View {
                                     .background(Color.white)
                                     .cornerRadius(10)
                                 }
-                            }
-
-                            HStack {
-                                Text("Add to Reminder")
-                                    .foregroundColor(.white)
-                                    .font(.headline)
-                                Spacer()
-                                Toggle("", isOn: $viewModel.addToReminder)
-                                    .toggleStyle(SwitchToggleStyle(tint: .blue))
                             }
                             .padding(.top, 6)
                         }
@@ -212,9 +210,20 @@ struct CustomTextFieldStyleService: TextFieldStyle {
 // MARK: - Preview
 #Preview {
     let previewContext = PersistenceController.preview.container.viewContext
+
+    // Dummy Vehicle
     let sampleVehicle = Vehicles(context: previewContext)
     sampleVehicle.make_model = "Honda Civic"
+
+    // Dummy ProfileVM
+    let dummyProfileVM = ProfileViewModel(context: previewContext)
+
     return NavigationView {
-        AddServiceView(vehicle: sampleVehicle, context: previewContext)
+        AddServiceView(
+            vehicle: sampleVehicle,
+            context: previewContext,
+            profileVM: dummyProfileVM
+        )
     }
 }
+
