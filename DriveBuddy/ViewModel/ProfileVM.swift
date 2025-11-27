@@ -67,9 +67,6 @@ class ProfileViewModel: ObservableObject {
         self.viewContext = context
         self.user = user
         loadProfile()
-        Task {
-            await checkPermissionStatuses()
-        }
     }
 
     // MARK: - Load Profile
@@ -158,26 +155,50 @@ class ProfileViewModel: ObservableObject {
     
     /// Check current authorization statuses
     func checkPermissionStatuses() async {
+        // Clear any existing messages
+        successMessage = nil
+        errorMessage = nil
+        
         // Check notification permission
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
-        notificationStatus = settings.authorizationStatus
+        
+        // Update on main thread
+        await MainActor.run {
+            self.notificationStatus = settings.authorizationStatus
+            print("📱 Notification Status: \(settings.authorizationStatus.rawValue)")
+        }
         
         // Check calendar permission
-        calendarStatus = EKEventStore.authorizationStatus(for: .event)
+        let calStatus = EKEventStore.authorizationStatus(for: .event)
+        await MainActor.run {
+            self.calendarStatus = calStatus
+            print("📅 Calendar Status: \(calStatus.rawValue)")
+        }
     }
     
-    //Request notification permission
+    /// Request notification permission
     func requestNotificationPermission() async -> Bool {
         let center = UNUserNotificationCenter.current()
         
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             await checkPermissionStatuses()
+            
+            if granted {
+                print("✅ Notification permission granted")
+            } else {
+                print("❌ Notification permission denied by user")
+                await MainActor.run {
+                    self.errorMessage = "Notification permission denied"
+                }
+            }
             return granted
         } catch {
             print("❌ Notification permission error: \(error.localizedDescription)")
-            errorMessage = "Failed to request notification permission"
+            await MainActor.run {
+                self.errorMessage = "Failed to request notification permission"
+            }
             return false
         }
     }
@@ -187,10 +208,21 @@ class ProfileViewModel: ObservableObject {
         do {
             let granted = try await eventStore.requestAccess(to: .event)
             await checkPermissionStatuses()
+            
+            if granted {
+                print("✅ Calendar permission granted")
+            } else {
+                print("❌ Calendar permission denied by user")
+                await MainActor.run {
+                    self.errorMessage = "Calendar permission denied"
+                }
+            }
             return granted
         } catch {
             print("❌ Calendar permission error: \(error.localizedDescription)")
-            errorMessage = "Failed to request calendar permission"
+            await MainActor.run {
+                self.errorMessage = "Failed to request calendar permission"
+            }
             return false
         }
     }
@@ -205,18 +237,26 @@ class ProfileViewModel: ObservableObject {
     // MARK: - 🆕 Notification Settings Toggle
     
     func toggleTaxReminder(_ enabled: Bool) async {
+        // Clear messages
+        successMessage = nil
+        errorMessage = nil
+        
         // Check permission first
         if enabled && notificationStatus != .authorized {
             let granted = await requestNotificationPermission()
             if !granted {
-                taxReminderEnabled = false
-                errorMessage = "Please enable notifications in Settings"
+                await MainActor.run {
+                    self.taxReminderEnabled = false
+                    self.errorMessage = "Please enable notifications in Settings"
+                }
                 return
             }
         }
         
-        taxReminderEnabled = enabled
-        defaults.set(enabled, forKey: DefaultsKey.taxReminder)
+        await MainActor.run {
+            self.taxReminderEnabled = enabled
+            self.defaults.set(enabled, forKey: DefaultsKey.taxReminder)
+        }
         
         if enabled {
             await scheduleTaxReminders()
@@ -226,20 +266,26 @@ class ProfileViewModel: ObservableObject {
     }
     
     func toggleServiceReminder(_ enabled: Bool) async {
+        // Clear messages
+        successMessage = nil
+        errorMessage = nil
+        
         if enabled && notificationStatus != .authorized {
             let granted = await requestNotificationPermission()
             if !granted {
-                serviceReminderEnabled = false
-                errorMessage = "Please enable notifications in Settings"
+                await MainActor.run {
+                    self.serviceReminderEnabled = false
+                    self.errorMessage = "Please enable notifications in Settings"
+                }
                 return
             }
         }
         
-        serviceReminderEnabled = enabled
-        defaults.set(enabled, forKey: DefaultsKey.serviceReminder)
-        
-        // Service reminders are handled per-service, so just save the preference
-        successMessage = enabled ? "Service reminders enabled" : "Service reminders disabled"
+        await MainActor.run {
+            self.serviceReminderEnabled = enabled
+            self.defaults.set(enabled, forKey: DefaultsKey.serviceReminder)
+            self.successMessage = enabled ? "Service reminders enabled" : "Service reminders disabled"
+        }
     }
     
     // MARK: - 🆕 Calendar Management
@@ -337,10 +383,14 @@ class ProfileViewModel: ObservableObject {
         do {
             try await center.add(request)
             print("✅ Tax reminder notification scheduled")
-            successMessage = "Tax reminders enabled"
+            await MainActor.run {
+                self.successMessage = "Tax reminders enabled"
+            }
         } catch {
             print("❌ Failed to schedule tax reminder: \(error.localizedDescription)")
-            errorMessage = "Failed to schedule tax reminder"
+            await MainActor.run {
+                self.errorMessage = "Failed to schedule tax reminder"
+            }
         }
     }
     
@@ -349,7 +399,9 @@ class ProfileViewModel: ObservableObject {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["tax.reminder.yearly"])
         print("✅ Tax reminder cancelled")
-        successMessage = "Tax reminders disabled"
+        await MainActor.run {
+            self.successMessage = "Tax reminders disabled"
+        }
     }
     
     // MARK: - 🆕 Service Reminder Helpers (to be used by AddServiceViewModel)
@@ -409,12 +461,29 @@ class ProfileViewModel: ObservableObject {
     
     // MARK: - 🆕 Test Notification (for debugging)
     func sendTestNotification() async {
+        // Clear messages
+        successMessage = nil
+        errorMessage = nil
+        
+        // Check permission first
+        if notificationStatus != .authorized {
+            let granted = await requestNotificationPermission()
+            if !granted {
+                await MainActor.run {
+                    self.errorMessage = "Please enable notifications first"
+                }
+                return
+            }
+        }
+        
         let content = UNMutableNotificationContent()
         content.title = "Test Notification"
         content.body = "This is a test notification from DriveBuddy 🚗"
         content.sound = .default
+        content.badge = 1
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        // Trigger immediately (1 second delay)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         
         let request = UNNotificationRequest(
             identifier: UUID().uuidString,
@@ -425,11 +494,15 @@ class ProfileViewModel: ObservableObject {
         let center = UNUserNotificationCenter.current()
         do {
             try await center.add(request)
-            print("✅ Test notification scheduled in 5 seconds")
-            successMessage = "Test notification will appear in 5 seconds"
+            print("✅ Test notification scheduled in 1 second")
+            await MainActor.run {
+                self.successMessage = "Test notification scheduled! It will appear even if app is open."
+            }
         } catch {
             print("❌ Failed to schedule test notification: \(error.localizedDescription)")
-            errorMessage = "Failed to send test notification"
+            await MainActor.run {
+                self.errorMessage = "Failed to send test notification: \(error.localizedDescription)"
+            }
         }
     }
 
