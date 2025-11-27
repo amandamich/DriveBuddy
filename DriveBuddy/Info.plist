@@ -2,7 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Privacy - Notifications Usage Description</key>
-	<string>DriveBuddy needs notification permission to remind you about your driving schedule and safety alerts</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>DriveBuddy needs notification permission to remind you about vehicle tax and service dates</string>
 </dict>
 </plist>

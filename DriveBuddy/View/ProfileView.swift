@@ -2,8 +2,6 @@
 //  ProfileView.swift
 //  DriveBuddy
 //
-//  Created by Howie Homan on 04/11/25.
-//
 
 import SwiftUI
 import CoreData
@@ -13,8 +11,8 @@ struct ProfileView: View {
     @StateObject private var profileVM: ProfileViewModel
 
     init(authVM: AuthenticationViewModel) {
-        _authVM = ObservedObject(initialValue: authVM)
-        _profileVM = StateObject(
+        self._authVM = ObservedObject(wrappedValue: authVM)
+        self._profileVM = StateObject(
             wrappedValue: ProfileViewModel(
                 context: authVM.viewContext,
                 user: authVM.currentUser
@@ -23,83 +21,95 @@ struct ProfileView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.opacity(0.95).ignoresSafeArea()
+        ZStack {
+            Color.black.opacity(0.95).ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 0) {
 
-                    // Logo
-                    Image("LogoDriveBuddy")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 180, height: 40)
-                        .padding(.bottom)
-                        .padding(.horizontal)
-
-                    // MARK: - Header: Avatar + Info + Edit Btn
-                    HStack(spacing: 16) {
-
-                        avatarView
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(displayName)
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(.white)
-                                .shadow(color: .cyan.opacity(0.5), radius: 5)
-
-                            Text(displayEmail)
-                                .font(.system(size: 15))
-                                .foregroundColor(.gray)
-                        }
-
-                        Spacer()
-
-                        NavigationLink {
-                            EditProfileView(profileVM: profileVM)
-                        } label: {
-                            Text("Edit")
-                                .font(.system(size: 14, weight: .semibold))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(
-                                    Capsule()
-                                        .fill(Color.cyan.opacity(0.2))
-                                )
-                                .foregroundColor(.cyan)
-                                .shadow(color: .cyan.opacity(0.5), radius: 5)
-                        }
-                    }
+                // Logo
+                Image("LogoDriveBuddy")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 180, height: 40)
+                    .padding(.bottom)
                     .padding(.horizontal)
-                    .padding(.bottom, 30)
 
-                    // MARK: - Body
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 24) {
+                // MARK: - Header: Avatar + Info + Edit Btn
+                HStack(spacing: 16) {
 
-                            accountSection
+                    avatarView
 
-                            // MARK: Logout Button
-                            Button(action: authVM.logout) {
-                                Text("Log Out")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.cyan, lineWidth: 2)
-                                            .background(Color.black.opacity(0.5))
-                                    )
-                                    .shadow(color: .blue, radius: 10)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 20)
-                        }
-                        .padding(.bottom, 80)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(displayName)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .shadow(color: .cyan.opacity(0.5), radius: 5)
+
+                        Text(displayEmail)
+                            .font(.system(size: 15))
+                            .foregroundColor(.gray)
+                    }
+
+                    Spacer()
+
+                    NavigationLink {
+                        EditProfileView(profileVM: profileVM)
+                    } label: {
+                        Text("Edit")
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.cyan.opacity(0.2))
+                            )
+                            .foregroundColor(.cyan)
+                            .shadow(color: .cyan.opacity(0.5), radius: 5)
                     }
                 }
-                .onAppear { profileVM.loadProfile() }
+                .padding(.horizontal)
+                .padding(.bottom, 30)
+
+                // MARK: - Body
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 24) {
+
+                        accountSection
+
+                        // MARK: Logout Button - ✅ FIXED WITH DEBUG
+                        Button(action: {
+                            print("🔴 LOGOUT BUTTON TAPPED")
+                            print("🔴 BEFORE - isAuthenticated: \(authVM.isAuthenticated)")
+                            print("🔴 BEFORE - currentUser: \(authVM.currentUser?.email ?? "nil")")
+                            
+                            authVM.logout()
+                            
+                            print("🔴 AFTER - isAuthenticated: \(authVM.isAuthenticated)")
+                            print("🔴 AFTER - currentUser: \(authVM.currentUser?.email ?? "nil")")
+                        }) {
+                            Text("Log Out")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.cyan, lineWidth: 2)
+                                        .background(Color.black.opacity(0.5))
+                                )
+                                .shadow(color: .blue, radius: 10)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 20)
+                    }
+                    .padding(.bottom, 80)
+                }
+            }
+            .onAppear {
+                print("👤 ProfileView appeared")
+                print("👤 isAuthenticated: \(authVM.isAuthenticated)")
+                print("👤 currentUser: \(authVM.currentUser?.email ?? "nil")")
+                profileVM.loadProfile()
             }
         }
     }
@@ -160,6 +170,10 @@ struct ProfileView: View {
         VStack(spacing: 0) {
 
             linkRow("Favorite Workshops", destination: FavoriteWorkshopsView())
+
+            divider
+
+            linkRow("Notification Settings", destination: NotificationSettingsView(profileVM:profileVM))
 
             divider
 

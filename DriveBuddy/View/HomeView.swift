@@ -13,44 +13,40 @@ class AppState: ObservableObject {
 }
 
 // MARK: - 1. HOME VIEW (WRAPPER)
-// Tugasnya hanya mendengarkan perubahan Auth dan memanggil MainContent
 struct HomeView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @EnvironmentObject var appState: AppState
     
     var body: some View {
-        // Ambil ID Pengguna saat ini
-        // Jika nil, gunakan string kosong (User belum login)
+        // Get current user ID
         let currentID = authVM.currentUserID ?? ""
         
-        // Panggil MainContent dan kirim ID-nya
-        // .id(currentID) memaksa View dibuat ulang jika ID berubah
+        // Show main content with user ID
         MainContentView(authVM: authVM, userIDString: currentID)
             .id(currentID)
+            .onAppear {
+                print("🏠 HomeView appeared with userID: \(currentID)")
+            }
+            .onDisappear {
+                print("🏠 HomeView disappeared")
+            }
     }
 }
 
 // MARK: - 2. MAIN CONTENT VIEW (LOGIC UTAMA)
-// View ini baru akan dibuat setelah kita punya User ID yang valid
 struct MainContentView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @State private var selectedTab: Int = 0
     @Environment(\.managedObjectContext) private var viewContext
     
-    // Fetch Request untuk Vehicles
     @FetchRequest var userVehicles: FetchedResults<Vehicles>
-    
-    // Fetch Request untuk User Owner
     @FetchRequest var userResult: FetchedResults<User>
     
     init(authVM: AuthenticationViewModel, userIDString: String) {
         self.authVM = authVM
         
-        // Konversi String ID ke UUID untuk Predicate Core Data
         let targetUUID = UUID(uuidString: userIDString) ?? UUID()
         
-        // A. FETCH VEHICLES: Ambil kendaraan milik User ID ini
-        // Sortir berdasarkan tanggal dibuat agar yang baru muncul
         _userVehicles = FetchRequest(
             entity: Vehicles.entity(),
             sortDescriptors: [
@@ -59,7 +55,6 @@ struct MainContentView: View {
             predicate: NSPredicate(format: "user.user_id == %@", targetUUID as CVarArg)
         )
         
-        // B. FETCH USER: Ambil data User itu sendiri
         _userResult = FetchRequest(
             entity: User.entity(),
             sortDescriptors: [],
@@ -69,7 +64,6 @@ struct MainContentView: View {
     
     var body: some View {
         let activeUser = userResult.first
-        // Ambil kendaraan pertama dari hasil fetch
         let activeVehicle = userVehicles.first
         
         TabView(selection: $selectedTab) {
@@ -81,10 +75,8 @@ struct MainContentView: View {
             
             // TAB 2: Vehicles
             NavigationStack {
-                // Cek apakah ada kendaraan
                 if let vehicle = activeVehicle, let user = activeUser {
                     let profileVM = ProfileViewModel(context: viewContext, user: user)
-                    // TAMPILKAN DETAIL
                     VehicleDetailView(
                         initialVehicle: vehicle,
                         allVehicles: userVehicles,
@@ -92,9 +84,7 @@ struct MainContentView: View {
                         activeUser: user,
                         profileVM: profileVM
                     )
-                    
                 } else {
-                    // TAMPILAN KOSONG (EMPTY STATE)
                     VStack(spacing: 20) {
                         if activeUser == nil {
                             Text("Menunggu Data Pengguna...")
@@ -104,7 +94,7 @@ struct MainContentView: View {
                                 .font(.system(size: 80))
                                 .foregroundColor(.gray.opacity(0.5))
                             
-                            Text("Total Kendaraan: \(userVehicles.count)") // Debug Text
+                            Text("Total Kendaraan: \(userVehicles.count)")
                                 .font(.caption).foregroundColor(.red)
                             
                             Text("Belum ada kendaraan.\nTambahkan di Dashboard.")
@@ -123,14 +113,20 @@ struct MainContentView: View {
                 .tag(2)
             
             // TAB 4: Profile
-            ProfileView(authVM: authVM)
-                .tabItem { Label("Profile", systemImage: "person") }
-                .tag(3)
+            NavigationStack {
+                ProfileView(authVM: authVM)
+            }
+            .tabItem { Label("Profile", systemImage: "person") }
+            .tag(3)
         }
         .tint(.blue)
+        .onAppear {
+            print("📱 MainContentView appeared")
+            // Reset to home tab when appearing
+            selectedTab = 0
+        }
+        .onDisappear {
+            print("📱 MainContentView disappeared")
+        }
     }
 }
-
-// MARK: - Placeholder Views (JANGAN LUPA HAPUS JIKA SUDAH ADA FILE ASLINYA)
-// struct WorkshopView: View { var body: some View { Text("Workshop") } }
-// struct ProfileView: View { @ObservedObject var authVM: AuthenticationViewModel; var body: some View { Text("Profile") } }

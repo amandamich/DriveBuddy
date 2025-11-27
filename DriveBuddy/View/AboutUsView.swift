@@ -135,7 +135,7 @@ struct AboutUsView: View {
 									name: "Howie",
 									nim: "0706022310040",
 									image: "person.crop.circle.fill",
-									color: .purple
+									color: .cyan
 								)
 								
 								TeamMemberCard(

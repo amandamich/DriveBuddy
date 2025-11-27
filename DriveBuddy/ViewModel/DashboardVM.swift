@@ -46,19 +46,22 @@ class DashboardViewModel: ObservableObject {
 //    }
 
 //    // MARK: - Delete Vehicle
-//    func deleteVehicle(at offsets: IndexSet) {
-//        for index in offsets {
-//            let vehicleToDelete = userVehicles[index]
-//            viewContext.delete(vehicleToDelete)
-//        }
-//
-//        do {
-//            try viewContext.save()
-//            fetchVehicles()
-//        } catch {
-//            print("Error deleting vehicle: \(error.localizedDescription)")
-//        }
-//    }
+    func deleteVehicle(_ vehicle: Vehicles) {
+            viewContext.delete(vehicle)
+            
+            do {
+                try viewContext.save()
+                print("Vehicle deleted successfully")
+            } catch {
+                print("Error deleting vehicle: \(error.localizedDescription)")
+            }
+        }
+    func deleteVehicles(at offsets: IndexSet, from vehicles: [Vehicles]) {
+        for index in offsets {
+            let vehicle = vehicles[index]
+            deleteVehicle(vehicle)
+        }
+    }
 
     // MARK: - Tax Status Logic
     func taxStatus(for vehicle: Vehicles) -> VehicleTaxStatus {

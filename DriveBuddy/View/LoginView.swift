@@ -297,9 +297,14 @@ struct LoginView: View {
             }
             .navigationDestination(isPresented: $authVM.isAuthenticated) {
                 HomeView(authVM: authVM)
+                    .navigationBarBackButtonHidden(true)
             }
-            .navigationTitle("")
-            .navigationBarBackButtonHidden(false)
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EmptyView()
+                }
+            }
         }
     }
 }

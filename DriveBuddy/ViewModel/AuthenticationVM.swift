@@ -73,7 +73,57 @@ final class AuthenticationViewModel: ObservableObject {
 
 
     // MARK: - Login (Perbaikan Utama di sini)
+//    func login() {
+//        errorMessage = nil
+//
+//        guard !email.isEmpty, !password.isEmpty else {
+//            errorMessage = "Please fill in all fields."
+//            return
+//        }
+//
+//        let request: NSFetchRequest<User> = User.fetchRequest()
+//        request.predicate = NSPredicate(format: "email == %@", email.lowercased())
+//
+//        do {
+//            // 1. Lakukan fetch. Jika gagal, akan langsung masuk ke block catch.
+//            let users = try viewContext.fetch(request)
+//
+//            // 2. Cek apakah ada user yang ditemukan dari hasil fetch.
+//            if let user = users.first {
+//                
+//                // KETIKA USER DITEMUKAN
+//                
+//                // 3. Verifikasi password
+//                if user.password_hash == hash(password) {
+//                    
+//                    // PASSWORD COCOK: LOGIN BERHASIL
+//                    
+//                    // SET STATUS LOGIN DAN ID PENGGUNA
+//                    currentUser = user
+//                    isAuthenticated = true
+//                    errorMessage = nil
+//                    currentUserID = user.user_id?.uuidString
+//                    
+//                } else {
+//                    
+//                    // PASSWORD SALAH
+//                    errorMessage = "Invalid email or password."
+//                }
+//            } else {
+//                
+//                // USER TIDAK DITEMUKAN (Email tidak terdaftar)
+//                errorMessage = "User not found. Please sign up first."
+//            }
+//        } catch {
+//            
+//            // ERROR TEKNIS (Misalnya Core Data crash/gagal fetch)
+//            print("Core Data Fetch Error: \(error)") // Untuk tujuan debugging
+//            errorMessage = "Login failed: An internal error occurred. Please try again later."
+//        }
+//    }
+//
     func login() {
+        print("🟢 LOGIN CALLED")
         errorMessage = nil
 
         guard !email.isEmpty, !password.isEmpty else {
@@ -85,43 +135,45 @@ final class AuthenticationViewModel: ObservableObject {
         request.predicate = NSPredicate(format: "email == %@", email.lowercased())
 
         do {
-            // 1. Lakukan fetch. Jika gagal, akan langsung masuk ke block catch.
             let users = try viewContext.fetch(request)
 
-            // 2. Cek apakah ada user yang ditemukan dari hasil fetch.
             if let user = users.first {
-                
-                // KETIKA USER DITEMUKAN
-                
-                // 3. Verifikasi password
+                // User found - check password
                 if user.password_hash == hash(password) {
+                    // ✅ PASSWORD CORRECT - LOGIN SUCCESS
+                    print("🟢 Login successful for: \(user.email ?? "unknown")")
                     
-                    // PASSWORD COCOK: LOGIN BERHASIL
+                    // CRITICAL: Set these in the correct order
+                    self.currentUser = user
+                    self.currentUserID = user.user_id?.uuidString
+                    self.isAuthenticated = true // ✅ SET THIS LAST
+                    self.errorMessage = nil
                     
-                    // SET STATUS LOGIN DAN ID PENGGUNA
-                    currentUser = user
-                    isAuthenticated = true
-                    errorMessage = nil
-                    currentUserID = user.user_id?.uuidString
+                    print("🟢 isAuthenticated set to: \(self.isAuthenticated)")
+                    print("🟢 currentUser: \(self.currentUser?.email ?? "nil")")
+                    
+                    // Force UI update
+                    self.objectWillChange.send()
                     
                 } else {
-                    
-                    // PASSWORD SALAH
+                    // ❌ PASSWORD WRONG
+                    print("🔴 Password incorrect")
                     errorMessage = "Invalid email or password."
+                    isAuthenticated = false
                 }
             } else {
-                
-                // USER TIDAK DITEMUKAN (Email tidak terdaftar)
+                // ❌ USER NOT FOUND
+                print("🔴 User not found")
                 errorMessage = "User not found. Please sign up first."
+                isAuthenticated = false
             }
         } catch {
-            
-            // ERROR TEKNIS (Misalnya Core Data crash/gagal fetch)
-            print("Core Data Fetch Error: \(error)") // Untuk tujuan debugging
+            // ❌ ERROR
+            print("🔴 Core Data Fetch Error: \(error)")
             errorMessage = "Login failed: An internal error occurred. Please try again later."
+            isAuthenticated = false
         }
     }
-    
     // MARK: - Validate Email
     func validateEmail(_ email: String) -> Bool {
             let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
@@ -184,12 +236,44 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Logout (Diperbaiki)
+//    func logout() {
+//        isAuthenticated = false
+//        currentUser = nil
+//        currentUserID = nil // Reset ID pengguna saat logout
+//        email = ""
+//        password = ""
+//        errorMessage = nil
+//        UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+//        UserDefaults.standard.removeObject(forKey: "currentUserId")
+//        
+//        print("✅ User logged out successfully")
+//    }
     func logout() {
-        isAuthenticated = false
-        currentUser = nil
-        currentUserID = nil // Reset ID pengguna saat logout
-        email = ""
-        password = ""
+        print("🔴 LOGOUT CALLED")
+        print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
+        print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
+        
+        // CRITICAL: Set this FIRST before anything else
+        self.isAuthenticated = false
+        
+        // Then clear everything else
+        self.currentUser = nil
+        self.currentUserID = nil
+        self.email = ""
+        self.password = ""
+        self.errorMessage = nil
+        
+        // Clear UserDefaults
+        UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+        UserDefaults.standard.removeObject(forKey: "currentUserId")
+        UserDefaults.standard.synchronize()
+        
+        print("🔴 After logout - isAuthenticated: \(isAuthenticated)")
+        print("🔴 After logout - currentUser: \(currentUser?.email ?? "nil")")
+        print("✅ User logged out successfully")
+        
+        // Force immediate UI update
+        objectWillChange.send()
     }
 
     // MARK: - Hashing

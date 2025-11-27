@@ -13,6 +13,11 @@ struct DriveBuddyApp: App {
     @StateObject private var authVM = AuthenticationViewModel(
             context: PersistenceController.shared.container.viewContext
         )
+    init() {
+            // Set up notification delegate
+            UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
+            print("✅ Notification delegate registered")
+        }
     var body: some Scene {
         WindowGroup {
             ContentView(authVM: authVM)
