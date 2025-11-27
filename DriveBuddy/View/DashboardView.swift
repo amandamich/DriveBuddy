@@ -4,17 +4,18 @@ import Combine
 
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
+    @Binding var selectedTab: Int  // ADDED: For tab switching
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var profileVM: ProfileViewModel
     @State private var showingAddVehicle = false
-    @State private var selectedVehicle: Vehicles?
     @State private var refreshID = UUID()
     
     // Add @FetchRequest for automatic updates
     @FetchRequest var vehicles: FetchedResults<Vehicles>
     
-    init(authVM: AuthenticationViewModel) {
+    init(authVM: AuthenticationViewModel, selectedTab: Binding<Int>) {
         self.authVM = authVM
+        self._selectedTab = selectedTab  // ADDED: Bind the tab
         
         // Safely unwrap user or provide a fallback
         guard let user = authVM.currentUser else {
@@ -122,8 +123,10 @@ struct DashboardView: View {
                     ZStack(alignment: .bottomTrailing){
                         List {
                             ForEach(vehicles, id: \.vehicles_id) { vehicle in
+                                // CHANGED: Use Button to switch tabs instead of sheet
                                 Button(action: {
-                                    selectedVehicle = vehicle
+                                    // Switch to Vehicle tab (tag 1)
+                                    selectedTab = 1
                                 }) {
                                     VehicleCard(
                                         vehicle: vehicle,
@@ -166,29 +169,14 @@ struct DashboardView: View {
             AddVehicleView(authVM: authVM)
                 .environment(\.managedObjectContext, authVM.viewContext)
         }
-        // MARK: - Vehicle Detail Sheet
-        .sheet(item: $selectedVehicle) { vehicle in
-            if let currentUser = authVM.currentUser {
-                VehicleDetailView(
-                    initialVehicle: vehicle,
-                    allVehicles: vehicles,
-                    context: authVM.viewContext,
-                    activeUser: currentUser,
-                    profileVM: profileVM,
-                    onDismiss: {
-                        refreshID = UUID()
-                        authVM.viewContext.refreshAllObjects()
-                    }
-                )
-                .environment(\.managedObjectContext, authVM.viewContext)
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             refreshID = UUID()
         }
     }
-    
-    // MARK: - Vehicle Card Component
+}
+
+// MARK: - Vehicle Card Component
+extension DashboardView {
     struct VehicleCard: View {
         @ObservedObject var vehicle: Vehicles
         var taxStatus: VehicleTaxStatus
@@ -287,32 +275,34 @@ struct DashboardView: View {
             return "N/A"
         }
     }
+}
+
+// MARK: - Preview
+#Preview {
+    let context = PersistenceController.shared.container.viewContext
     
-    // MARK: - Preview
-    #Preview {
-        let context = PersistenceController.shared.container.viewContext
-        
-        // Mock user
-        let mockUser = User(context: context)
-        mockUser.user_id = UUID()
-        mockUser.email = "preview@drivebuddy.com"
-        mockUser.password_hash = "mockhash"
-        mockUser.created_at = Date()
-        
-        // Mock vehicle
-        let mockVehicle = Vehicles(context: context)
-        mockVehicle.make_model = "Honda Brio"
-        mockVehicle.vehicle_type = "Car"
-        mockVehicle.plate_number = "B 9876 FG"
-        mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-        mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-        mockVehicle.odometer = 25000
-        mockVehicle.user = mockUser
-        
-        let mockAuthVM = AuthenticationViewModel(context: context)
-        mockAuthVM.currentUser = mockUser
-        mockAuthVM.isAuthenticated = true
-        
-        return DashboardView(authVM: mockAuthVM)
+    // Mock user
+    let mockUser = User(context: context)
+    mockUser.user_id = UUID()
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.password_hash = "mockhash"
+    mockUser.created_at = Date()
+    
+    // Mock vehicle
+    let mockVehicle = Vehicles(context: context)
+    mockVehicle.make_model = "Honda Brio"
+    mockVehicle.vehicle_type = "Car"
+    mockVehicle.plate_number = "B 9876 FG"
+    mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
+    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
+    mockVehicle.odometer = 25000
+    mockVehicle.user = mockUser
+    
+    let mockAuthVM = AuthenticationViewModel(context: context)
+    mockAuthVM.currentUser = mockUser
+    mockAuthVM.isAuthenticated = true
+    
+    return NavigationStack {
+        DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
     }
 }
