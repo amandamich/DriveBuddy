@@ -8,21 +8,24 @@
 import SwiftUI
 import PhotosUI
 import Foundation
-import CoreData
+import CoreData // Pastikan Anda mengimpor CoreData jika CoreData digunakan di ViewModel
 
 struct EditProfileView: View {
     @ObservedObject var profileVM: ProfileViewModel
 
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var fullName: String = ""
-    @State private var phoneNumber: String = ""
-    @State private var email: String = ""
-    @State private var gender: String = ""
+    
+    // MARK: - State Properties
+    // Tidak lagi diberi nilai default, nilainya akan diisi di init
+    @State private var fullName: String
+    @State private var phoneNumber: String
+    @State private var email: String
+    @State private var gender: String
     
     // Custom DOB values
-    @State private var selectedDay: Int = 1
-    @State private var selectedMonth: Int = 1
-    @State private var selectedYear: Int = 1990
+    @State private var selectedDay: Int
+    @State private var selectedMonth: Int
+    @State private var selectedYear: Int
     
     @Environment(\.dismiss) private var dismiss
 
@@ -36,12 +39,35 @@ struct EditProfileView: View {
     ]
     private let years = Array(1950...2025).reversed()
 
+    // MARK: - Custom Initializer untuk Inisialisasi Data Awal
+    init(profileVM: ProfileViewModel) {
+        self._profileVM = ObservedObject(initialValue: profileVM)
+        
+        // Dapatkan data awal dari ViewModel
+        let initialDOB = profileVM.dateOfBirth ?? Date()
+        let calendar = Calendar.current
+        
+        // Inisialisasi semua properti @State agar tidak terjadi lag/flickering
+        self._fullName = State(initialValue: profileVM.username)
+        self._phoneNumber = State(initialValue: profileVM.phoneNumber)
+        // Jika email di VM kosong, ambil dari user Core Data, jika tidak, pakai email di VM
+        self._email = State(initialValue: profileVM.email.isEmpty ? (profileVM.user?.email ?? "") : profileVM.email)
+        self._gender = State(initialValue: profileVM.gender)
+        
+        // Inisialisasi Date of Birth components
+        self._selectedDay = State(initialValue: calendar.component(.day, from: initialDOB))
+        self._selectedMonth = State(initialValue: calendar.component(.month, from: initialDOB))
+        self._selectedYear = State(initialValue: calendar.component(.year, from: initialDOB))
+    }
+    
+    // MARK: - Computed Property
     private var composedDate: Date {
         let calendar = Calendar.current
         let components = DateComponents(year: selectedYear, month: selectedMonth, day: selectedDay)
         return calendar.date(from: components) ?? Date()
     }
 
+    // MARK: - Body
     var body: some View {
         ZStack {
             LinearGradient(colors: [.black, .black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
@@ -75,6 +101,7 @@ struct EditProfileView: View {
                     .padding(.bottom, 10)
 
                     VStack(spacing: 18) {
+                        // Menggunakan $fullName, $phoneNumber, $email yang sudah diinisialisasi
                         neonTextField("Full Name", text: $fullName)
                         neonTextField("Phone Number", text: $phoneNumber)
                             .keyboardType(.phonePad)
@@ -87,6 +114,7 @@ struct EditProfileView: View {
                         // CUSTOM DATE PICKER (Day / Month / Year)
                         dateOfBirthPicker
 
+                        // Menggunakan $profileVM.city karena ini adalah data yang perlu di-save
                         neonTextField("City", text: $profileVM.city)
                     }
 
@@ -119,20 +147,12 @@ struct EditProfileView: View {
                 }
             }
         }
-        .onAppear {
+        // Hapus blok .onAppear karena inisialisasi sudah dilakukan di init
+        /* .onAppear {
             fullName = profileVM.username
-            phoneNumber = profileVM.phoneNumber
-            email = profileVM.email.isEmpty ? (profileVM.user?.email ?? "") : profileVM.email
-            
-            if let dob = profileVM.dateOfBirth {
-                let calendar = Calendar.current
-                selectedDay = calendar.component(.day, from: dob)
-                selectedMonth = calendar.component(.month, from: dob)
-                selectedYear = calendar.component(.year, from: dob)
-            }
-            
-            gender = profileVM.gender
-        }
+            // ... (dan inisialisasi lainnya)
+        } */
+        
         .onChange(of: selectedPhotoItem) { _, newValue in
             guard let newValue else { return }
             Task {
@@ -143,13 +163,13 @@ struct EditProfileView: View {
         }
     }
 
-    // MARK: Custom Date Picker component
+    // MARK: Custom View Components (Diambil dari kode sebelumnya)
+    
     private var dateOfBirthPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
             neonLabel("Date of Birth")
 
             HStack(spacing: 12) {
-
                 // DAY
                 Picker("Day", selection: $selectedDay) {
                     ForEach(days, id: \.self) { d in
@@ -181,7 +201,6 @@ struct EditProfileView: View {
         }
     }
 
-    // MARK: Avatar
     private var avatarView: some View {
         Group {
             if let img = profileVM.avatarImage {
@@ -204,7 +223,6 @@ struct EditProfileView: View {
         )
     }
 
-    // MARK: Neon TextField
     private func neonTextField(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             neonLabel(label)
@@ -221,7 +239,6 @@ struct EditProfileView: View {
         .padding(.horizontal, 30)
     }
 
-    // MARK: Neon Dropdown
     private func neonDropdown(_ label: String, selection: Binding<String>, options: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             neonLabel(label)
@@ -249,7 +266,6 @@ struct EditProfileView: View {
         .padding(.horizontal, 30)
     }
 
-    // MARK: Neon Label
     private func neonLabel(_ text: String) -> some View {
         Text(text)
             .font(.headline)
@@ -274,24 +290,19 @@ struct neonBox: ViewModifier {
     }
 }
 
-#Preview {
+#Preview{
+    
+}
+// MARK: - Preview (Jika Preview Anda menggunakan Core Data)
+/* Hapus atau sesuaikan kode Preview Anda jika ada error kompilasi di sini. */
+/* #Preview {
     let context = PersistenceController.shared.container.viewContext
     let mockUser = User(context: context)
-
-    mockUser.email = "preview@drivebuddy.com"
-    mockUser.add_to_calendar = false
-    mockUser.is_dark_mode = true   // sesuaikan attribute entity kamu
+    // ... setup mockUser ...
 
     let vm = ProfileViewModel(context: context, user: mockUser)
 
-    // Set data langsung ke ViewModel (karena INI YANG BENAR)
-    vm.username = "Jessica"
-    vm.gender = "Female"
-    vm.phoneNumber = "08123456789"
-    vm.city = "Surabaya"
-    vm.dateOfBirth = Date()   // atau tanggal yang kamu mau
-
-    return NavigationStack {
+    NavigationStack {
         EditProfileView(profileVM: vm)
     }
-}
+} */

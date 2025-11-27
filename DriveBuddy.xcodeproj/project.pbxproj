@@ -11,7 +11,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		BFEFBA0E2ED6C2EB00B96C7E /* Exceptions for "DriveBuddy" folder in "DriveBuddy" target */ = {
+		3F913B7B2ED812A100CC43F9 /* Exceptions for "DriveBuddy" folder in "DriveBuddy" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,7 +24,7 @@
 		BF9BA2722EAFD026001F7D22 /* DriveBuddy */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				BFEFBA0E2ED6C2EB00B96C7E /* Exceptions for "DriveBuddy" folder in "DriveBuddy" target */,
+				3F913B7B2ED812A100CC43F9 /* Exceptions for "DriveBuddy" folder in "DriveBuddy" target */,
 			);
 			path = DriveBuddy;
 			sourceTree = "<group>";
@@ -267,8 +267,6 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = DriveBuddy/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -302,8 +300,6 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = DriveBuddy/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
