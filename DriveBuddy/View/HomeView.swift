@@ -69,20 +69,20 @@ struct MainContentView: View {
     
     var body: some View {
         let activeUser = userResult.first
-        // Ambil kendaraan pertama dari hasil fetch
-        let activeVehicle = userVehicles.first
         
         TabView(selection: $selectedTab) {
             
-            // TAB 1: Dashboard
-            DashboardView(authVM: authVM)
-                .tabItem { Label("Home", systemImage: "house") }
-                .tag(0)
+            // TAB 1: Dashboard - WRAPPED IN NAVIGATIONSTACK
+            NavigationStack {
+                DashboardView(authVM: authVM, selectedTab: $selectedTab)
+            }
+            .tabItem { Label("Home", systemImage: "house") }
+            .tag(0)
             
             // TAB 2: Vehicles
             NavigationStack {
                 // Cek apakah ada kendaraan
-                if let vehicle = activeVehicle, let user = activeUser {
+                if let vehicle = userVehicles.first, let user = activeUser {
                     let profileVM = ProfileViewModel(context: viewContext, user: user)
                     // TAMPILKAN DETAIL
                     VehicleDetailView(

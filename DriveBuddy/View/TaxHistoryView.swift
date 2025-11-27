@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct TaxHistoryView: View {
-    @StateObject private var taxManager = TaxHistoryManager.shared
+    @StateObject private var taxManager = TaxHistoryVM.shared
     @State private var showAddTaxSheet = false
     @State private var selectedFilter: TaxFilter = .all
     
@@ -35,7 +35,7 @@ struct TaxHistoryView: View {
     var body: some View {
         ZStack {
             // Background
-            Color("BackgroundPrimary")
+            Color.black
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
@@ -44,7 +44,7 @@ struct TaxHistoryView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Tax History")
                             .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(Color("TextPrimary"))
+                            .foregroundColor(.white)
                         Text("Vehicle tax payment records")
                             .font(.system(size: 15))
                             .foregroundColor(.gray)
@@ -57,7 +57,7 @@ struct TaxHistoryView: View {
                     }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(Color("AccentNeon"))
+                            .foregroundColor(.cyan)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -128,8 +128,9 @@ struct TaxHistoryView: View {
                 }
             }
         }
+        .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color("BackgroundPrimary"), for: .navigationBar)
+        .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showAddTaxSheet) {
             AddTaxView()
@@ -153,7 +154,7 @@ struct AlertCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("\(count)")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color("TextPrimary"))
+                    .foregroundColor(.white)
                 Text(title)
                     .font(.system(size: 13))
                     .foregroundColor(.gray)
@@ -186,7 +187,7 @@ struct FilterTab: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color("AccentNeon") : Color("CardBackground"))
+                        .fill(isSelected ? Color.cyan : Color(white: 0.15))
                 )
         }
     }
@@ -201,12 +202,12 @@ struct TaxHistoryCard: View {
             // Vehicle Icon with Status
             ZStack(alignment: .bottomTrailing) {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color("AccentNeon").opacity(0.2))
+                    .fill(Color.cyan.opacity(0.2))
                     .frame(width: 60, height: 60)
                 
                 Image(systemName: "car.fill")
                     .font(.system(size: 26))
-                    .foregroundColor(Color("AccentNeon"))
+                    .foregroundColor(.cyan)
                 
                 // Status Badge
                 Circle()
@@ -214,7 +215,7 @@ struct TaxHistoryCard: View {
                     .frame(width: 16, height: 16)
                     .overlay(
                         Circle()
-                            .stroke(Color("BackgroundPrimary"), lineWidth: 2)
+                            .stroke(Color.black, lineWidth: 2)
                     )
                     .offset(x: 4, y: 4)
             }
@@ -223,7 +224,7 @@ struct TaxHistoryCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(tax.vehiclePlate)
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(Color("TextPrimary"))
+                    .foregroundColor(.white)
                 
                 Text(tax.vehicleName)
                     .font(.system(size: 14))
@@ -259,7 +260,7 @@ struct TaxHistoryCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 15)
-                .fill(Color("CardBackground"))
+                .fill(Color(white: 0.15))
         )
     }
     
@@ -309,7 +310,7 @@ struct EmptyStateView: View {
             
             Text("No \(filter.rawValue) Tax Records")
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(Color("TextPrimary"))
+                .foregroundColor(.white)
             
             Text("Add your vehicle tax payment history to track and get reminders")
                 .font(.system(size: 15))

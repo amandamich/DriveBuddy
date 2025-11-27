@@ -4,17 +4,18 @@ import Combine
 
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
+    @Binding var selectedTab: Int  // ADD THIS
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var profileVM: ProfileViewModel
     @State private var showingAddVehicle = false
-    @State private var selectedVehicle: Vehicles?
     @State private var refreshID = UUID()
     
     // Add @FetchRequest for automatic updates
     @FetchRequest var vehicles: FetchedResults<Vehicles>
     
-    init(authVM: AuthenticationViewModel) {
+    init(authVM: AuthenticationViewModel, selectedTab: Binding<Int>) {
         self.authVM = authVM
+        self._selectedTab = selectedTab  // ADD THIS
         guard let user = authVM.currentUser else {
             fatalError("currentUser should not be nil in DashboardView")
         }
@@ -45,120 +46,104 @@ struct DashboardView: View {
     }
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                // MARK: - Background
-                Color.black.opacity(0.95).ignoresSafeArea()
+        ZStack {
+            // MARK: - Background
+            Color.black.opacity(0.95).ignoresSafeArea()
+            
+            VStack(alignment: .leading, spacing: 15) {
+                // MARK: - Header
+                VStack(alignment: .leading, spacing: 4) {
+                    Image("LogoDriveBuddy")
+                        .resizable().scaledToFit().frame(width: 180, height: 40)
+                    
+                    Text("Hello, \(dashboardVM.extractUsername(from: authVM.currentUser?.email)) 👋")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal)
+                .padding(.top, 30)
                 
-                VStack(alignment: .leading, spacing: 15) {
-                    // MARK: - Header
-                    VStack(alignment: .leading, spacing: 4) {
-                        Image("LogoDriveBuddy")
-                            .resizable().scaledToFit().frame(width: 180, height: 40)
-                        
-                        Text("Hello, \(dashboardVM.extractUsername(from: authVM.currentUser?.email)) 👋")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.gray)
-                    }
+                // MARK: - Title
+                Text("Your Vehicles")
+                    .font(.headline)
+                    .foregroundColor(.white)
                     .padding(.horizontal)
-                    .padding(.top, 30)
-                    
-                    // MARK: - Title
-                    Text("Your Vehicles")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                    
-                    // MARK: - Vehicle List
-                    if vehicles.isEmpty {
-                        VStack {
-                            Text("No vehicles added yet.")
-                                .foregroundColor(.gray)
-                                .padding(.bottom, 10)
-                            
-                            Button(action: { showingAddVehicle = true }) {
-                                Text("+ Add Vehicle")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .padding(.vertical, 45)
-                                    .frame(maxWidth: .infinity)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.cyan, lineWidth: 2)
-                                            .shadow(color: .blue, radius: 8)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.black.opacity(0.5))
-                                            )
-                                    )
-                                    .shadow(color: .blue, radius: 10)
-                            }
-                            .padding(.horizontal)
-                        }
-                        Spacer()
-                    } else {
-                        ZStack(alignment: .bottomTrailing){
-                            List {
-                                ForEach(vehicles, id: \.vehicles_id) { vehicle in
-                                    Button(action: {
-                                        selectedVehicle = vehicle
-                                    }) {
-                                        VehicleCard(
-                                            vehicle: vehicle,
-                                            taxStatus: dashboardVM.taxStatus(for: vehicle),
-                                            serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
+                    .padding(.top, 10)
+                
+                // MARK: - Vehicle List
+                if vehicles.isEmpty {
+                    VStack {
+                        Text("No vehicles added yet.")
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 10)
+                        
+                        Button(action: { showingAddVehicle = true }) {
+                            Text("+ Add Vehicle")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.vertical, 45)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.cyan, lineWidth: 2)
+                                        .shadow(color: .blue, radius: 8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.black.opacity(0.5))
                                         )
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
-                                    .listRowBackground(Color.black.opacity(0.8))
-                                }
-                                .onDelete(perform: deleteVehicles)
-                            }
-                            .listStyle(.plain)
-                            .scrollContentBackground(.hidden)
-                            .padding(.top, 10)
-                            .id(refreshID) // Force refresh with ID
-                            
-                            Button(action: { showingAddVehicle = true }) {
-                                Image(systemName: "plus")
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                                    .padding()
-                                    .background(Color.blue)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 5)
-                            }
-                            .padding()
+                                )
+                                .shadow(color: .blue, radius: 10)
                         }
-                        .frame(maxHeight: .infinity)
+                        .padding(.horizontal)
                     }
+                    Spacer()
+                } else {
+                    ZStack(alignment: .bottomTrailing){
+                        List {
+                            ForEach(vehicles, id: \.vehicles_id) { vehicle in
+                                // CHANGED: Use Button to switch tabs instead of NavigationLink
+                                Button(action: {
+                                    // Switch to Vehicle tab
+                                    selectedTab = 1
+                                }) {
+                                    VehicleCard(
+                                        vehicle: vehicle,
+                                        taxStatus: dashboardVM.taxStatus(for: vehicle),
+                                        serviceStatus: dashboardVM.serviceReminderStatus(for: vehicle)
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .listRowBackground(Color.black.opacity(0.8))
+                            }
+                            .onDelete(perform: deleteVehicles)
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .padding(.top, 10)
+                        .id(refreshID) // Force refresh with ID
+                        
+                        Button(action: { showingAddVehicle = true }) {
+                            Image(systemName: "plus")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                                .shadow(radius: 5)
+                        }
+                        .padding()
+                    }
+                    .frame(maxHeight: .infinity)
                 }
             }
-            // MARK: - Add Vehicle Sheet
-            .sheet(isPresented: $showingAddVehicle) {
-                // Refresh when sheet is dismissed
-                refreshID = UUID()
-            } content: {
-                AddVehicleView(authVM: authVM)
-                    .environment(\.managedObjectContext, authVM.viewContext)
-            }
-            // MARK: - Vehicle Detail Sheet
-            .sheet(item: $selectedVehicle) { vehicle in
-                VehicleDetailView(
-                    initialVehicle: vehicle,
-                    allVehicles: vehicles,
-                    context: authVM.viewContext,
-                    activeUser: authVM.currentUser!,
-                    profileVM: profileVM,
-                    onDismiss: {
-                        // Force refresh when returning from detail view
-                        refreshID = UUID()
-                        authVM.viewContext.refreshAllObjects()
-                    }
-                )
+        }
+        // MARK: - Add Vehicle Sheet
+        .sheet(isPresented: $showingAddVehicle) {
+            // Refresh when sheet is dismissed
+            refreshID = UUID()
+        } content: {
+            AddVehicleView(authVM: authVM)
                 .environment(\.managedObjectContext, authVM.viewContext)
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             // Refresh when context changes
@@ -184,7 +169,7 @@ struct DashboardView: View {
 
 // MARK: - Vehicle Card Component
 struct VehicleCard: View {
-    @ObservedObject var vehicle: Vehicles // Changed to @ObservedObject
+    @ObservedObject var vehicle: Vehicles
     var taxStatus: VehicleTaxStatus
     var serviceStatus: ServiceReminderStatus
     
@@ -307,5 +292,7 @@ struct VehicleCard: View {
     mockAuthVM.currentUser = mockUser
     mockAuthVM.isAuthenticated = true
     
-    return DashboardView(authVM: mockAuthVM)
+    return NavigationStack {
+        DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
+    }
 }
