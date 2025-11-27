@@ -14,94 +14,109 @@ struct ChangePasswordView: View {
     @State private var confirmPassword: String = ""
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
+    @State private var showingExitAlert = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         ZStack {
-            // BACKGROUND (dark theme)
-            Color.black.opacity(0.95)
+            // BACKGROUND - Matching Add Service style
+            LinearGradient(colors: [.black, .black.opacity(0.9)], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             
-//            FlowingLinesView()
-//                .opacity(0.25)
-//                .ignoresSafeArea()
-            
             ScrollView {
-                VStack(alignment: .leading, spacing: 30) {
-                    // TITLE
-                    Text("Change Password")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.top, 10)
+                VStack(spacing: 24) {
                     
-                    // SECTION HEADER
+                    // TITLE - Matching Add Service style (aligned left)
+                    HStack {
+                        Text("Change Password")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 35)
+                    
+                    // SECTION HEADER - Matching Add Service style exactly
                     HStack(spacing: 8) {
                         Image(systemName: "lock.shield.fill")
-                            .foregroundColor(.cyan)
-                            .font(.system(size: 18))
+                            .foregroundColor(.blue)
+                            .font(.system(size: 16))
                         Text("Security Settings")
                             .foregroundColor(.white)
-                            .font(.headline)
+                            .font(.system(size: 17, weight: .semibold))
+                        Spacer()
                     }
-                    .padding(.leading, 4)
+                    .padding(.horizontal, 30)
+                    .padding(.bottom, 8)
                     
-                    // CARD (mirip Add Service Card)
-                    VStack(spacing: 20) {
-                        passwordField(
+                    // PASSWORD FIELDS - Matching Add Service Card style EXACTLY
+                    VStack(spacing: 18) {
+                        passwordFieldWithBorder(
                             title: "Current Password",
                             placeholder: "Enter current password",
                             text: $currentPassword
                         )
-                        passwordField(
+                        passwordFieldWithBorder(
                             title: "New Password",
                             placeholder: "Enter new password",
                             text: $newPassword
                         )
-                        passwordField(
+                        passwordFieldWithBorder(
                             title: "Confirm New Password",
                             placeholder: "Re-enter new password",
                             text: $confirmPassword
                         )
                     }
-                    .padding()
+                    .padding(20)
                     .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color("CardDark"))  // gunakan warna biru gelap
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .stroke(
-                                        LinearGradient(
-                                            colors: [.cyan.opacity(0.4), .blue.opacity(0.3)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 1
-                                    )
-                            )
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(Color.blue.opacity(0.15)) // EXACT same as Add Service
                     )
+                    .padding(.horizontal, 20)
                     
-                    // SAVE BUTTON (Updated to match Add Service button style)
+                    // SAVE BUTTON - Matching Edit Profile style
                     Button(action: handleChangePassword) {
                         Text("Save Password")
                             .font(.headline)
                             .foregroundColor(.white)
-                                    .padding()
-                                    .frame(maxWidth: .infinity)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan, lineWidth: 2)
+                                    .shadow(color: .blue, radius: 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .stroke(Color.cyan, lineWidth: 2)
-                                            .shadow(color: .blue, radius: 8)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.black.opacity(0.5))
-                                            )
+                                            .fill(Color.black.opacity(0.5))
                                     )
-                                    .shadow(color: .blue, radius: 10)
-                            }
-                            .padding(.top, 10)
+                            )
+                            .shadow(color: .blue, radius: 10)
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
+                    .padding(.bottom, 30)
                 }
-                .padding(20)
             }
+        }
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showingExitAlert = true
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.white)
+                        .font(.system(size: 18, weight: .semibold))
+                }
+            }
+        }
+        .alert("Confirm Exit", isPresented: $showingExitAlert) {
+            Button("Stay on Page", role: .cancel) { }
+            Button("Exit", role: .destructive) {
+                dismiss()
+            }
+        } message: {
+            Text("Unsaved changes will be lost. Are you sure you want to exit?")
         }
         .alert(isPresented: $showAlert) {
             Alert(
@@ -114,19 +129,25 @@ struct ChangePasswordView: View {
                 }
             )
         }
+        .preferredColorScheme(.dark)
     }
     
-    // MARK: - CUSTOM PASSWORD FIELD
-    private func passwordField(title: String, placeholder: String, text: Binding<String>) -> some View {
+    // MARK: - PASSWORD FIELD WITH BORDER (Matching Add Service font sizes exactly)
+    private func passwordFieldWithBorder(title: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .foregroundColor(.white.opacity(0.9))
-                .font(.subheadline)
-            SecureField(placeholder, text: text)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(Color.white.opacity(0.08))
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
+            
+            SecureField("", text: text, prompt: Text(placeholder).foregroundColor(.gray.opacity(0.5)))
+                .padding()
+                .font(.system(size: 17))
+                .foregroundColor(.black) // Black text for readability
+                .background(Color.white) // White background
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // Gray border
+                )
                 .cornerRadius(12)
         }
     }
