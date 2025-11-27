@@ -68,10 +68,12 @@ struct MainContentView: View {
         
         TabView(selection: $selectedTab) {
             
-            // TAB 1: Dashboard
-            DashboardView(authVM: authVM)
-                .tabItem { Label("Home", systemImage: "house") }
-                .tag(0)
+            // TAB 1: Dashboard - Pass selectedTab binding
+            NavigationStack {
+                DashboardView(authVM: authVM, selectedTab: $selectedTab)
+            }
+            .tabItem { Label("Home", systemImage: "house") }
+            .tag(0)
             
             // TAB 2: Vehicles
             NavigationStack {

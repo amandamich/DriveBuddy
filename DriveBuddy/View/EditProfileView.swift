@@ -8,7 +8,7 @@
 import SwiftUI
 import PhotosUI
 import Foundation
-import CoreData
+import CoreData // Pastikan Anda mengimpor CoreData jika CoreData digunakan di ViewModel
 
 struct EditProfileView: View {
     @ObservedObject var profileVM: ProfileViewModel
@@ -16,16 +16,16 @@ struct EditProfileView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     
     // MARK: - State Properties
+    // Tidak lagi diberi nilai default, nilainya akan diisi di init
     @State private var fullName: String
     @State private var phoneNumber: String
     @State private var email: String
     @State private var gender: String
     
+    // Custom DOB values
     @State private var selectedDay: Int
     @State private var selectedMonth: Int
     @State private var selectedYear: Int
-    
-    @State private var showingExitAlert = false
     
     @Environment(\.dismiss) private var dismiss
 
@@ -39,18 +39,22 @@ struct EditProfileView: View {
     ]
     private let years = Array(1950...2025).reversed()
 
-    // MARK: - Custom Initializer
+    // MARK: - Custom Initializer untuk Inisialisasi Data Awal
     init(profileVM: ProfileViewModel) {
         self._profileVM = ObservedObject(initialValue: profileVM)
         
+        // Dapatkan data awal dari ViewModel
         let initialDOB = profileVM.dateOfBirth ?? Date()
         let calendar = Calendar.current
         
+        // Inisialisasi semua properti @State agar tidak terjadi lag/flickering
         self._fullName = State(initialValue: profileVM.username)
         self._phoneNumber = State(initialValue: profileVM.phoneNumber)
+        // Jika email di VM kosong, ambil dari user Core Data, jika tidak, pakai email di VM
         self._email = State(initialValue: profileVM.email.isEmpty ? (profileVM.user?.email ?? "") : profileVM.email)
         self._gender = State(initialValue: profileVM.gender)
         
+        // Inisialisasi Date of Birth components
         self._selectedDay = State(initialValue: calendar.component(.day, from: initialDOB))
         self._selectedMonth = State(initialValue: calendar.component(.month, from: initialDOB))
         self._selectedYear = State(initialValue: calendar.component(.year, from: initialDOB))
@@ -78,42 +82,43 @@ struct EditProfileView: View {
                         .padding(.top, 35)
                         .shadow(color: .cyan.opacity(0.7), radius: 8)
 
-                    // Avatar Section
+                    // Avatar
                     VStack(spacing: 16) {
                         avatarView
 
-                        // MARK: - Change Profile Photo Button (WHITE BORDER)
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                             Text("Change Profile Photo")
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.cyan)
                                 .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
+                                .padding(.vertical, 8)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.white, lineWidth: 1.5)
+                                    Capsule()
+                                        .stroke(Color.cyan.opacity(0.6), lineWidth: 1.5)
                                 )
                         }
                     }
                     .padding(.bottom, 10)
 
                     VStack(spacing: 18) {
-                        textFieldWithBorder("Full Name", text: $fullName)
-                        textFieldWithBorder("Phone Number", text: $phoneNumber)
+                        // Menggunakan $fullName, $phoneNumber, $email yang sudah diinisialisasi
+                        neonTextField("Full Name", text: $fullName)
+                        neonTextField("Phone Number", text: $phoneNumber)
                             .keyboardType(.phonePad)
-                        textFieldWithBorder("Email", text: $email)
+                        neonTextField("Email", text: $email)
                             .keyboardType(.emailAddress)
 
                         // GENDER DROPDOWN
-                        dropdownWithBorder("Gender", selection: $gender, options: genderOptions)
+                        neonDropdown("Gender", selection: $gender, options: genderOptions)
 
-                        // CUSTOM DATE PICKER
+                        // CUSTOM DATE PICKER (Day / Month / Year)
                         dateOfBirthPicker
-                        
-                        textFieldWithBorder("City", text: $profileVM.city)
+
+                        // Menggunakan $profileVM.city karena ini adalah data yang perlu di-save
+                        neonTextField("City", text: $profileVM.city)
                     }
 
-                    // MARK: - SAVE BUTTON
+                    // SAVE BUTTON
                     Button(action: {
                         profileVM.saveProfileChanges(
                             name: fullName,
@@ -131,22 +136,23 @@ struct EditProfileView: View {
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 14)
                                     .stroke(Color.cyan, lineWidth: 2)
-                                    .shadow(color: .blue, radius: 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.black.opacity(0.5))
-                                    )
+                                    .background(Color.black.opacity(0.5))
                             )
-                            .shadow(color: .blue, radius: 10)
+                            .shadow(color: .cyan.opacity(0.5), radius: 10)
                     }
                     .padding(.horizontal, 30)
-                    .padding(.top, 10)
                     .padding(.bottom, 30)
                 }
             }
         }
+        // Hapus blok .onAppear karena inisialisasi sudah dilakukan di init
+        /* .onAppear {
+            fullName = profileVM.username
+            // ... (dan inisialisasi lainnya)
+        } */
+        
         .onChange(of: selectedPhotoItem) { _, newValue in
             guard let newValue else { return }
             Task {
@@ -155,37 +161,13 @@ struct EditProfileView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
-                Button {
-                    showingExitAlert = true
-                } label: {
-                    // MARK: WHITE BACK BUTTON
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.white)
-                        .font(.system(size: 18, weight: .semibold))
-                }
-            }
-        }
-        .alert("Confirm Exit", isPresented: $showingExitAlert) {
-            Button("Stay on Page", role: .cancel) { }
-            Button("Exit", role: .destructive) {
-                dismiss()
-            }
-        } message: {
-            Text("Unsaved changes will be lost. Are you sure you want to exit?")
-        }
-        .preferredColorScheme(.dark)
     }
 
-    // MARK: Custom View Components
+    // MARK: Custom View Components (Diambil dari kode sebelumnya)
     
-    // MARK: - Date of Birth Picker (Aligned with textfields)
     private var dateOfBirthPicker: some View {
         VStack(alignment: .leading, spacing: 8) {
-            fieldLabel("Date of Birth")
-                .padding(.horizontal, 30)
+            neonLabel("Date of Birth")
 
             HStack(spacing: 12) {
                 // DAY
@@ -195,7 +177,7 @@ struct EditProfileView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .modifier(DatePickerBoxStyle())
+                .modifier(neonBox())
 
                 // MONTH
                 Picker("Month", selection: $selectedMonth) {
@@ -204,16 +186,16 @@ struct EditProfileView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .modifier(DatePickerBoxStyle())
+                .modifier(neonBox())
 
                 // YEAR
                 Picker("Year", selection: $selectedYear) {
                     ForEach(years, id: \.self) { y in
-                        Text(String(y)).tag(y)
+                        Text("\(y)").tag(y)
                     }
                 }
                 .pickerStyle(.menu)
-                .modifier(DatePickerBoxStyle())
+                .modifier(neonBox())
             }
             .padding(.horizontal, 30)
         }
@@ -236,32 +218,30 @@ struct EditProfileView: View {
         .clipShape(Circle())
         .overlay(
             Circle()
-                .stroke(Color.white, lineWidth: 3) // WHITE BORDER
-                .shadow(color: .white.opacity(0.5), radius: 10)
+                .stroke(Color.cyan, lineWidth: 3)
+                .shadow(color: .cyan.opacity(0.8), radius: 10)
         )
     }
 
-    // MARK: - TextField WITH GRAY BORDER (White background, Black text, Gray border, Gray placeholder)
-    private func textFieldWithBorder(_ label: String, text: Binding<String>) -> some View {
+    private func neonTextField(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            fieldLabel(label)
-            TextField("", text: text, prompt: Text(label).foregroundColor(.gray.opacity(0.5)))
+            neonLabel(label)
+            TextField(label, text: text)
                 .padding()
-                .foregroundColor(.black) // BLACK TEXT for readability
-                .background(Color.white) // WHITE BACKGROUND
+                .foregroundColor(.white)
+                .background(Color.black.opacity(0.5))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                        .stroke(Color.cyan.opacity(0.6), lineWidth: 2)
                 )
                 .cornerRadius(12)
         }
         .padding(.horizontal, 30)
     }
 
-    // MARK: - Dropdown WITH GRAY BORDER
-    private func dropdownWithBorder(_ label: String, selection: Binding<String>, options: [String]) -> some View {
+    private func neonDropdown(_ label: String, selection: Binding<String>, options: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            fieldLabel(label)
+            neonLabel(label)
 
             Menu {
                 ForEach(options, id: \.self) { option in
@@ -270,16 +250,15 @@ struct EditProfileView: View {
             } label: {
                 HStack {
                     Text(selection.wrappedValue.isEmpty ? "Select \(label)" : selection.wrappedValue)
-                        .foregroundColor(.black) // BLACK TEXT
+                        .foregroundColor(.white.opacity(0.9))
                     Spacer()
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.gray)
+                    Image(systemName: "chevron.down").foregroundColor(.cyan)
                 }
                 .padding()
-                .background(Color.white) // WHITE BACKGROUND
+                .background(Color.black.opacity(0.5))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                        .stroke(Color.cyan.opacity(0.6), lineWidth: 2)
                 )
                 .cornerRadius(12)
             }
@@ -287,7 +266,7 @@ struct EditProfileView: View {
         .padding(.horizontal, 30)
     }
 
-    private func fieldLabel(_ text: String) -> some View {
+    private func neonLabel(_ text: String) -> some View {
         Text(text)
             .font(.headline)
             .foregroundColor(.white)
@@ -295,19 +274,35 @@ struct EditProfileView: View {
     }
 }
 
-// MARK: - Date Picker Box Style WITH GRAY BORDER (Black text like "20 Nov 2025")
-struct DatePickerBoxStyle: ViewModifier {
+// MARK: - Neon Box Modifier
+struct neonBox: ViewModifier {
     func body(content: Content) -> some View {
         content
             .frame(width: 85)
             .padding(8)
-            .background(Color.white) // WHITE BACKGROUND
+            .background(Color.black.opacity(0.5))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                    .stroke(Color.cyan.opacity(0.6), lineWidth: 2)
             )
             .cornerRadius(10)
-            .foregroundColor(.black) // BLACK TEXT (like "20 Nov 2025")
-            .accentColor(.black) // Ensures picker text is black
+            .foregroundColor(.white)
     }
 }
+
+#Preview{
+    
+}
+// MARK: - Preview (Jika Preview Anda menggunakan Core Data)
+/* Hapus atau sesuaikan kode Preview Anda jika ada error kompilasi di sini. */
+/* #Preview {
+    let context = PersistenceController.shared.container.viewContext
+    let mockUser = User(context: context)
+    // ... setup mockUser ...
+
+    let vm = ProfileViewModel(context: context, user: mockUser)
+
+    NavigationStack {
+        EditProfileView(profileVM: vm)
+    }
+} */
