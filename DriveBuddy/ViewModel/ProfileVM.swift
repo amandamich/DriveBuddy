@@ -155,21 +155,17 @@ class ProfileViewModel: ObservableObject {
     
     /// Check current authorization statuses
     func checkPermissionStatuses() async {
-        // Clear any existing messages
         successMessage = nil
         errorMessage = nil
         
-        // Check notification permission
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         
-        // Update on main thread
         await MainActor.run {
             self.notificationStatus = settings.authorizationStatus
             print("📱 Notification Status: \(settings.authorizationStatus.rawValue)")
         }
         
-        // Check calendar permission
         let calStatus = EKEventStore.authorizationStatus(for: .event)
         await MainActor.run {
             self.calendarStatus = calStatus
@@ -177,7 +173,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    /// Request notification permission
     func requestNotificationPermission() async -> Bool {
         let center = UNUserNotificationCenter.current()
         
@@ -203,7 +198,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    /// Request calendar permission
     func requestCalendarPermission() async -> Bool {
         do {
             let granted = try await eventStore.requestAccess(to: .event)
@@ -227,29 +221,39 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    /// Open app settings
     func openAppSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
         }
     }
     
-    // MARK: - 🆕 Notification Settings Toggle
+    // MARK: - 🆕 Notification Settings Toggle (UPDATED)
     
     func toggleTaxReminder(_ enabled: Bool) async {
-        // Clear messages
         successMessage = nil
         errorMessage = nil
         
-        // Check permission first
-        if enabled && notificationStatus != .authorized {
-            let granted = await requestNotificationPermission()
-            if !granted {
-                await MainActor.run {
-                    self.taxReminderEnabled = false
-                    self.errorMessage = "Please enable notifications in Settings"
+        if enabled {
+            // Check notification permission
+            if notificationStatus != .authorized {
+                let granted = await requestNotificationPermission()
+                if !granted {
+                    await MainActor.run {
+                        self.taxReminderEnabled = false
+                        self.errorMessage = "Please enable notifications in Settings"
+                    }
+                    return
                 }
-                return
+            }
+            
+            // Check calendar permission if user wants calendar events
+            if user?.add_to_calendar == true && calendarStatus != .authorized {
+                let granted = await requestCalendarPermission()
+                if !granted {
+                    await MainActor.run {
+                        self.errorMessage = "Calendar permission needed to add events"
+                    }
+                }
             }
         }
         
@@ -259,14 +263,13 @@ class ProfileViewModel: ObservableObject {
         }
         
         if enabled {
-            await scheduleTaxReminders()
+            await scheduleTaxRemindersWithCalendar()
         } else {
             await cancelTaxReminders()
         }
     }
     
     func toggleServiceReminder(_ enabled: Bool) async {
-        // Clear messages
         successMessage = nil
         errorMessage = nil
         
@@ -290,14 +293,11 @@ class ProfileViewModel: ObservableObject {
     
     // MARK: - 🆕 Calendar Management
     
-    /// Get or create DriveBuddy calendar
     func getDriveBuddyCalendar() async throws -> EKCalendar {
-        // Try to find existing calendar
         if let existing = eventStore.calendars(for: .event).first(where: { $0.title == "DriveBuddy" }) {
             return existing
         }
         
-        // Create new calendar
         guard let source = eventStore.sources.first(where: { $0.sourceType == .local })
                ?? eventStore.sources.first(where: { $0.sourceType == .calDAV }) else {
             throw NSError(
@@ -317,14 +317,12 @@ class ProfileViewModel: ObservableObject {
         return calendar
     }
     
-    /// Add event to calendar
     func addCalendarEvent(
         title: String,
         notes: String,
         startDate: Date,
         alarmOffsetDays: Int
     ) async throws {
-        // Check permission
         if calendarStatus != .authorized {
             let granted = await requestCalendarPermission()
             guard granted else {
@@ -342,10 +340,9 @@ class ProfileViewModel: ObservableObject {
         event.title = title
         event.notes = notes
         event.startDate = startDate
-        event.endDate = startDate.addingTimeInterval(60 * 60) // 1 hour
+        event.endDate = startDate.addingTimeInterval(60 * 60)
         event.calendar = calendar
         
-        // Add alarm
         let secondsBefore = TimeInterval(alarmOffsetDays * 24 * 60 * 60) * -1
         event.alarms = [EKAlarm(relativeOffset: secondsBefore)]
         
@@ -353,13 +350,49 @@ class ProfileViewModel: ObservableObject {
         print("✅ Calendar event saved: \(title)")
     }
     
-    // MARK: - 🆕 Tax Reminder Notifications
+    // MARK: - 🆕 Tax Reminder with Calendar (UPDATED)
     
-    /// Schedule yearly tax reminders (every year on a specific date)
+    private func scheduleTaxRemindersWithCalendar() async {
+        // 1. Schedule notification
+        await scheduleTaxReminders()
+        
+        // 2. Add to calendar if enabled
+        if user?.add_to_calendar == true && calendarStatus == .authorized {
+            do {
+                guard let userId = user?.user_id else { return }
+                
+                let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+                request.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
+                
+                let vehicles = try viewContext.fetch(request)
+                
+                for vehicle in vehicles {
+                    guard let taxDate = vehicle.tax_due_date,
+                          let vehicleName = vehicle.make_model else { continue }
+                    
+                    try await addCalendarEvent(
+                        title: "🚗 Tax Due: \(vehicleName)",
+                        notes: "Vehicle tax renewal due for \(vehicleName)",
+                        startDate: taxDate,
+                        alarmOffsetDays: 7
+                    )
+                }
+                
+                await MainActor.run {
+                    self.successMessage = "Tax reminders enabled and added to calendar"
+                }
+            } catch {
+                print("❌ Failed to add tax events to calendar: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.errorMessage = "Failed to add some events to calendar"
+                }
+            }
+        }
+    }
+    
     private func scheduleTaxReminders() async {
         let center = UNUserNotificationCenter.current()
         
-        // Example: Schedule tax reminder for March 1st every year at 9:00 AM
         var components = DateComponents()
         components.month = 3
         components.day = 1
@@ -383,18 +416,11 @@ class ProfileViewModel: ObservableObject {
         do {
             try await center.add(request)
             print("✅ Tax reminder notification scheduled")
-            await MainActor.run {
-                self.successMessage = "Tax reminders enabled"
-            }
         } catch {
             print("❌ Failed to schedule tax reminder: \(error.localizedDescription)")
-            await MainActor.run {
-                self.errorMessage = "Failed to schedule tax reminder"
-            }
         }
     }
     
-    /// Cancel tax reminders
     private func cancelTaxReminders() async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["tax.reminder.yearly"])
@@ -404,9 +430,8 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 🆕 Service Reminder Helpers (to be used by AddServiceViewModel)
+    // MARK: - 🆕 Service Reminder with Calendar (UPDATED)
     
-    /// Schedule a service reminder notification
     func scheduleServiceReminder(
         serviceId: UUID,
         serviceName: String,
@@ -424,11 +449,11 @@ class ProfileViewModel: ObservableObject {
             to: serviceDate
         ) ?? Date()
         
-        var components = Calendar.current.dateComponents([.month, .day], from: preDate)
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: preDate)
         components.hour = 9
         components.minute = 0
         
-        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: true)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
         
         let content = UNMutableNotificationContent()
         content.title = "Service Reminder"
@@ -444,13 +469,23 @@ class ProfileViewModel: ObservableObject {
         
         do {
             try await center.add(request)
-            print("✅ Service reminder scheduled for \(serviceName)")
+            print("✅ Service reminder notification scheduled for \(serviceName)")
+            
+            // Add to calendar if enabled
+            if user?.add_to_calendar == true && calendarStatus == .authorized {
+                try await addCalendarEvent(
+                    title: "🔧 Service: \(serviceName)",
+                    notes: "Scheduled service for \(vehicleName): \(serviceName)",
+                    startDate: serviceDate,
+                    alarmOffsetDays: daysBeforeReminder
+                )
+                print("✅ Service event added to calendar")
+            }
         } catch {
             print("❌ Failed to schedule service reminder: \(error.localizedDescription)")
         }
     }
     
-    /// Cancel a service reminder
     func cancelServiceReminder(serviceId: UUID) async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(
@@ -459,13 +494,65 @@ class ProfileViewModel: ObservableObject {
         print("✅ Service reminder cancelled")
     }
     
-    // MARK: - 🆕 Test Notification (for debugging)
+    // MARK: - 🆕 Sync All Vehicles to Calendar
+    
+    func syncAllVehiclesToCalendar() async {
+        guard user?.add_to_calendar == true else {
+            await MainActor.run {
+                self.errorMessage = "Enable 'Add to Calendar' in settings first"
+            }
+            return
+        }
+        
+        if calendarStatus != .authorized {
+            let granted = await requestCalendarPermission()
+            guard granted else {
+                await MainActor.run {
+                    self.errorMessage = "Calendar permission denied"
+                }
+                return
+            }
+        }
+        
+        do {
+            guard let userId = user?.user_id else { return }
+            
+            let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+            request.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
+            
+            let vehicles = try viewContext.fetch(request)
+            var addedCount = 0
+            
+            for vehicle in vehicles {
+                guard let taxDate = vehicle.tax_due_date,
+                      let vehicleName = vehicle.make_model else { continue }
+                
+                try await addCalendarEvent(
+                    title: "🚗 Tax Due: \(vehicleName)",
+                    notes: "Vehicle tax renewal due for \(vehicleName)",
+                    startDate: taxDate,
+                    alarmOffsetDays: 7
+                )
+                addedCount += 1
+            }
+            
+            await MainActor.run {
+                self.successMessage = "✅ Added \(addedCount) vehicle(s) to calendar"
+            }
+        } catch {
+            print("❌ Failed to sync vehicles to calendar: \(error.localizedDescription)")
+            await MainActor.run {
+                self.errorMessage = "Failed to sync to calendar"
+            }
+        }
+    }
+    
+    // MARK: - 🆕 Test Notification
+    
     func sendTestNotification() async {
-        // Clear messages
         successMessage = nil
         errorMessage = nil
         
-        // Check permission first
         if notificationStatus != .authorized {
             let granted = await requestNotificationPermission()
             if !granted {
@@ -482,7 +569,6 @@ class ProfileViewModel: ObservableObject {
         content.sound = .default
         content.badge = 1
         
-        // Trigger immediately (1 second delay)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
         
         let request = UNNotificationRequest(
@@ -507,6 +593,7 @@ class ProfileViewModel: ObservableObject {
     }
 
     // MARK: - Toggle Settings
+    
     func toggleAddToCalendar(_ newValue: Bool) {
         addToCalendar = newValue
         user?.add_to_calendar = newValue
@@ -519,6 +606,7 @@ class ProfileViewModel: ObservableObject {
     }
 
     // MARK: - Save Context
+    
     private func saveContext() {
         do {
             try viewContext.save()

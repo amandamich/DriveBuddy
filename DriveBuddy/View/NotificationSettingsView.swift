@@ -83,7 +83,81 @@ struct NotificationSettingsView: View {
                                 }
                             }
                         )
+                        
+                        Divider()
+                            .background(Color.cyan.opacity(0.3))
+                            .padding(.leading, 56)
+                        
+                        // Add to Calendar Toggle
+                        reminderToggleRow(
+                            icon: "calendar.badge.plus",
+                            title: "Add to Calendar",
+                            subtitle: "Automatically add events to calendar",
+                            isOn: $profileVM.addToCalendar,
+                            action: { newValue in
+                                profileVM.toggleAddToCalendar(newValue)
+                            }
+                        )
                     }
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black.opacity(0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(color: .blue.opacity(0.3), radius: 10)
+                    )
+                    .padding(.horizontal, 16)
+                    
+                    // ✅ SYNC ALL TO CALENDAR BUTTON
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Calendar Sync")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text("Add all existing vehicles and their tax due dates to your calendar")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        
+                        Button(action: {
+                            Task {
+                                await profileVM.syncAllVehiclesToCalendar()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .foregroundColor(.cyan)
+                                Text("Sync All to Calendar")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan, lineWidth: 2)
+                                    .shadow(color: .blue, radius: 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.black.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: .blue, radius: 10)
+                        }
+                        .disabled(profileVM.calendarStatus != .authorized ||
+                                  profileVM.addToCalendar != true)
+                        .opacity((profileVM.calendarStatus == .authorized &&
+                                  profileVM.addToCalendar == true) ? 1.0 : 0.5)
+                        
+                        if profileVM.calendarStatus != .authorized ||
+                           profileVM.addToCalendar != true {
+                            Text("Enable calendar permission and 'Add to Calendar' first")
+                                .font(.caption2)
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.black.opacity(0.6))

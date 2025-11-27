@@ -67,6 +67,17 @@ struct DashboardView: View {
         )
     }
     
+    // MARK: - Computed Property: Check if any vehicle has no tax date
+    var vehiclesWithoutTaxDate: [Vehicles] {
+        let filtered = vehicles.filter { $0.tax_due_date == nil }
+        print("🔍 [Dashboard Debug] Total vehicles: \(vehicles.count)")
+        print("🔍 [Dashboard Debug] Vehicles without tax date: \(filtered.count)")
+        for vehicle in filtered {
+            print("🔍 [Dashboard Debug] - \(vehicle.make_model ?? "Unknown") has no tax date")
+        }
+        return filtered
+    }
+    
     var body: some View {
         ZStack {
             // MARK: - Background
@@ -182,6 +193,11 @@ extension DashboardView {
         var taxStatus: VehicleTaxStatus
         var serviceStatus: ServiceReminderStatus
         
+        // Check if tax date is missing
+        private var isTaxDateMissing: Bool {
+            vehicle.tax_due_date == nil
+        }
+        
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
                 
@@ -196,32 +212,70 @@ extension DashboardView {
                         .foregroundColor(.gray)
                 }
                 
+                // MARK: - Tax Warning Banner (if tax date not set)
+                if isTaxDateMissing {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
+                        
+                        Text("Tax due date not set. Tap to set.")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                Color.orange.opacity(0.3),
+                                Color.orange.opacity(0.2)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                    )
+                }
+                
                 // MARK: - Divider
                 Divider()
                     .background(Color.white.opacity(0.15))
                 
-                // MARK: - Tax Row
-                HStack(alignment: .center) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 17))
-                        .foregroundColor(.gray)
-                    
-                    Text("Tax:")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 15))
-                    
-                    Text(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
-                        .foregroundColor(.white)
-                        .font(.system(size: 15))
-                    Spacer()
-                    
-                    Text(taxStatus.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(taxStatus.color.opacity(0.9))
-                        .cornerRadius(8)
-                        .foregroundColor(.white)
+                // MARK: - Tax Row (only show if tax date is set)
+                if !isTaxDateMissing {
+                    HStack(alignment: .center) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 17))
+                            .foregroundColor(.gray)
+                        
+                        Text("Tax:")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 15))
+                        
+                        Text(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
+                            .foregroundColor(.white)
+                            .font(.system(size: 15))
+                        Spacer()
+                        
+                        Text(taxStatus.label)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(taxStatus.color.opacity(0.9))
+                            .cornerRadius(8)
+                            .foregroundColor(.white)
+                    }
                 }
                 
                 // MARK: - Service Row
@@ -256,14 +310,23 @@ extension DashboardView {
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(
                         LinearGradient(
-                            colors: [.cyan.opacity(0.6), .blue.opacity(0.4)],
+                            colors: isTaxDateMissing ?
+                                [.orange.opacity(0.6), .orange.opacity(0.4)] :
+                                [.cyan.opacity(0.6), .blue.opacity(0.4)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 2
                     )
             )
-            .shadow(color: .cyan.opacity(0.25), radius: 12, x: 0, y: 4)
+            .shadow(
+                color: isTaxDateMissing ?
+                    .orange.opacity(0.3) :
+                    .cyan.opacity(0.25),
+                radius: 12,
+                x: 0,
+                y: 4
+            )
         }
         
         // MARK: - Service Date Helper
@@ -305,4 +368,5 @@ extension DashboardView {
     return NavigationStack {
         DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
     }
+    
 }

@@ -5,6 +5,7 @@ struct AddVehicleView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var addVehicleVM: AddVehicleViewModel
+    @StateObject private var profileVM: ProfileViewModel
 
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
@@ -15,6 +16,13 @@ struct AddVehicleView: View {
         
         _addVehicleVM = StateObject(
             wrappedValue: AddVehicleViewModel(
+                context: PersistenceController.shared.container.viewContext,
+                user: user
+            )
+        )
+        
+        _profileVM = StateObject(
+            wrappedValue: ProfileViewModel(
                 context: PersistenceController.shared.container.viewContext,
                 user: user
             )
@@ -106,7 +114,7 @@ struct AddVehicleView: View {
                                     DatePicker("", selection: $addVehicleVM.lastServiceDate, displayedComponents: .date)
                                         .labelsHidden()
                                         .datePickerStyle(.compact)
-                                        .frame(maxWidth: .infinity, alignment: .leading) // ✅ left align
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                                 .padding()
                                 .background(Color.white)
@@ -132,12 +140,13 @@ struct AddVehicleView: View {
                         }
                     }
 
-
                     // MARK: Add Button
                     Button(action: {
-                        addVehicleVM.addVehicle()
-                        if addVehicleVM.successMessage != nil {
-                            dismiss()
+                        Task {
+                            await addVehicleVM.addVehicle(profileVM: profileVM)
+                            if addVehicleVM.successMessage != nil {
+                                dismiss()
+                            }
                         }
                     }) {
                         Text("Add Vehicle")
@@ -168,6 +177,20 @@ struct AddVehicleView: View {
                         Text(error)
                             .foregroundColor(.red)
                             .font(.caption)
+                    }
+                    
+                    // ✅ WARNING MESSAGE IF TAX DATE NOT SET
+                    if let warning = addVehicleVM.warningMessage {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                            Text(warning)
+                                .foregroundColor(.orange)
+                                .font(.caption)
+                        }
+                        .padding()
+                        .background(Color.orange.opacity(0.2))
+                        .cornerRadius(8)
                     }
                 }
                 .padding(.horizontal)
