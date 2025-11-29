@@ -4,5 +4,9 @@
 <dict>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>DriveBuddy needs notification permission to remind you about vehicle tax and service dates</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>DriveBuddy needs your location to find nearby workshops</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>DriveBuddy needs your location to find nearby workshops</string>
 </dict>
 </plist>

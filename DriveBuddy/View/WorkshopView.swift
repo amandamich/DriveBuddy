@@ -136,27 +136,26 @@ struct WorkshopView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onAppear {
-                locationManager.requestPermission()
-                updateWorkshopDistances()
-            }
-            .onChange(of: locationManager.userLocation) { oldValue, newValue in
-                // Only update if location actually changed and is not nil
-                guard let newLocation = newValue else { return }
-                
-                // Check if coordinates actually changed
-                if let oldLocation = oldValue {
-                    let latChanged = abs(oldLocation.coordinate.latitude - newLocation.coordinate.latitude) > 0.0001
-                    let lonChanged = abs(oldLocation.coordinate.longitude - newLocation.coordinate.longitude) > 0.0001
-                    
-                    if latChanged || lonChanged {
-                        updateWorkshopDistances()
-                    }
-                } else {
-                    // First time getting location
-                    updateWorkshopDistances()
-                }
-            }
+			.onAppear {
+				print("🎬 WorkshopView appeared")
+				locationManager.requestPermission()
+				
+				// If location already available, update immediately
+				if locationManager.userLocation != nil {
+					print("✅ Location already available on appear")
+					updateWorkshopDistances()
+				}
+			}
+			.onChange(of: locationManager.userLocation) { oldValue, newValue in
+				print("🔄 Location changed - Old: \(oldValue?.coordinate.latitude ?? 0), New: \(newValue?.coordinate.latitude ?? 0)")
+				
+				// Update whenever location changes
+				if newValue != nil {
+					print("✅ New location available, updating distances...")
+					updateWorkshopDistances()
+				}
+			}
+
             .alert("Location Permission Required", isPresented: $showLocationAlert) {
                 Button("Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {

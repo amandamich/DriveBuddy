@@ -2,7 +2,7 @@
 //  LocationManager.swift
 //  DriveBuddy
 //
-//  Created by Timothy on 12/11/25.
+//  Fixed version - Distance now shows properly
 //
 
 import Foundation
@@ -21,6 +21,14 @@ class LocationManager: NSObject, ObservableObject {
 		locationManager.delegate = self
 		locationManager.desiredAccuracy = kCLLocationAccuracyBest
 		locationManager.distanceFilter = 10 // Update every 10 meters
+		
+		// Check current authorization status
+		authorizationStatus = locationManager.authorizationStatus
+		
+		// If already authorized, start immediately
+		if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
+			startUpdatingLocation()
+		}
 	}
 	
 	func requestPermission() {
@@ -28,7 +36,11 @@ class LocationManager: NSObject, ObservableObject {
 	}
 	
 	func startUpdatingLocation() {
+		print("🎯 Starting location updates...")
 		locationManager.startUpdatingLocation()
+		
+		// Request location immediately
+		locationManager.requestLocation()
 	}
 	
 	func stopUpdatingLocation() {
@@ -38,6 +50,7 @@ class LocationManager: NSObject, ObservableObject {
 	// Calculate distance between user location and workshop
 	func calculateDistance(to workshopCoordinate: CLLocationCoordinate2D) -> String {
 		guard let userLocation = userLocation else {
+			print("⚠️ User location is nil when calculating distance")
 			return "-"
 		}
 		
@@ -75,23 +88,36 @@ class LocationManager: NSObject, ObservableObject {
 extension LocationManager: CLLocationManagerDelegate {
 	func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
 		guard let location = locations.last else { return }
-		userLocation = location
+		
+		print("📍 Location updated: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+		
+		// Update published property
+		DispatchQueue.main.async {
+			self.userLocation = location
+		}
 	}
 	
 	func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
 		locationError = error.localizedDescription
-		print("Location error: \(error.localizedDescription)")
+		print("❌ Location error: \(error.localizedDescription)")
 	}
 	
 	func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-		authorizationStatus = manager.authorizationStatus
+		print("🔐 Authorization changed to: \(manager.authorizationStatus.rawValue)")
+		
+		DispatchQueue.main.async {
+			self.authorizationStatus = manager.authorizationStatus
+		}
 		
 		switch manager.authorizationStatus {
 		case .authorizedWhenInUse, .authorizedAlways:
+			print("✅ Location authorized, starting updates...")
 			startUpdatingLocation()
 		case .denied, .restricted:
 			locationError = "Location access denied. Please enable in Settings."
+			print("❌ Location access denied")
 		case .notDetermined:
+			print("⏳ Location permission not determined")
 			requestPermission()
 		@unknown default:
 			break
