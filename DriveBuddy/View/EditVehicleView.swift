@@ -17,13 +17,10 @@ struct EditVehicleView: View {
             VStack(spacing: 0) {
                 HStack {
                     // Back Button
-                    Button(action: {
-                        dismiss()
-                    }) {
+                    Button(action: {dismiss()}) {
                         HStack() {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
-                            
                         }
                         .padding(.horizontal, 15)
                         .padding(.vertical, 10)
@@ -36,12 +33,11 @@ struct EditVehicleView: View {
                     .padding(.vertical, 5)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-
                     // Title
                     Text("Edit Vehicle")
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 26)
+                        .padding()
                     
                     Spacer()
                 }

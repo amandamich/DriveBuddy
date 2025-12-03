@@ -36,12 +36,32 @@ struct AddVehicleView: View {
             Color.black.opacity(0.95).ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                HStack{
+                    // MARK: Button Back
+                    Button(action: {dismiss()}) {
+                        HStack() {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius:100000)
+                                .fill(Color.white.opacity(0.15))
+                        )
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                    
+                    // MARK: Title
                     Text("New Vehicle")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.top)
-
+                }
+                VStack(alignment: .leading, spacing: 24) {
                     // MARK: Vehicle Info Section
                     SectionBox(title: "Vehicle Info", icon: "car.fill") {
                         Group {

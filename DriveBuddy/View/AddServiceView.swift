@@ -33,14 +33,31 @@ struct AddServiceView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-
-                    // MARK: Header
-                    Text("Add Service")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.top)
-
-                    // MARK: Service Info Section
+                    HStack{
+                        // Back Button
+                        Button(action: { dismiss()}) {
+                            HStack() {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 16, weight: .semibold))
+                                
+                            }
+                            .padding(.horizontal, 15)
+                            .padding(.vertical, 10)
+                            .background(RoundedRectangle(cornerRadius:100000).fill(Color.white.opacity(0.15))
+                            )
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 5)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+                        
+                        // Header
+                        Text("Add Service")
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding()
+                    }
+                    // Service Info Section
                     SectionBoxService(title: "Service Info", icon: "wrench.fill") {
                         VStack(alignment: .leading, spacing: 15) {
                             VStack(alignment: .leading, spacing: 6) {
