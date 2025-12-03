@@ -42,9 +42,7 @@ class VehicleDetailViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var successMessage: String?
     
-    var isShowingError: Bool {
-        errorMessage != nil
-    }
+    var isShowingError: Bool { errorMessage != nil }
 
     // MARK: - Init
     init(context: NSManagedObjectContext, vehicle: Vehicles, activeUser: User) {
@@ -54,7 +52,6 @@ class VehicleDetailViewModel: ObservableObject {
         self.activeUser = activeUser
         loadVehicleData()
         
-        // Initialize temp tax date
         if let existingDate = vehicle.tax_due_date {
             self.tempTaxDate = existingDate
             self.hasTaxDate = true
@@ -64,7 +61,7 @@ class VehicleDetailViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Load Data from Core Data
+    // MARK: - Load Data
     func loadVehicleData() {
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
@@ -74,8 +71,6 @@ class VehicleDetailViewModel: ObservableObject {
         serviceName = activeVehicle.service_name ?? ""
         lastServiceDate = activeVehicle.last_service_date ?? Date()
         lastOdometer = String(format: "%.0f", activeVehicle.last_odometer)
-        
-        // Update hasTaxDate status
         hasTaxDate = activeVehicle.tax_due_date != nil
     }
 
@@ -104,46 +99,66 @@ class VehicleDetailViewModel: ObservableObject {
 
         do {
             try context.save()
-            print("✅ SUCCESS: Data saved to Core Data.")
+            print("SUCCESS: Vehicle updated")
             context.refresh(activeVehicle, mergeChanges: false)
             loadVehicleData()
-            successMessage = "Vehicle details updated successfully!"
+            successMessage = "Vehicle updated successfully!"
             isEditing = false
         } catch {
-            print("❌ FAILED TO SAVE: \(error.localizedDescription)")
+            print("SAVE FAILED: \(error.localizedDescription)")
             errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
     }
 
-    // MARK: - Update Tax Due Date (NEW)
+    // MARK: - Create Service History Entry
+    func addServiceHistoryEntry() {
+        let history = ServiceHistory(context: context)
+        
+        history.history_id = UUID()
+        history.service_name = self.serviceName
+        history.service_date = self.lastServiceDate
+        
+        // Convert lastOdometer (String) → Double
+        if let odoValue = Double(self.lastOdometer) {
+            history.odometer = odoValue
+        } else {
+            history.odometer = 0
+        }
+
+        history.created_at = Date()
+        history.vehicle = activeVehicle
+        
+        do {
+            try context.save()
+            print("✅ Service history entry added")
+        } catch {
+            print("❌ Failed to save service history entry: \(error)")
+            self.errorMessage = "Failed to save service history"
+        }
+    }
+
+
+    // MARK: - Tax Updates
     func updateTaxDueDate() async {
         successMessage = nil
         errorMessage = nil
         
-        // Update the vehicle's tax due date
         activeVehicle.tax_due_date = tempTaxDate
         taxDueDate = tempTaxDate
         hasTaxDate = true
         
-        // Save to Core Data
         do {
             try context.save()
-            print("✅ Tax due date updated successfully")
+            print("Tax date updated")
             context.refresh(activeVehicle, mergeChanges: false)
-            
-            // Request calendar access and add event
             await requestCalendarAccessAndAddEvent()
-            
-            successMessage = "✅ Tax due date updated successfully!"
+            successMessage = "Tax due date updated!"
             showingTaxDatePicker = false
-            
         } catch {
-            errorMessage = "❌ Failed to update tax due date: \(error.localizedDescription)"
-            print("❌ Core Data save error: \(error)")
+            errorMessage = "Failed to update tax date: \(error.localizedDescription)"
         }
     }
-    
-    // MARK: - Remove Tax Due Date (NEW)
+
     func removeTaxDueDate() {
         activeVehicle.tax_due_date = nil
         hasTaxDate = false
@@ -151,109 +166,70 @@ class VehicleDetailViewModel: ObservableObject {
         do {
             try context.save()
             context.refresh(activeVehicle, mergeChanges: false)
-            successMessage = "Tax due date removed"
+            successMessage = "Tax date removed"
             showingTaxDatePicker = false
-            
-            // Remove calendar event
-            Task {
-                await removeExistingTaxReminder()
-            }
+            Task { await removeExistingTaxReminder() }
         } catch {
-            errorMessage = "Failed to remove tax due date: \(error.localizedDescription)"
+            errorMessage = "Failed to remove tax date: \(error.localizedDescription)"
         }
     }
-    
-    // MARK: - Calendar Integration (NEW)
+
+    // MARK: - Calendar
     private func requestCalendarAccessAndAddEvent() async {
         do {
             let granted = try await eventStore.requestFullAccessToEvents()
-            
-            if granted {
-                await addTaxReminderToCalendar()
-            } else {
-                print("⚠️ Calendar access denied")
-                // Still show success since Core Data save succeeded
-            }
+            if granted { await addTaxReminderToCalendar() }
         } catch {
-            print("❌ Calendar access error: \(error)")
+            print("Calendar access error: \(error)")
         }
     }
-    
+
     private func addTaxReminderToCalendar() async {
         guard let taxDate = activeVehicle.tax_due_date else { return }
-        
-        // Remove existing tax reminder for this vehicle
         await removeExistingTaxReminder()
         
-        // Create new reminder event
         let event = EKEvent(eventStore: eventStore)
-        event.title = "🚗 Vehicle Tax Due: \(activeVehicle.make_model ?? "Vehicle")"
-        event.notes = """
-        Vehicle: \(activeVehicle.make_model ?? "Unknown")
-        Plate: \(activeVehicle.plate_number ?? "Unknown")
-        Tax Due Date: \(formatDate(taxDate))
-        
-        Please renew your vehicle tax before expiration.
-        """
+        event.title = "Vehicle Tax Due: \(activeVehicle.make_model ?? "Vehicle")"
+        event.notes = "Vehicle: \(activeVehicle.make_model ?? "Unknown")\nPlate: \(activeVehicle.plate_number ?? "Unknown")"
         event.calendar = eventStore.defaultCalendarForNewEvents
         
-        // Set reminder 7 days before tax due date
         let reminderDate = Calendar.current.date(byAdding: .day, value: -7, to: taxDate) ?? taxDate
         event.startDate = reminderDate
-        event.endDate = reminderDate.addingTimeInterval(3600) // 1 hour duration
+        event.endDate = reminderDate.addingTimeInterval(3600)
         event.isAllDay = true
+        event.addAlarm(EKAlarm(relativeOffset: -86400))
         
-        // Add alarm 1 day before the event (8 days before tax due)
-        let alarm = EKAlarm(relativeOffset: -86400) // 1 day before
-        event.addAlarm(alarm)
-        
-        // Save event
-        do {
-            try eventStore.save(event, span: .thisEvent)
-            print("✅ Tax reminder added to calendar")
-        } catch {
-            print("❌ Failed to save calendar event: \(error)")
+        do { try eventStore.save(event, span: .thisEvent) } catch {
+            print("Failed to save event: \(error)")
         }
     }
-    
+
     private func removeExistingTaxReminder() async {
-        // Search for existing events with this vehicle's info
-        let startDate = Date().addingTimeInterval(-365 * 24 * 3600) // 1 year ago
-        let endDate = Date().addingTimeInterval(365 * 24 * 3600) // 1 year ahead
-        
+        let startDate = Date().addingTimeInterval(-365*24*3600)
+        let endDate = Date().addingTimeInterval(365*24*3600)
         let predicate = eventStore.predicateForEvents(withStart: startDate, end: endDate, calendars: nil)
         let events = eventStore.events(matching: predicate)
         
         for event in events {
-            if event.title.contains(activeVehicle.make_model ?? "") &&
-               event.title.contains("Vehicle Tax Due") {
-                do {
-                    try eventStore.remove(event, span: .thisEvent)
-                    print("✅ Removed old tax reminder")
-                } catch {
-                    print("❌ Failed to remove old event: \(error)")
-                }
+            if event.title.contains(activeVehicle.make_model ?? "") && event.title.contains("Vehicle Tax Due") {
+                try? eventStore.remove(event, span: .thisEvent)
             }
         }
     }
 
     // MARK: - Delete Vehicle
     func deleteVehicle() {
-        // Remove calendar reminder first
-        Task {
-            await removeExistingTaxReminder()
-        }
-        
+        Task { await removeExistingTaxReminder() }
         context.delete(activeVehicle)
         do {
             try context.save()
-            successMessage = "Vehicle deleted successfully."
+            successMessage = "Vehicle deleted"
         } catch {
-            errorMessage = "Failed to delete vehicle: \(error.localizedDescription)"
+            errorMessage = "Failed to delete: \(error.localizedDescription)"
         }
     }
-    
-    // MARK: - New Vehicle Creation Helper
+
+    // MARK: - Create New Vehicle
     func createNewVehicle(makeModel: String, plateNumber: String) {
         let newVehicle = Vehicles(context: context)
         newVehicle.make_model = makeModel
@@ -264,29 +240,25 @@ class VehicleDetailViewModel: ObservableObject {
             try context.save()
             self.activeVehicle = newVehicle
         } catch {
-            errorMessage = "Gagal membuat kendaraan baru: \(error.localizedDescription)"
+            errorMessage = "Failed: \(error.localizedDescription)"
         }
     }
 
-    // MARK: - Tax Status Helper (NEW)
+    // MARK: - Tax Status
     func getTaxStatus() -> (status: String, color: Color) {
         guard let taxDate = activeVehicle.tax_due_date else {
             return ("Unknown", .gray)
         }
         
         let today = Date()
-        let daysUntilDue = Calendar.current.dateComponents([.day], from: today, to: taxDate).day ?? 0
+        let days = Calendar.current.dateComponents([.day], from: today, to: taxDate).day ?? 0
         
-        if daysUntilDue < 0 {
-            return ("Overdue", .red)
-        } else if daysUntilDue <= 30 {
-            return ("Due Soon", .orange)
-        } else {
-            return ("Up to Date", .green)
-        }
+        if days < 0 { return ("Overdue", .red) }
+        if days <= 30 { return ("Due Soon", .orange) }
+        return ("Up to Date", .green)
     }
 
-    // MARK: - Computed Helpers
+    // MARK: - Helpers
     var formattedOdometer: String {
         if let value = Double(odometer) {
             return String(format: "%.0f km", value)
@@ -294,13 +266,8 @@ class VehicleDetailViewModel: ObservableObject {
         return "0 km"
     }
 
-    var formattedTaxDueDate: String {
-        format(date: taxDueDate)
-    }
-
-    var formattedSTNKDueDate: String {
-        format(date: stnkDueDate)
-    }
+    var formattedTaxDueDate: String { format(date: taxDueDate) }
+    var formattedSTNKDueDate: String { format(date: stnkDueDate) }
 
     private func format(date: Date) -> String {
         let formatter = DateFormatter()

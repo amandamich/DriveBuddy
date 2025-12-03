@@ -136,6 +136,7 @@ struct EditVehicleView: View {
                         // MARK: - Save Button
                         Button {
                             viewModel.updateVehicle()
+                            viewModel.addServiceHistoryEntry()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                 dismiss()
                             }
