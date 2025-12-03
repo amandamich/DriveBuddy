@@ -43,6 +43,24 @@ class VehicleDetailViewModel: ObservableObject {
     @Published var successMessage: String?
     
     var isShowingError: Bool { errorMessage != nil }
+    
+    // MARK: - Service History List (for UI)
+    @Published var serviceHistories: [ServiceHistory] = []
+
+    // Fetch service history from the activeVehicle relationship
+    func fetchServiceHistory() {
+        // relationship name MUST match your data model: "servicehistory"
+        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
+            // sort by service_date descending (newest first)
+            serviceHistories = set.sorted {
+                let d0 = $0.service_date ?? Date.distantPast
+                let d1 = $1.service_date ?? Date.distantPast
+                return d0 > d1
+            }
+        } else {
+            serviceHistories = []
+        }
+    }
 
     // MARK: - Init
     init(context: NSManagedObjectContext, vehicle: Vehicles, activeUser: User) {
@@ -59,6 +77,7 @@ class VehicleDetailViewModel: ObservableObject {
             self.tempTaxDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
             self.hasTaxDate = false
         }
+        fetchServiceHistory()
     }
 
     // MARK: - Load Data
@@ -108,29 +127,31 @@ class VehicleDetailViewModel: ObservableObject {
             print("SAVE FAILED: \(error.localizedDescription)")
             errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
+        context.refresh(activeVehicle, mergeChanges: true)
+        fetchServiceHistory()
+
     }
 
     // MARK: - Create Service History Entry
     func addServiceHistoryEntry() {
         let history = ServiceHistory(context: context)
-        
+
         history.history_id = UUID()
         history.service_name = self.serviceName
         history.service_date = self.lastServiceDate
-        
-        // Convert lastOdometer (String) → Double
-        if let odoValue = Double(self.lastOdometer) {
-            history.odometer = odoValue
-        } else {
-            history.odometer = 0
-        }
-
+        history.odometer = Double(self.lastOdometer) ?? 0
         history.created_at = Date()
         history.vehicle = activeVehicle
-        
+
+        // ⬇️ Tambahkan ke relationship "servicehistory" (to-many)
+        let set = activeVehicle.mutableSetValue(forKey: "servicehistory")
+        set.add(history)
+
         do {
             try context.save()
             print("✅ Service history entry added")
+            context.refresh(activeVehicle, mergeChanges: true)
+            fetchServiceHistory()   // refresh list
         } catch {
             print("❌ Failed to save service history entry: \(error)")
             self.errorMessage = "Failed to save service history"
@@ -227,6 +248,9 @@ class VehicleDetailViewModel: ObservableObject {
         } catch {
             errorMessage = "Failed to delete: \(error.localizedDescription)"
         }
+        context.refresh(activeVehicle, mergeChanges: true)
+        fetchServiceHistory()
+
     }
 
     // MARK: - Create New Vehicle
