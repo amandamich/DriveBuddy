@@ -72,11 +72,13 @@ struct EditProfileView: View {
             ScrollView {
                 VStack(spacing: 24) {
 
-                    Text("Edit Profile")
-                        .font(.system(size: 32, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.top, 35)
-                        .shadow(color: .cyan.opacity(0.7), radius: 8)
+                    VStack(spacing: 8) {
+                        Text("Edit Profile")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .blue, radius: 10)
+                    }
+                    .padding(.horizontal)
 
                     // Avatar Section
                     VStack(spacing: 16) {
