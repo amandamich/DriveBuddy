@@ -31,7 +31,7 @@ struct AddVehicleView: View {
 
     let vehicleTypes = ["Car", "Motorbike"]
 
-    // MARK: HEADER (TIDAK IKUT SCROLL)
+    // MARK: HEADER
     var headerView: some View {
         HStack {
             // Back button
@@ -52,7 +52,7 @@ struct AddVehicleView: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
 
-            Spacer().frame(width: 40) // agar title tetap center
+            Spacer().frame(width: 40)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -60,7 +60,7 @@ struct AddVehicleView: View {
         .background(Color.black.opacity(0.95))
     }
 
-    // MARK: KOMPONEN KONTEN YANG DISROLL
+    // scroll content
     var contentView: some View {
         VStack(alignment: .leading, spacing: 24) {
 
@@ -223,8 +223,8 @@ struct AddVehicleView: View {
             Color.black.opacity(0.95).ignoresSafeArea()
 
             VStack(spacing: 0) {
-                headerView      // ← Tidak ikut scroll
-                ScrollView {    // ← Yang bisa discroll
+                headerView      // Gak ikut scroll
+                ScrollView {    // Yang bisa discroll
                     contentView
                         .padding(.top, 10)
                 }
