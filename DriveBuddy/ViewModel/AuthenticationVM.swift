@@ -1,6 +1,6 @@
 //
-//  AuthenticationViewModel.swift
-//  DriveBuddy
+//  AuthenticationViewModel.swift
+//  DriveBuddy
 //
 
 import Foundation
@@ -24,6 +24,64 @@ final class AuthenticationViewModel: ObservableObject {
         self.viewContext = context
     }
 
+    // MARK: - Password Validation
+    func validatePassword(_ password: String) -> (isValid: Bool, message: String?) {
+        // Check length (8-20 characters)
+        guard password.count >= 8 else {
+            return (false, "Password must be at least 8 characters")
+        }
+        
+        guard password.count <= 20 else {
+            return (false, "Password must not exceed 20 characters")
+        }
+        
+        // Check for uppercase letter
+        let uppercaseRegex = ".*[A-Z]+.*"
+        let uppercasePredicate = NSPredicate(format: "SELF MATCHES %@", uppercaseRegex)
+        guard uppercasePredicate.evaluate(with: password) else {
+            return (false, "Password must contain at least one uppercase letter")
+        }
+        
+        // Check for lowercase letter
+        let lowercaseRegex = ".*[a-z]+.*"
+        let lowercasePredicate = NSPredicate(format: "SELF MATCHES %@", lowercaseRegex)
+        guard lowercasePredicate.evaluate(with: password) else {
+            return (false, "Password must contain at least one lowercase letter")
+        }
+        
+        // Check for number
+        let numberRegex = ".*[0-9]+.*"
+        let numberPredicate = NSPredicate(format: "SELF MATCHES %@", numberRegex)
+        guard numberPredicate.evaluate(with: password) else {
+            return (false, "Password must contain at least one number")
+        }
+        
+        return (true, nil)
+    }
+    
+    // MARK: - Get Password Strength
+    func getPasswordStrength(_ password: String) -> (strength: String, color: Color) {
+        var score = 0
+        
+        if password.count >= 8 { score += 1 }
+        if password.count >= 12 { score += 1 }
+        if password.range(of: "[A-Z]", options: .regularExpression) != nil { score += 1 }
+        if password.range(of: "[a-z]", options: .regularExpression) != nil { score += 1 }
+        if password.range(of: "[0-9]", options: .regularExpression) != nil { score += 1 }
+        if password.range(of: "[^A-Za-z0-9]", options: .regularExpression) != nil { score += 1 }
+        
+        switch score {
+        case 0...2:
+            return ("Weak", .red)
+        case 3...4:
+            return ("Medium", .orange)
+        case 5...6:
+            return ("Strong", .green)
+        default:
+            return ("Weak", .red)
+        }
+    }
+
     // MARK: - Sign Up
     func signUp() {
         errorMessage = nil
@@ -37,6 +95,13 @@ final class AuthenticationViewModel: ObservableObject {
             errorMessage = "Invalid email format."
             return
         }
+        
+        // ✅ Validate password with new rules
+        let passwordValidation = validatePassword(password)
+        guard passwordValidation.isValid else {
+            errorMessage = passwordValidation.message
+            return
+        }
 
         let request: NSFetchRequest<User> = User.fetchRequest()
         request.predicate = NSPredicate(format: "email == %@", email.lowercased())
@@ -45,7 +110,6 @@ final class AuthenticationViewModel: ObservableObject {
             let users = try viewContext.fetch(request)
             if users.isEmpty {
                 let newUser = User(context: viewContext)
-                // Pastikan user_id disimpan sebagai UUID
                 let newUserID = UUID()
                 
                 newUser.user_id = newUserID
@@ -56,10 +120,8 @@ final class AuthenticationViewModel: ObservableObject {
 
                 try viewContext.save()
 
-                // Memberikan pesan sukses dan mereset status
                 errorMessage = "Registration successful! Please login."
                 
-                // Reset status login
                 currentUser = nil
                 isAuthenticated = false
                 currentUserID = nil
@@ -71,57 +133,7 @@ final class AuthenticationViewModel: ObservableObject {
         }
     }
 
-
-    // MARK: - Login (Perbaikan Utama di sini)
-//    func login() {
-//        errorMessage = nil
-//
-//        guard !email.isEmpty, !password.isEmpty else {
-//            errorMessage = "Please fill in all fields."
-//            return
-//        }
-//
-//        let request: NSFetchRequest<User> = User.fetchRequest()
-//        request.predicate = NSPredicate(format: "email == %@", email.lowercased())
-//
-//        do {
-//            // 1. Lakukan fetch. Jika gagal, akan langsung masuk ke block catch.
-//            let users = try viewContext.fetch(request)
-//
-//            // 2. Cek apakah ada user yang ditemukan dari hasil fetch.
-//            if let user = users.first {
-//                
-//                // KETIKA USER DITEMUKAN
-//                
-//                // 3. Verifikasi password
-//                if user.password_hash == hash(password) {
-//                    
-//                    // PASSWORD COCOK: LOGIN BERHASIL
-//                    
-//                    // SET STATUS LOGIN DAN ID PENGGUNA
-//                    currentUser = user
-//                    isAuthenticated = true
-//                    errorMessage = nil
-//                    currentUserID = user.user_id?.uuidString
-//                    
-//                } else {
-//                    
-//                    // PASSWORD SALAH
-//                    errorMessage = "Invalid email or password."
-//                }
-//            } else {
-//                
-//                // USER TIDAK DITEMUKAN (Email tidak terdaftar)
-//                errorMessage = "User not found. Please sign up first."
-//            }
-//        } catch {
-//            
-//            // ERROR TEKNIS (Misalnya Core Data crash/gagal fetch)
-//            print("Core Data Fetch Error: \(error)") // Untuk tujuan debugging
-//            errorMessage = "Login failed: An internal error occurred. Please try again later."
-//        }
-//    }
-//
+    // MARK: - Login
     func login() {
         print("🟢 LOGIN CALLED")
         errorMessage = nil
@@ -138,48 +150,42 @@ final class AuthenticationViewModel: ObservableObject {
             let users = try viewContext.fetch(request)
 
             if let user = users.first {
-                // User found - check password
                 if user.password_hash == hash(password) {
-                    // ✅ PASSWORD CORRECT - LOGIN SUCCESS
                     print("🟢 Login successful for: \(user.email ?? "unknown")")
                     
-                    // CRITICAL: Set these in the correct order
                     self.currentUser = user
                     self.currentUserID = user.user_id?.uuidString
-                    self.isAuthenticated = true // ✅ SET THIS LAST
+                    self.isAuthenticated = true
                     self.errorMessage = nil
                     
                     print("🟢 isAuthenticated set to: \(self.isAuthenticated)")
                     print("🟢 currentUser: \(self.currentUser?.email ?? "nil")")
                     
-                    // Force UI update
                     self.objectWillChange.send()
                     
                 } else {
-                    // ❌ PASSWORD WRONG
                     print("🔴 Password incorrect")
                     errorMessage = "Invalid email or password."
                     isAuthenticated = false
                 }
             } else {
-                // ❌ USER NOT FOUND
                 print("🔴 User not found")
                 errorMessage = "User not found. Please sign up first."
                 isAuthenticated = false
             }
         } catch {
-            // ❌ ERROR
             print("🔴 Core Data Fetch Error: \(error)")
             errorMessage = "Login failed: An internal error occurred. Please try again later."
             isAuthenticated = false
         }
     }
+    
     // MARK: - Validate Email
     func validateEmail(_ email: String) -> Bool {
-            let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
-            let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
-            return emailPredicate.evaluate(with: email)
-        }
+        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+        let emailPredicate = NSPredicate(format: "SELF MATCHES %@", emailRegex)
+        return emailPredicate.evaluate(with: email)
+    }
     
     // MARK: - Change Password
     func changePassword(
@@ -194,7 +200,6 @@ final class AuthenticationViewModel: ObservableObject {
             return false
         }
 
-        // 1. Validasi form
         guard !currentPassword.isEmpty,
               !newPassword.isEmpty,
               !confirmPassword.isEmpty else {
@@ -202,31 +207,28 @@ final class AuthenticationViewModel: ObservableObject {
             return false
         }
 
-        // 2. Cek password lama
         let currentHash = hash(currentPassword)
         guard user.password_hash == currentHash else {
             errorMessage = "Current password is incorrect."
             return false
         }
 
-        // 3. Cek konfirmasi password baru
         guard newPassword == confirmPassword else {
             errorMessage = "New password and confirmation do not match."
             return false
         }
 
-        // 4. (Opsional) panjang minimal
-        guard newPassword.count >= 6 else {
-            errorMessage = "New password must be at least 6 characters."
+        // ✅ Validate new password with enhanced rules
+        let passwordValidation = validatePassword(newPassword)
+        guard passwordValidation.isValid else {
+            errorMessage = passwordValidation.message
             return false
         }
 
-        // 5. Simpan password baru
         user.password_hash = hash(newPassword)
 
         do {
             try viewContext.save()
-            // kosongkan field password di VM kalau mau
             password = ""
             return true
         } catch {
@@ -235,35 +237,19 @@ final class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Logout (Diperbaiki)
-//    func logout() {
-//        isAuthenticated = false
-//        currentUser = nil
-//        currentUserID = nil // Reset ID pengguna saat logout
-//        email = ""
-//        password = ""
-//        errorMessage = nil
-//        UserDefaults.standard.removeObject(forKey: "isLoggedIn")
-//        UserDefaults.standard.removeObject(forKey: "currentUserId")
-//        
-//        print("✅ User logged out successfully")
-//    }
+    // MARK: - Logout
     func logout() {
         print("🔴 LOGOUT CALLED")
         print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
         print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
         
-        // CRITICAL: Set this FIRST before anything else
         self.isAuthenticated = false
-        
-        // Then clear everything else
         self.currentUser = nil
         self.currentUserID = nil
         self.email = ""
         self.password = ""
         self.errorMessage = nil
         
-        // Clear UserDefaults
         UserDefaults.standard.removeObject(forKey: "isLoggedIn")
         UserDefaults.standard.removeObject(forKey: "currentUserId")
         UserDefaults.standard.synchronize()
@@ -272,7 +258,6 @@ final class AuthenticationViewModel: ObservableObject {
         print("🔴 After logout - currentUser: \(currentUser?.email ?? "nil")")
         print("✅ User logged out successfully")
         
-        // Force immediate UI update
         objectWillChange.send()
     }
 
