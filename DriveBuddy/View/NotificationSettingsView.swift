@@ -18,14 +18,16 @@ struct NotificationSettingsView: View {
                 .ignoresSafeArea()
             
             ScrollView {
-                VStack(spacing: 24) {
-                    // Title
+                VStack(spacing: 8) {
                     Text("Notification Settings")
-                        .font(.system(size: 32, weight: .semibold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .shadow(color: .cyan.opacity(0.5), radius: 5)
-                        .padding(.top, 40)
-                    
+                        .shadow(color: .blue, radius: 10)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 20)
+
+                VStack(spacing: 24) {
                     // Permission Status Card
                     VStack(spacing: 16) {
                         permissionStatusRow(

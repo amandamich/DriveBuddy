@@ -26,25 +26,13 @@ struct FavoriteWorkshopsView: View {
             
             VStack(spacing: 0) {
                 // MARK: - Custom Header with Logo
-                VStack(spacing: 12) {
-                    HStack {
-                        Image("LogoDriveBuddy")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 150, height: 35)
-                        
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    
+                VStack(spacing: 8) {
                     Text("Favorite Workshops")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal)
+                        .shadow(color: .blue, radius: 10)
                 }
-                .padding(.bottom, 20)
+                .padding(.horizontal)
                 
                 // Content
                 if favoriteWorkshops.isEmpty {

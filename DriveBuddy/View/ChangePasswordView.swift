@@ -26,28 +26,28 @@ struct ChangePasswordView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     
-                    // TITLE - Matching Add Service style (aligned left)
-                    HStack {
+                    // MARK: - Header
+                    VStack(spacing: 8) {
+
                         Text("Change Password")
-                            .font(.system(size: 28, weight: .bold))
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                        Spacer()
+                            .shadow(color: .blue, radius: 10)
                     }
-                    .padding(.horizontal, 30)
-                    .padding(.top, 35)
-                    
+                    .padding(.horizontal)
+
                     // SECTION HEADER - Matching Add Service style exactly
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Image(systemName: "lock.shield.fill")
                             .foregroundColor(.blue)
-                            .font(.system(size: 16))
+                            .font(.system(size: 18))
                         Text("Security Settings")
                             .foregroundColor(.white)
                             .font(.system(size: 17, weight: .semibold))
                         Spacer()
                     }
                     .padding(.horizontal, 30)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 1)
                     
                     // PASSWORD FIELDS - Matching Add Service Card style EXACTLY
                     VStack(spacing: 18) {
