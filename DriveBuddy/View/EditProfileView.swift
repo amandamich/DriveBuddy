@@ -26,6 +26,8 @@ struct EditProfileView: View {
     @State private var selectedYear: Int
     
     @State private var showingExitAlert = false
+    @State private var showingDateValidationAlert = false
+    @State private var dateValidationMessage = ""
     
     @Environment(\.dismiss) private var dismiss
 
@@ -61,6 +63,34 @@ struct EditProfileView: View {
         let calendar = Calendar.current
         let components = DateComponents(year: selectedYear, month: selectedMonth, day: selectedDay)
         return calendar.date(from: components) ?? Date()
+    }
+    
+    // MARK: - ✅ Date Validation Function
+    private func validateDateOfBirth() -> Bool {
+        let today = Date()
+        let calendar = Calendar.current
+        
+        // Check if date is in the future
+        if composedDate > today {
+            dateValidationMessage = "Date of birth cannot be in the future. Please select a valid date."
+            return false
+        }
+        
+        // Check if user is at least 13 years old
+        if let thirteenYearsAgo = calendar.date(byAdding: .year, value: -13, to: today),
+           composedDate > thirteenYearsAgo {
+            dateValidationMessage = "You must be at least 13 years old to use this app."
+            return false
+        }
+        
+        // Check if the selected date is valid (e.g., Feb 31 doesn't exist)
+        let components = DateComponents(year: selectedYear, month: selectedMonth, day: selectedDay)
+        if calendar.date(from: components) == nil {
+            dateValidationMessage = "Invalid date. Please check your selection (e.g., Feb 31 or Feb 30 doesn't exist)."
+            return false
+        }
+        
+        return true
     }
 
     // MARK: - Body
@@ -115,17 +145,22 @@ struct EditProfileView: View {
                         textFieldWithBorder("City", text: $profileVM.city)
                     }
 
-                    // MARK: - SAVE BUTTON
+                    // MARK: - ✅ SAVE BUTTON WITH VALIDATION
                     Button(action: {
-                        profileVM.saveProfileChanges(
-                            name: fullName,
-                            phone: phoneNumber,
-                            email: email,
-                            gender: gender,
-                            dateOfBirth: composedDate,
-                            city: profileVM.city
-                        )
-                        dismiss()
+                        // Validate date before saving
+                        if validateDateOfBirth() {
+                            profileVM.saveProfileChanges(
+                                name: fullName,
+                                phone: phoneNumber,
+                                email: email,
+                                gender: gender,
+                                dateOfBirth: composedDate,
+                                city: profileVM.city
+                            )
+                            dismiss()
+                        } else {
+                            showingDateValidationAlert = true
+                        }
                     }) {
                         Text("Save Changes")
                             .font(.headline)
@@ -177,6 +212,12 @@ struct EditProfileView: View {
             }
         } message: {
             Text("Unsaved changes will be lost. Are you sure you want to exit?")
+        }
+        // MARK: - ✅ Date Validation Alert
+        .alert("Invalid Date of Birth", isPresented: $showingDateValidationAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(dateValidationMessage)
         }
         .preferredColorScheme(.dark)
     }
