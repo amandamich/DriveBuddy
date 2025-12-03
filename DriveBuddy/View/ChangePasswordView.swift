@@ -15,6 +15,9 @@ struct ChangePasswordView: View {
     @State private var showAlert: Bool = false
     @State private var alertMessage: String = ""
     @State private var showingExitAlert = false
+    @State private var showCurrentPassword = false
+    @State private var showNewPassword = false
+    @State private var showConfirmPassword = false
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -28,7 +31,6 @@ struct ChangePasswordView: View {
                     
                     // MARK: - Header
                     VStack(spacing: 8) {
-
                         Text("Change Password")
                             .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
@@ -51,26 +53,113 @@ struct ChangePasswordView: View {
                     
                     // PASSWORD FIELDS - Matching Add Service Card style EXACTLY
                     VStack(spacing: 18) {
+                        // Current Password
                         passwordFieldWithBorder(
                             title: "Current Password",
                             placeholder: "Enter current password",
-                            text: $currentPassword
+                            text: $currentPassword,
+                            showPassword: $showCurrentPassword
                         )
-                        passwordFieldWithBorder(
-                            title: "New Password",
-                            placeholder: "Enter new password",
-                            text: $newPassword
-                        )
-                        passwordFieldWithBorder(
-                            title: "Confirm New Password",
-                            placeholder: "Re-enter new password",
-                            text: $confirmPassword
-                        )
+                        
+                        // New Password with Requirements
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("New Password")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            HStack {
+                                if showNewPassword {
+                                    TextField("", text: $newPassword, prompt: Text("Enter new password").foregroundColor(.gray.opacity(0.5)))
+                                        .foregroundColor(.black)
+                                } else {
+                                    SecureField("", text: $newPassword, prompt: Text("Enter new password").foregroundColor(.gray.opacity(0.5)))
+                                        .foregroundColor(.black)
+                                }
+                                
+                                Button(action: { showNewPassword.toggle() }) {
+                                    Image(systemName: showNewPassword ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding()
+                            .font(.system(size: 17))
+                            .background(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                            )
+                            .cornerRadius(12)
+                            
+                            // ✅ Password Requirements Checklist
+                            if !newPassword.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    PasswordRequirement(
+                                        text: "8-20 characters",
+                                        isMet: newPassword.count >= 8 && newPassword.count <= 20
+                                    )
+                                    PasswordRequirement(
+                                        text: "At least one uppercase letter (A-Z)",
+                                        isMet: newPassword.range(of: "[A-Z]", options: .regularExpression) != nil
+                                    )
+                                    PasswordRequirement(
+                                        text: "At least one lowercase letter (a-z)",
+                                        isMet: newPassword.range(of: "[a-z]", options: .regularExpression) != nil
+                                    )
+                                    PasswordRequirement(
+                                        text: "At least one number (0-9)",
+                                        isMet: newPassword.range(of: "[0-9]", options: .regularExpression) != nil
+                                    )
+                                }
+                                .padding(.top, 8)
+                            }
+                        }
+                        
+                        // Confirm New Password with Match Indicator
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Confirm New Password")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            HStack {
+                                if showConfirmPassword {
+                                    TextField("", text: $confirmPassword, prompt: Text("Re-enter new password").foregroundColor(.gray.opacity(0.5)))
+                                        .foregroundColor(.black)
+                                } else {
+                                    SecureField("", text: $confirmPassword, prompt: Text("Re-enter new password").foregroundColor(.gray.opacity(0.5)))
+                                        .foregroundColor(.black)
+                                }
+                                
+                                Button(action: { showConfirmPassword.toggle() }) {
+                                    Image(systemName: showConfirmPassword ? "eye.slash.fill" : "eye.fill")
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding()
+                            .font(.system(size: 17))
+                            .background(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+                            )
+                            .cornerRadius(12)
+                            
+                            // ✅ Password Match Indicator
+                            if !confirmPassword.isEmpty {
+                                HStack {
+                                    Image(systemName: newPassword == confirmPassword ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                        .foregroundColor(newPassword == confirmPassword ? .green : .red)
+                                    Text(newPassword == confirmPassword ? "Passwords match" : "Passwords do not match")
+                                        .foregroundColor(newPassword == confirmPassword ? .green : .red)
+                                        .font(.caption)
+                                }
+                                .padding(.top, 4)
+                            }
+                        }
                     }
                     .padding(20)
                     .background(
                         RoundedRectangle(cornerRadius: 15)
-                            .fill(Color.blue.opacity(0.15)) // EXACT same as Add Service
+                            .fill(Color.blue.opacity(0.15))
                     )
                     .padding(.horizontal, 20)
                     
@@ -132,23 +221,35 @@ struct ChangePasswordView: View {
         .preferredColorScheme(.dark)
     }
     
-    // MARK: - PASSWORD FIELD WITH BORDER (Matching Add Service font sizes exactly)
-    private func passwordFieldWithBorder(title: String, placeholder: String, text: Binding<String>) -> some View {
+    // MARK: - PASSWORD FIELD WITH BORDER (for Current Password only)
+    private func passwordFieldWithBorder(title: String, placeholder: String, text: Binding<String>, showPassword: Binding<Bool>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundColor(.white)
             
-            SecureField("", text: text, prompt: Text(placeholder).foregroundColor(.gray.opacity(0.5)))
-                .padding()
-                .font(.system(size: 17))
-                .foregroundColor(.black) // Black text for readability
-                .background(Color.white) // White background
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // Gray border
-                )
-                .cornerRadius(12)
+            HStack {
+                if showPassword.wrappedValue {
+                    TextField("", text: text, prompt: Text(placeholder).foregroundColor(.gray.opacity(0.5)))
+                        .foregroundColor(.black)
+                } else {
+                    SecureField("", text: text, prompt: Text(placeholder).foregroundColor(.gray.opacity(0.5)))
+                        .foregroundColor(.black)
+                }
+                
+                Button(action: { showPassword.wrappedValue.toggle() }) {
+                    Image(systemName: showPassword.wrappedValue ? "eye.slash.fill" : "eye.fill")
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding()
+            .font(.system(size: 17))
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
+            )
+            .cornerRadius(12)
         }
     }
     
