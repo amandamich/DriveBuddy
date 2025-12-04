@@ -50,7 +50,7 @@
         <attribute name="year_manufacture" optional="YES" attributeType="String"/>
         <relationship name="reminder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Reminders" inverseName="vehicle" inverseEntity="Reminders"/>
         <relationship name="schedule" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Schedules" inverseName="vehicle" inverseEntity="Schedules"/>
-        <relationship name="servicehistory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
+        <relationship name="servicehistory" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="vehicles" inverseEntity="User"/>
     </entity>
     <entity name="Workshops" representedClassName="Workshops" syncable="YES" codeGenerationType="class">
