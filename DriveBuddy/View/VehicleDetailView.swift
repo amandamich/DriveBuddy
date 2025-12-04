@@ -160,7 +160,7 @@ struct VehicleDetailView: View {
                                 icon: "wrench.and.screwdriver.fill",
                                 title: "Upcoming Services",
                                 subtitle: viewModel.serviceName.isEmpty ? "No service scheduled" : viewModel.serviceName,
-                                date: viewModel.formatDate(viewModel.lastServiceDate)
+                                date: viewModel.formatDate(viewModel.nextServiceDate)
                             )
                         }
                         .buttonStyle(CardButtonStyle())

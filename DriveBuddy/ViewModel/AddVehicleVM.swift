@@ -66,27 +66,38 @@ class AddVehicleViewModel: ObservableObject {
         newVehicle.user = user
         
         // ✅ SAVE SERVICE DATA (if provided)
+        // SAVE SERVICE DATA TO SERVICE ENTITY
+        // SAVE SERVICE DATA TO SERVICE ENTITY
         if !serviceName.isEmpty {
-            newVehicle.service_name = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let firstService = ServiceHistory(context: viewContext)
+            firstService.history_id = UUID()
+            firstService.service_name = serviceName
+            firstService.service_date = lastServiceDate
+
+            // Relasi service ke vehicle
+            firstService.vehicle = newVehicle
+
+            // Update vehicle summary fields
+            newVehicle.service_name = serviceName
             newVehicle.last_service_date = lastServiceDate
-            
-            if let lastOdometerValue = Double(lastOdometer), lastOdometerValue > 0 {
-                newVehicle.last_odometer = lastOdometerValue
-            } else {
-                newVehicle.last_odometer = 0
-            }
-            
-            print("✅ Service data saved:")
-            print("   - Service Name: \(serviceName)")
-            print("   - Service Date: \(lastServiceDate)")
-            print("   - Service Odometer: \(lastOdometer)")
+            newVehicle.last_odometer = Double(lastOdometer) ?? 0
+
+            // Hitung next service 6 bulan
+            newVehicle.next_service_date =
+                Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate)
+
+            print("✅ First service saved to ServiceHistory:")
+            print("   - Name: \(serviceName)")
+            print("   - Date: \(lastServiceDate)")
         } else {
-            // If no service provided, set defaults
             newVehicle.service_name = nil
             newVehicle.last_service_date = nil
             newVehicle.last_odometer = 0
-            print("ℹ️ No service data provided during vehicle creation")
+            newVehicle.next_service_date = nil
         }
+
+
         
         // Tax date will be set later in detail view
         newVehicle.tax_due_date = nil

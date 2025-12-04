@@ -92,7 +92,6 @@ class DashboardViewModel: ObservableObject {
     }
 
     // MARK: - Service Reminder Logic
-    // MARK: - Service Reminder Logic
     func serviceReminderStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
 
         let calendar = Calendar.current

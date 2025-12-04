@@ -87,9 +87,9 @@ class VehicleDetailViewModel: ObservableObject {
         odometer = String(format: "%.0f", activeVehicle.odometer)
         taxDueDate = activeVehicle.tax_due_date ?? Date()
         stnkDueDate = activeVehicle.stnk_due_date ?? Date()
-        serviceName = activeVehicle.service_name ?? ""
-        lastServiceDate = activeVehicle.last_service_date ?? Date()
-        lastOdometer = String(format: "%.0f", activeVehicle.last_odometer)
+        serviceName = latestServiceName
+        lastServiceDate = latestServiceDate ?? Date()
+        lastOdometer = String(format: "%.0f", latestServiceOdometer ?? activeVehicle.odometer)
         hasTaxDate = activeVehicle.tax_due_date != nil
     }
 
@@ -281,6 +281,39 @@ class VehicleDetailViewModel: ObservableObject {
         if days <= 30 { return ("Due Soon", .orange) }
         return ("Up to Date", .green)
     }
+    
+    // MARK: - Latest Service Helpers
+    var latestService: ServiceHistory? {
+        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
+            return set.sorted {
+                ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast)
+            }.first
+        }
+        return nil
+    }
+
+    var latestServiceName: String {
+        latestService?.service_name ?? "No service recorded"
+    }
+
+    var latestServiceDate: Date? {
+        latestService?.service_date
+    }
+
+    // Next service date is stored on Vehicles, not ServiceHistory
+    var nextServiceDate: Date? {
+        activeVehicle.next_service_date
+    }
+    
+    var latestServiceOdometer: Double? {
+        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
+            return set.sorted { ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast) }
+                .first?.odometer
+        }
+        return nil
+    }
+
+
 
     // MARK: - Helpers
     var formattedOdometer: String {
@@ -299,9 +332,11 @@ class VehicleDetailViewModel: ObservableObject {
         return formatter.string(from: date)
     }
 
-    func formatDate(_ date: Date) -> String {
+    func formatDate(_ date: Date?) -> String {
+        guard let date else { return "N/A" }
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: date)
     }
 }
+
