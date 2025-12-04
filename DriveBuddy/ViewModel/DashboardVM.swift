@@ -93,18 +93,19 @@ class DashboardViewModel: ObservableObject {
 
     // MARK: - Service Reminder Logic
     func serviceReminderStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
+        guard let lastService = vehicle.last_service_date else { return .unknown }
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
-        guard let nextService = vehicle.next_service_date else {
+        // Approx. next service 6 months after last one
+        guard let nextService = calendar.date(byAdding: .month, value: 6, to: lastService) else {
             return .unknown
         }
 
-        let dueDate = calendar.startOfDay(for: nextService)
-        let days = calendar.dateComponents([.day], from: today, to: dueDate).day ?? 0
+        let daysUntilNext = calendar.dateComponents([.day], from: today, to: nextService).day ?? 0
 
-        switch days {
+        switch daysUntilNext {
         case ..<0:
             return .overdue
         case 0:
@@ -114,10 +115,9 @@ class DashboardViewModel: ObservableObject {
         case 8...30:
             return .soon
         default:
-            return .uptodate
+            return .notYet
         }
     }
-
 }
 
 // MARK: - Enum for Vehicle Tax Status
@@ -152,7 +152,7 @@ enum ServiceReminderStatus {
     case upcoming
     case soon
     case overdue
-    case uptodate
+    case notYet
     case unknown
 
     var label: String {
@@ -161,18 +161,18 @@ enum ServiceReminderStatus {
         case .upcoming: return "Upcoming"
         case .soon: return "Soon"
         case .overdue: return "Overdue"
-        case .uptodate: return "Up to Date"
+        case .notYet: return "Not Yet"
         case .unknown: return "Unknown"
         }
     }
 
     var color: Color {
         switch self {
-        case .tomorrow: return .yellow
+        case .tomorrow: return .cyan
         case .upcoming: return .orange
-        case .soon: return .orange
+        case .soon: return .yellow
         case .overdue: return .red
-        case .uptodate: return .green
+        case .notYet: return .gray
         case .unknown: return .gray
         }
     }

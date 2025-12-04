@@ -18,18 +18,21 @@ struct EditVehicleView: View {
                 HStack {
                     // Back Button
                     Button(action: {dismiss()}) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                            .frame(width: 44, height: 44)
-                            .background(Color.white.opacity(0.1))
-                            .clipShape(Circle())
+                        HStack() {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius:100000)
+                                .fill(Color.white.opacity(0.15))
+                        )
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 5)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-                    
                     // Title
                     Text("Edit Vehicle")
                         .font(.system(size: 28, weight: .bold))
@@ -74,33 +77,27 @@ struct EditVehicleView: View {
                                     .keyboardType(.numberPad)
                             }
                             
-//                            // Tax Date
-//                            Text("Tax Due Date")
-//                                .foregroundColor(.white)
-//                                .font(.system(size: 15, weight: .medium))
-//                            HStack {
-//                                DatePicker("", selection: $viewModel.taxDueDate, displayedComponents: .date)
-//                                    .labelsHidden()
-//                                    .datePickerStyle(.compact)
-//                                    .frame(maxWidth: .infinity, alignment: .leading)
-//                            }
-//                            .padding()
-//                            .background(Color.white)
-//                            .cornerRadius(10)
+                            // Tax Date
+                            Text("Tax Due Date")
+                                .foregroundColor(.white)
+                                .font(.system(size: 15, weight: .medium))
+                            DatePicker("", selection: $viewModel.taxDueDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                             
-//                            // STNK
-//                            Text("STNK Due Date")
-//                                .foregroundColor(.white)
-//                                .font(.system(size: 15, weight: .medium))
-//                            HStack {
-//                                DatePicker("", selection: $viewModel.stnkDueDate, displayedComponents: .date)
-//                                    .labelsHidden()
-//                                    .datePickerStyle(.compact)
-//                                    .frame(maxWidth: .infinity, alignment: .leading)
-//                            }
-//                            .padding()
-//                            .background(Color.white)
-//                            .cornerRadius(10)
+                            // STNK
+                            Text("STNK Due Date")
+                                .foregroundColor(.white)
+                                .font(.system(size: 15, weight: .medium))
+                            DatePicker("", selection: $viewModel.stnkDueDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                             
                             // Last Service Name
                             Text("Last Service Name")
@@ -113,15 +110,12 @@ struct EditVehicleView: View {
                             Text("Last Service Date")
                                 .foregroundColor(.white)
                                 .font(.system(size: 15, weight: .medium))
-                            HStack {
-                                DatePicker("", selection: $viewModel.lastServiceDate, displayedComponents: .date)
-                                    .labelsHidden()
-                                    .datePickerStyle(.compact)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(10)
+                            DatePicker("", selection: $viewModel.lastServiceDate, displayedComponents: .date)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                             
                             // Last Odometer
                             Text("Last Odometer (km)")

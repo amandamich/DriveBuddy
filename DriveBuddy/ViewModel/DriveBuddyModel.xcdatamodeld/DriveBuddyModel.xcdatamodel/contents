@@ -36,12 +36,9 @@
         <attribute name="last_odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="last_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="make_model" optional="YES" attributeType="String"/>
-        <attribute name="next_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="plate_number" optional="YES" attributeType="String"/>
-        <attribute name="reminder_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="service_name" optional="YES" attributeType="String"/>
-        <attribute name="service_reminder_offset" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="stnk_due_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="tax_due_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="tax_reminder" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
@@ -50,7 +47,7 @@
         <attribute name="year_manufacture" optional="YES" attributeType="String"/>
         <relationship name="reminder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Reminders" inverseName="vehicle" inverseEntity="Reminders"/>
         <relationship name="schedule" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Schedules" inverseName="vehicle" inverseEntity="Schedules"/>
-        <relationship name="servicehistory" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
+        <relationship name="servicehistory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="vehicles" inverseEntity="User"/>
     </entity>
     <entity name="Workshops" representedClassName="Workshops" syncable="YES" codeGenerationType="class">

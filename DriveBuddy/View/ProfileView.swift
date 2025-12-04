@@ -5,7 +5,7 @@
 
 import SwiftUI
 import CoreData
-
+//YAURRRRR
 struct ProfileView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var profileVM: ProfileViewModel

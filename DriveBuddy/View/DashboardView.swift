@@ -177,23 +177,8 @@ struct DashboardView: View {
         .sheet(isPresented: $showingAddVehicle) {
             refreshID = UUID()
         } content: {
-            NavigationStack{
-                AddVehicleView(authVM: authVM)
-                    .environment(\.managedObjectContext, authVM.viewContext)
-                    .navigationTitle("New Vehicle")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                                    ToolbarItem(placement: .navigationBarLeading) {
-                                        Button(action: {
-                                            showingAddVehicle = false
-                                        }) {
-                                            Image(systemName: "chevron.left")
-                                                .font(.headline)
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                }
-            }
+            AddVehicleView(authVM: authVM)
+                .environment(\.managedObjectContext, authVM.viewContext)
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             refreshID = UUID()
@@ -346,8 +331,11 @@ extension DashboardView {
         
         // MARK: - Service Date Helper
         private func nextServiceDateText(for vehicle: Vehicles) -> String {
-            guard let next = vehicle.next_service_date else { return "N/A" }
-            return next.formatted(date: .abbreviated, time: .omitted)
+            guard let lastServiceDate = vehicle.last_service_date else { return "N/A" }
+            if let next = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate) {
+                return next.formatted(date: .abbreviated, time: .omitted)
+            }
+            return "N/A"
         }
     }
 }
