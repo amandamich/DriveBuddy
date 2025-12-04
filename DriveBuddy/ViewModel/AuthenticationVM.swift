@@ -13,6 +13,7 @@ import CryptoKit
 final class AuthenticationViewModel: ObservableObject {
     @Published var email: String = ""
     @Published var password: String = ""
+    @Published var phoneNumber: String = "" // ✅ ADDED
     @Published var isAuthenticated: Bool = false
     @Published var errorMessage: String?
     @Published var currentUser: User?
@@ -59,6 +60,14 @@ final class AuthenticationViewModel: ObservableObject {
         return (true, nil)
     }
     
+    // MARK: - ✅ Phone Number Validation
+    func validatePhoneNumber(_ phone: String) -> Bool {
+        // Remove whitespace and check if it contains only digits, +, -, (, )
+        let phoneRegex = "^[0-9+\\-\\(\\)\\s]{10,15}$"
+        let phonePredicate = NSPredicate(format: "SELF MATCHES %@", phoneRegex)
+        return phonePredicate.evaluate(with: phone)
+    }
+    
     // MARK: - Get Password Strength
     func getPasswordStrength(_ password: String) -> (strength: String, color: Color) {
         var score = 0
@@ -96,6 +105,12 @@ final class AuthenticationViewModel: ObservableObject {
             return
         }
         
+        // ✅ Validate phone number if provided
+        if !phoneNumber.isEmpty && !validatePhoneNumber(phoneNumber) {
+            errorMessage = "Invalid phone number format."
+            return
+        }
+        
         // ✅ Validate password with new rules
         let passwordValidation = validatePassword(password)
         guard passwordValidation.isValid else {
@@ -115,12 +130,18 @@ final class AuthenticationViewModel: ObservableObject {
                 newUser.user_id = newUserID
                 newUser.email = email.lowercased()
                 newUser.password_hash = hash(password)
+                newUser.phone_number = phoneNumber // ✅ SAVE PHONE NUMBER
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
 
                 try viewContext.save()
 
                 errorMessage = "Registration successful! Please login."
+                
+                // Clear fields
+                email = ""
+                password = ""
+                phoneNumber = "" // ✅ CLEAR PHONE NUMBER
                 
                 currentUser = nil
                 isAuthenticated = false
@@ -155,6 +176,7 @@ final class AuthenticationViewModel: ObservableObject {
                     
                     self.currentUser = user
                     self.currentUserID = user.user_id?.uuidString
+                    self.phoneNumber = user.phone_number ?? ""
                     self.isAuthenticated = true
                     self.errorMessage = nil
                     
@@ -248,6 +270,7 @@ final class AuthenticationViewModel: ObservableObject {
         self.currentUserID = nil
         self.email = ""
         self.password = ""
+        self.phoneNumber = "" // ✅ CLEAR PHONE NUMBER
         self.errorMessage = nil
         
         UserDefaults.standard.removeObject(forKey: "isLoggedIn")

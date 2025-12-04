@@ -4,14 +4,6 @@
 //
 //  Created by Timothy on 26/11/25.
 //
-
-//
-//  TaxDetailView.swift
-//  DriveBuddy
-//
-//  Created by Timothy on 26/11/25.
-//
-
 import SwiftUI
 
 struct TaxDetailView: View {

@@ -91,7 +91,7 @@ class ProfileViewModel: ObservableObject {
         self.email         = user.email ?? ""
 
         self.username    = defaults.string(forKey: DefaultsKey.fullName) ?? ""
-        self.phoneNumber = defaults.string(forKey: DefaultsKey.phone) ?? ""
+        self.phoneNumber = user.phone_number ?? ""
         self.gender      = defaults.string(forKey: DefaultsKey.gender) ?? ""
         self.city        = defaults.string(forKey: DefaultsKey.city) ?? ""
         
@@ -604,7 +604,6 @@ class ProfileViewModel: ObservableObject {
         isDarkMode = newValue
         saveContext()
     }
-
     // MARK: - Save Context
     
     private func saveContext() {

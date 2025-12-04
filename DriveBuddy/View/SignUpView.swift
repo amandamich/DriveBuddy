@@ -4,7 +4,6 @@ import CoreData
 struct SignUpView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @State private var email = ""
-    @State private var phoneNumber = ""
     @State private var password = ""
     @State private var confirmpassword = ""
     @State private var isAnimating = false
@@ -14,8 +13,9 @@ struct SignUpView: View {
     
     // ✅ Enhanced form validation with password requirements
     private var isFormValid: Bool {
-        !email.isEmpty &&
-        !phoneNumber.isEmpty &&
+        let phoneDigits = authVM.phoneNumber.filter { $0.isNumber }
+        return !email.isEmpty &&
+        phoneDigits.count >= 10 && phoneDigits.count <= 13 &&
         !password.isEmpty &&
         !confirmpassword.isEmpty &&
         password == confirmpassword &&
@@ -23,8 +23,6 @@ struct SignUpView: View {
         authVM.validatePassword(password).isValid
     }
     
-
-
     var body: some View {
         NavigationStack {
             ZStack {
@@ -85,14 +83,21 @@ struct SignUpView: View {
                                             .frame(width: 1)
                                             .padding(.vertical, 10)
                                         
-                                        TextField("812-3456-7890", text: $phoneNumber)
-                                            .foregroundColor(.black)
-                                            .keyboardType(.phonePad)
-                                            .padding(.leading, 16)
-                                            .padding(.trailing, 16)
-                                            .onChange(of: phoneNumber) { newValue in
-                                                phoneNumber = formatPhoneNumber(newValue)
+                                        TextField("812-3456-7890", text: Binding(
+                                            get: {
+                                                formatPhoneNumber(authVM.phoneNumber)
+                                            },
+                                            set: { newValue in
+                                                // Extract only digits
+                                                let digits = newValue.filter { $0.isNumber }
+                                                // Limit to 13 digits (10-13 is valid range)
+                                                authVM.phoneNumber = String(digits.prefix(13))
                                             }
+                                        ))
+                                        .foregroundColor(.black)
+                                        .keyboardType(.phonePad)
+                                        .padding(.leading, 16)
+                                        .padding(.trailing, 16)
                                     }
                                     .frame(height: 56)
                                     .background(
@@ -210,6 +215,8 @@ struct SignUpView: View {
                                     
                                     authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
                                     authVM.password = password
+                                    // phoneNumber is already in authVM.phoneNumber with +62 prefix
+                                    authVM.phoneNumber = "+62" + authVM.phoneNumber
                                     authVM.signUp()
 
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -271,10 +278,14 @@ struct SignUpView: View {
     }
     
     private func formatPhoneNumber(_ value: String) -> String {
+        // Work with clean digits only
         let cleaned = value.filter { $0.isNumber }
         let limited = String(cleaned.prefix(12))
         
-        if limited.count <= 3 {
+        // Format: 812-3456-7890
+        if limited.isEmpty {
+            return ""
+        } else if limited.count <= 3 {
             return limited
         } else if limited.count <= 7 {
             let index = limited.index(limited.startIndex, offsetBy: 3)
