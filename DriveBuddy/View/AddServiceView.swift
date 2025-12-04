@@ -51,7 +51,7 @@ struct AddServiceView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 16)
                     // Title
-                    Text("Edit Vehicle")
+                    Text("Add Service")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
                         .padding()

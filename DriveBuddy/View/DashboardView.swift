@@ -331,11 +331,8 @@ extension DashboardView {
         
         // MARK: - Service Date Helper
         private func nextServiceDateText(for vehicle: Vehicles) -> String {
-            guard let lastServiceDate = vehicle.last_service_date else { return "N/A" }
-            if let next = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate) {
-                return next.formatted(date: .abbreviated, time: .omitted)
-            }
-            return "N/A"
+            guard let next = vehicle.next_service_date else { return "N/A" }
+            return next.formatted(date: .abbreviated, time: .omitted)
         }
     }
 }

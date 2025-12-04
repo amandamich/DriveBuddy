@@ -19,12 +19,22 @@ class AddServiceViewModel: ObservableObject {
 
     private let viewContext: NSManagedObjectContext
     private let vehicle: Vehicles
-    private let profileVM: ProfileViewModel    // 🔥 koneksi baru ke ProfileVM
+    private let profileVM: ProfileViewModel
 
     init(context: NSManagedObjectContext, vehicle: Vehicles, profileVM: ProfileViewModel) {
         self.viewContext = context
         self.vehicle = vehicle
         self.profileVM = profileVM
+    }
+    
+    // MARK: - Convert reminder label → number of days
+    var daysBeforeReminder: Int16 {
+        switch reminder {
+        case "One week before": return 7
+        case "Two weeks before": return 14
+        case "One month before": return 30
+        default: return 7
+        }
     }
 
     func addService() {
@@ -41,6 +51,7 @@ class AddServiceViewModel: ObservableObject {
             return
         }
 
+        // === CREATE NEW SERVICE HISTORY ===
         let newService = ServiceHistory(context: viewContext)
         newService.history_id = UUID()
         newService.service_name = serviceName
@@ -48,11 +59,29 @@ class AddServiceViewModel: ObservableObject {
         newService.odometer = odometerValue
         newService.created_at = Date()
         newService.vehicle = vehicle
+        
+        // ==============================
+        //       Update Vehicle fields
+        // ==============================
+        vehicle.last_service_date = selectedDate
+
+        // Next service = 5 bulan dari tanggal ini
+                if let nextService = Calendar.current.date(byAdding: .month, value: 5, to: selectedDate) {
+                    vehicle.next_service_date = nextService
+                }
+                
+                // Reminder offset
+                vehicle.service_reminder_offset = daysBeforeReminder
+
+        // ==============================
+        //       Save context
+        // ==============================
 
         do {
             try viewContext.save()
             successMessage = "Service added successfully!"
 
+            // === OPTIONAL: Schedule real notification ===
             if addToReminder {
                 Task {
                     await profileVM.scheduleServiceReminder(
@@ -60,31 +89,25 @@ class AddServiceViewModel: ObservableObject {
                         serviceName: newService.service_name ?? "Vehicle Service",
                         vehicleName: vehicle.make_model ?? "Your Vehicle",
                         serviceDate: newService.service_date ?? Date(),
-                        daysBeforeReminder: daysBeforeReminder
+                        daysBeforeReminder: Int(daysBeforeReminder)
                     )
                 }
             }
 
+
             clearFields()
+
         } catch {
             errorMessage = "Failed to save service: \(error.localizedDescription)"
         }
     }
-
-    var daysBeforeReminder: Int {
-        switch reminder {
-        case "One week before": return 7
-        case "Two weeks before": return 14
-        case "One month before": return 30
-        default: return 7
-        }
-    }
-
-    private func clearFields() {
-        serviceName = ""
-        selectedDate = Date()
-        odometer = ""
-        reminder = "One month before"
-        addToReminder = true
-    }
+    // MARK: - RESET FORM
+       private func clearFields() {
+           serviceName = ""
+           selectedDate = Date()
+           odometer = ""
+           reminder = "One month before"
+           addToReminder = true
+       }
 }
+

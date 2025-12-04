@@ -92,20 +92,20 @@ class DashboardViewModel: ObservableObject {
     }
 
     // MARK: - Service Reminder Logic
+    // MARK: - Service Reminder Logic
     func serviceReminderStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
-        guard let lastService = vehicle.last_service_date else { return .unknown }
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
-        // Approx. next service 6 months after last one
-        guard let nextService = calendar.date(byAdding: .month, value: 6, to: lastService) else {
+        guard let nextService = vehicle.next_service_date else {
             return .unknown
         }
 
-        let daysUntilNext = calendar.dateComponents([.day], from: today, to: nextService).day ?? 0
+        let dueDate = calendar.startOfDay(for: nextService)
+        let days = calendar.dateComponents([.day], from: today, to: dueDate).day ?? 0
 
-        switch daysUntilNext {
+        switch days {
         case ..<0:
             return .overdue
         case 0:
@@ -118,6 +118,7 @@ class DashboardViewModel: ObservableObject {
             return .notYet
         }
     }
+
 }
 
 // MARK: - Enum for Vehicle Tax Status
