@@ -115,7 +115,7 @@ class DashboardViewModel: ObservableObject {
         case 8...30:
             return .soon
         default:
-            return .notYet
+            return .uptodate
         }
     }
 
@@ -153,7 +153,7 @@ enum ServiceReminderStatus {
     case upcoming
     case soon
     case overdue
-    case notYet
+    case uptodate
     case unknown
 
     var label: String {
@@ -162,18 +162,18 @@ enum ServiceReminderStatus {
         case .upcoming: return "Upcoming"
         case .soon: return "Soon"
         case .overdue: return "Overdue"
-        case .notYet: return "Not Yet"
+        case .uptodate: return "Up to Date"
         case .unknown: return "Unknown"
         }
     }
 
     var color: Color {
         switch self {
-        case .tomorrow: return .cyan
+        case .tomorrow: return .yellow
         case .upcoming: return .orange
-        case .soon: return .yellow
+        case .soon: return .orange
         case .overdue: return .red
-        case .notYet: return .gray
+        case .uptodate: return .green
         case .unknown: return .gray
         }
     }
