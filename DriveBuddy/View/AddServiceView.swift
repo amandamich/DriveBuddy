@@ -32,37 +32,35 @@ struct AddServiceView: View {
             Color.black.opacity(0.95).ignoresSafeArea()
 
             VStack(spacing: 0) {
-
-                // ==============================
-                //       FIXED HEADER
-                // ==============================
                 HStack {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(
-                                Circle()
-                                    .fill(Color.white.opacity(0.15))
-                            )
+                    // Back Button
+                    Button(action: {dismiss()}) {
+                        HStack() {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .padding(.horizontal, 15)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius:100000)
+                                .fill(Color.white.opacity(0.15))
+                        )
                     }
-
-                    Spacer()
-
-                    Text("Add Service")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+                    // Title
+                    Text("Edit Vehicle")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
-
-
-                    // Make title centered
-                    Color.clear.frame(width: 40)
+                        .padding()
+                    
+                    Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
-                .background(Color.black.opacity(0.95))
-                .zIndex(1)
+                
+                Divider()
+                    .background(Color.cyan.opacity(0.3))
 
                 // ==============================
                 //           CONTENT
