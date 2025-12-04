@@ -2,11 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>DriveBuddy needs notification permission to remind you about vehicle tax and service dates</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>DriveBuddy needs your location to find nearby workshops</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>DriveBuddy needs your location to find nearby workshops</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.80858465436-eosj3jfdqf3b1febpp03o2rp87juefe0</string>
+			</array>
+		</dict>
+		<dict/>
+	</array>
 </dict>
 </plist>

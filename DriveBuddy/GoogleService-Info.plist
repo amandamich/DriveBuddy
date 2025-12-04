@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>80858465436-eosj3jfdqf3b1febpp03o2rp87juefe0.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.80858465436-eosj3jfdqf3b1febpp03o2rp87juefe0</string>
+	<key>BUNDLE_iD</key>
+	<string>UC.DriveBuddy</string>
+	<key>Project_ID</key>
+	<string>connectgoogle</string>
+	<key>GCM_SENDER_ID</key>
+	<string>808584565436</string>
+</dict>
+</plist>

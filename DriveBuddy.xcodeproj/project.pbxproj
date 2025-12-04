@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3F9FCF652EE158E500C08EF4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3F9FCF642EE158E500C08EF4 /* GoogleSignIn */; };
+		3F9FCF672EE158E500C08EF4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		BF9BA2702EAFD026001F7D22 /* DriveBuddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DriveBuddy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F9FCF652EE158E500C08EF4 /* GoogleSignIn in Frameworks */,
+				3F9FCF672EE158E500C08EF4 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +85,8 @@
 			);
 			name = DriveBuddy;
 			packageProductDependencies = (
+				3F9FCF642EE158E500C08EF4 /* GoogleSignIn */,
+				3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */,
 			);
 			productName = DriveBuddy;
 			productReference = BF9BA2702EAFD026001F7D22 /* DriveBuddy.app */;
@@ -107,6 +116,9 @@
 			);
 			mainGroup = BF9BA2672EAFD026001F7D22;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF9BA2712EAFD026001F7D22 /* Products */;
 			projectDirPath = "";
@@ -267,6 +279,7 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DriveBuddy/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -302,6 +315,7 @@
 				DEVELOPMENT_TEAM = M7YC437JCH;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = DriveBuddy/Info.plist;
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -349,6 +363,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3F9FCF642EE158E500C08EF4 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = BF9BA2682EAFD026001F7D22 /* Project object */;
 }
