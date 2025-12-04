@@ -177,8 +177,23 @@ struct DashboardView: View {
         .sheet(isPresented: $showingAddVehicle) {
             refreshID = UUID()
         } content: {
-            AddVehicleView(authVM: authVM)
-                .environment(\.managedObjectContext, authVM.viewContext)
+            NavigationStack{
+                AddVehicleView(authVM: authVM)
+                    .environment(\.managedObjectContext, authVM.viewContext)
+                    .navigationTitle("New Vehicle")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                                    ToolbarItem(placement: .navigationBarLeading) {
+                                        Button(action: {
+                                            showingAddVehicle = false
+                                        }) {
+                                            Image(systemName: "chevron.left")
+                                                .font(.headline)
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             refreshID = UUID()
