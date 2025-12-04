@@ -15,6 +15,7 @@ struct AddServiceView: View {
     // MARK: - ViewModel
     @StateObject private var viewModel: AddServiceViewModel
     @ObservedObject var profileVM: ProfileViewModel 
+    
     // MARK: - Init
     init(vehicle: Vehicles, context: NSManagedObjectContext, profileVM: ProfileViewModel) {
         self.profileVM = profileVM
@@ -33,30 +34,12 @@ struct AddServiceView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    HStack{
-                        // Back Button
-                        Button(action: { dismiss()}) {
-                            HStack() {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 16, weight: .semibold))
-                                
-                            }
-                            .padding(.horizontal, 15)
-                            .padding(.vertical, 10)
-                            .background(RoundedRectangle(cornerRadius:100000).fill(Color.white.opacity(0.15))
-                            )
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 5)
+                    // Header
+                    Text("Add Service")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
                         .padding(.top, 8)
-                        .padding(.bottom, 16)
-                        
-                        // Header
-                        Text("Add Service")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding()
-                    }
+                    
                     // Service Info Section
                     SectionBoxService(title: "Service Info", icon: "wrench.fill") {
                         VStack(alignment: .leading, spacing: 15) {
@@ -94,10 +77,8 @@ struct AddServiceView: View {
                         }
                     }
 
-
                     SectionBoxService(title: "Reminder Settings", icon: "bell.badge.fill") {
                         VStack(alignment: .leading, spacing: 15) {
-
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Reminders")
                                     .foregroundColor(.white)
@@ -146,28 +127,6 @@ struct AddServiceView: View {
                             )
                             .shadow(color: .blue, radius: 10)
                     }
-//                    // MARK: - Test Notification Button
-//                                        Button(action: {
-//                                            // Trigger test notification (this will schedule a notification in 5 seconds)
-//                                            viewModel.testNotification()
-//                                        }) {
-//                                            Text("Test Notification")
-//                                                .font(.headline)
-//                                                .foregroundColor(.white)
-//                                                .padding()
-//                                                .frame(maxWidth: .infinity)
-//                                                .background(
-//                                                    RoundedRectangle(cornerRadius: 12)
-//                                                        .stroke(Color.green, lineWidth: 2)
-//                                                        .shadow(color: .green, radius: 8)
-//                                                        .background(
-//                                                            RoundedRectangle(cornerRadius: 12)
-//                                                                .fill(Color.black.opacity(0.5))
-//                                                        )
-//                                                )
-//                                                .shadow(color: .green, radius: 10)
-//                                        }
-//                                        .padding(.top)
 
                     // MARK: - Messages
                     if let message = viewModel.errorMessage {
@@ -185,7 +144,6 @@ struct AddServiceView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        // Default iOS back arrow otomatis aktif
     }
 }
 
@@ -243,4 +201,3 @@ struct CustomTextFieldStyleService: TextFieldStyle {
         )
     }
 }
-
