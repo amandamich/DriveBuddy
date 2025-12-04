@@ -104,6 +104,7 @@ struct WavePath: Shape {
 // MARK: - Main Login View
 struct LoginView: View {
     @ObservedObject var authVM: AuthenticationViewModel
+    @StateObject private var googleSignInVM = GoogleSignInViewModel()
     @State private var email = ""
     @State private var password = ""
     @State private var isAnimating = false
@@ -240,6 +241,52 @@ struct LoginView: View {
                         .padding(.horizontal, 30)
                         .padding(.top, 30)
 
+                        // MARK: - OR Divider
+                        HStack {
+                            Rectangle()
+                                .fill(Color.cyan.opacity(0.3))
+                                .frame(height: 1)
+                            Text("OR")
+                                .foregroundColor(.cyan)
+                                .font(.subheadline)
+                                .padding(.horizontal, 10)
+                            Rectangle()
+                                .fill(Color.cyan.opacity(0.3))
+                                .frame(height: 1)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.top, 25)
+
+                        // MARK: - Google Sign-In Button
+                        Button(action: {
+                            focusedField = nil
+                            googleSignInVM.signIn()
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "g.circle.fill")
+                                    .font(.system(size: 22))
+                                    .foregroundColor(.white)
+                                
+                                Text("Sign in with Google")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.cyan, lineWidth: 2)
+                                    .shadow(color: .blue, radius: 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.black.opacity(0.5))
+                                    )
+                            )
+                            .shadow(color: .blue, radius: 10)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.top, 20)
+
                         // MARK: - Validation Message
                         if let message = validationMessage {
                             Text(message)
@@ -263,6 +310,15 @@ struct LoginView: View {
                                         }
                                     }
                                 }
+                        }
+                        
+                        // MARK: - Google Sign-In Error Message
+                        if !googleSignInVM.errorMessage.isEmpty {
+                            Text(googleSignInVM.errorMessage)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .padding(.top, 8)
+                                .transition(.opacity)
                         }
 
                         // MARK: - Navigate to Sign Up
@@ -294,6 +350,12 @@ struct LoginView: View {
             .onAppear {
                 withAnimation { isAnimating = true }
                 authVM.errorMessage = nil
+            }
+            .onChange(of: googleSignInVM.isSignedIn) { oldValue, newValue in
+                if newValue {
+                    // Google Sign-In successful, navigate to HomeView
+                    authVM.isAuthenticated = true
+                }
             }
             .navigationDestination(isPresented: $authVM.isAuthenticated) {
                 HomeView(authVM: authVM)
