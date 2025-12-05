@@ -210,7 +210,10 @@ struct SignUpView: View {
                                     
                                     authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
                                     authVM.password = password
-                                    authVM.signUp()
+                                    
+                                    // ✅ NEW: Format and pass phone number
+                                    let formattedPhone = "+62" + phoneNumber.replacingOccurrences(of: "-", with: "")
+                                    authVM.signUp(phoneNumber: formattedPhone)
 
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         if authVM.errorMessage?.contains("successful") == true {

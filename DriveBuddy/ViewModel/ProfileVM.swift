@@ -91,7 +91,6 @@ class ProfileViewModel: ObservableObject {
         self.email         = user.email ?? ""
 
         self.username    = defaults.string(forKey: DefaultsKey.fullName) ?? ""
-        self.phoneNumber = defaults.string(forKey: DefaultsKey.phone) ?? ""
         self.gender      = defaults.string(forKey: DefaultsKey.gender) ?? ""
         self.city        = defaults.string(forKey: DefaultsKey.city) ?? ""
         
@@ -104,6 +103,12 @@ class ProfileViewModel: ObservableObject {
 
         if let data = defaults.data(forKey: DefaultsKey.avatarData) {
             self.avatarData = data
+        }
+        if let phoneFromCoreData = user.phone_number, !phoneFromCoreData.isEmpty {
+            self.phoneNumber = phoneFromCoreData
+            defaults.set(phoneFromCoreData, forKey: DefaultsKey.phone)
+        } else {
+            self.phoneNumber = defaults.string(forKey: DefaultsKey.phone) ?? ""
         }
     }
 
@@ -153,7 +158,7 @@ class ProfileViewModel: ObservableObject {
 
     // MARK: - 🆕 Permission Management
     
-    /// Check current authorization statuses
+    // Check current authorization statuses
     func checkPermissionStatuses() async {
         successMessage = nil
         errorMessage = nil

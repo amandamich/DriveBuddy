@@ -82,8 +82,8 @@ final class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Sign Up
-    func signUp() {
+    // MARK: - Sign Up (UPDATED)
+    func signUp(phoneNumber: String = "") {
         errorMessage = nil
 
         guard !email.isEmpty, !password.isEmpty else {
@@ -96,7 +96,6 @@ final class AuthenticationViewModel: ObservableObject {
             return
         }
         
-        // ✅ Validate password with new rules
         let passwordValidation = validatePassword(password)
         guard passwordValidation.isValid else {
             errorMessage = passwordValidation.message
@@ -117,6 +116,11 @@ final class AuthenticationViewModel: ObservableObject {
                 newUser.password_hash = hash(password)
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
+                
+                // ✅ NEW: Save phone number
+                if !phoneNumber.isEmpty {
+                    newUser.phone_number = phoneNumber
+                }
 
                 try viewContext.save()
 
