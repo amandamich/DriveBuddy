@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3F9FCF652EE158E500C08EF4 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3F9FCF642EE158E500C08EF4 /* GoogleSignIn */; };
-		3F9FCF672EE158E500C08EF4 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */; };
+		3F5AC7982EE2A4EE00459C56 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 3F5AC7972EE2A4EE00459C56 /* GoogleSignIn */; };
+		3F5AC79A2EE2A4EE00459C56 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3F5AC7992EE2A4EE00459C56 /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,8 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3F9FCF652EE158E500C08EF4 /* GoogleSignIn in Frameworks */,
-				3F9FCF672EE158E500C08EF4 /* GoogleSignInSwift in Frameworks */,
+				3F5AC7982EE2A4EE00459C56 /* GoogleSignIn in Frameworks */,
+				3F5AC79A2EE2A4EE00459C56 /* GoogleSignInSwift in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -85,8 +85,8 @@
 			);
 			name = DriveBuddy;
 			packageProductDependencies = (
-				3F9FCF642EE158E500C08EF4 /* GoogleSignIn */,
-				3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */,
+				3F5AC7972EE2A4EE00459C56 /* GoogleSignIn */,
+				3F5AC7992EE2A4EE00459C56 /* GoogleSignInSwift */,
 			);
 			productName = DriveBuddy;
 			productReference = BF9BA2702EAFD026001F7D22 /* DriveBuddy.app */;
@@ -117,7 +117,7 @@
 			mainGroup = BF9BA2672EAFD026001F7D22;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				3F5AC7962EE2A4EE00459C56 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = BF9BA2712EAFD026001F7D22 /* Products */;
@@ -365,7 +365,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+		3F5AC7962EE2A4EE00459C56 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
 			requirement = {
@@ -376,14 +376,14 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		3F9FCF642EE158E500C08EF4 /* GoogleSignIn */ = {
+		3F5AC7972EE2A4EE00459C56 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			package = 3F5AC7962EE2A4EE00459C56 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignIn;
 		};
-		3F9FCF662EE158E500C08EF4 /* GoogleSignInSwift */ = {
+		3F5AC7992EE2A4EE00459C56 /* GoogleSignInSwift */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 3F9FCF632EE158E500C08EF4 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			package = 3F5AC7962EE2A4EE00459C56 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
