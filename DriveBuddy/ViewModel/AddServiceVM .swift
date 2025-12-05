@@ -54,6 +54,7 @@ class AddServiceViewModel: ObservableObject {
             successMessage = "Service added successfully!"
 
             if addToReminder {
+                // Schedule Service Reminder (Notification)
                 Task {
                     await profileVM.scheduleServiceReminder(
                         serviceId: newService.history_id!,
@@ -62,6 +63,16 @@ class AddServiceViewModel: ObservableObject {
                         serviceDate: newService.service_date ?? Date(),
                         daysBeforeReminder: daysBeforeReminder
                     )
+
+                    // Add to Calendar if enabled
+                    if profileVM.user?.add_to_calendar == true {
+                        try? await profileVM.addCalendarEvent(
+                            title: "🔧 Service: \(newService.service_name ?? "Service")",
+                            notes: "Scheduled service for \(vehicle.make_model ?? "Vehicle")",
+                            startDate: newService.service_date ?? Date(),
+                            alarmOffsetDays: daysBeforeReminder
+                        )
+                    }
                 }
             }
 

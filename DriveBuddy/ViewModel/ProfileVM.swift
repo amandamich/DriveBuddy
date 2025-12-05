@@ -508,7 +508,7 @@ class ProfileViewModel: ObservableObject {
             }
             return
         }
-        
+
         if calendarStatus != .authorized {
             let granted = await requestCalendarPermission()
             guard granted else {
@@ -518,29 +518,28 @@ class ProfileViewModel: ObservableObject {
                 return
             }
         }
-        
+
         do {
             guard let userId = user?.user_id else { return }
-            
+
             let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
             request.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
-            
+
             let vehicles = try viewContext.fetch(request)
             var addedCount = 0
-            
+
             for vehicle in vehicles {
-                guard let taxDate = vehicle.tax_due_date,
-                      let vehicleName = vehicle.make_model else { continue }
-                
+                guard let serviceDate = vehicle.next_service_date else { continue }
+
                 try await addCalendarEvent(
-                    title: "🚗 Tax Due: \(vehicleName)",
-                    notes: "Vehicle tax renewal due for \(vehicleName)",
-                    startDate: taxDate,
+                    title: "🔧 Service: \(vehicle.make_model ?? "Service")",
+                    notes: "Scheduled service for \(vehicle.make_model ?? "Vehicle")",
+                    startDate: serviceDate,
                     alarmOffsetDays: 7
                 )
                 addedCount += 1
             }
-            
+
             await MainActor.run {
                 self.successMessage = "✅ Added \(addedCount) vehicle(s) to calendar"
             }
@@ -551,6 +550,7 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
+
     
     // MARK: - 🆕 Test Notification
     

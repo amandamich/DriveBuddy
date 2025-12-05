@@ -42,6 +42,7 @@ struct VehicleDetailView: View {
 
     var body: some View {
         ZStack {
+            // Always use dark background matching the theme
             Color.black.opacity(0.95).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {

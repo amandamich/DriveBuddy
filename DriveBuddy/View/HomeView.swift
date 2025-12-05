@@ -33,6 +33,102 @@ struct HomeView: View {
     }
 }
 
+// MARK: - Empty Vehicle View (Matching VehicleDetailView Style)
+struct EmptyVehicleView: View {
+    @Binding var selectedTab: Int
+    let activeUser: User?
+    
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.95).ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    // MARK: HEADER (Same as VehicleDetailView)
+                    HStack {
+                        Image("LogoDriveBuddy")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 180, height: 40)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
+                    
+                    // MARK: Empty State Content
+                    VStack(spacing: 24) {
+                        Spacer()
+                        
+                        if activeUser == nil {
+                            Text("Menunggu Data Pengguna...")
+                                .foregroundColor(.white.opacity(0.7))
+                        } else {
+                            VStack(spacing: 24) {
+                                Image(systemName: "car.circle.fill")
+                                    .font(.system(size: 80))
+                                    .foregroundColor(.cyan.opacity(0.6))
+                                
+                                VStack(spacing: 12) {
+                                    Text("Belum ada kendaraan")
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                    
+                                    Text("Tambahkan kendaraan pertama Anda\ndi Dashboard untuk memulai")
+                                        .multilineTextAlignment(.center)
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .font(.subheadline)
+                                }
+                                
+                                // Add Vehicle Button
+                                Button(action: {
+                                    selectedTab = 0
+                                }) {
+                                    HStack {
+                                        Image(systemName: "plus.circle.fill")
+                                        Text("Tambah Kendaraan")
+                                    }
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .padding(.vertical, 14)
+                                    .padding(.horizontal, 28)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.blue.opacity(0.8),
+                                                Color.cyan.opacity(0.6)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(25)
+                                    .shadow(color: .cyan.opacity(0.4), radius: 8, x: 0, y: 4)
+                                }
+                            }
+                            .padding(32)
+                            .background(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .fill(Color(red: 17/255, green: 33/255, blue: 66/255).opacity(0.6))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20)
+                                            .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                            .padding(.horizontal, 32)
+                        }
+                        
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 400)
+                }
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 // MARK: - 2. MAIN CONTENT VIEW (LOGIC UTAMA)
 struct MainContentView: View {
     @ObservedObject var authVM: AuthenticationViewModel
@@ -87,23 +183,7 @@ struct MainContentView: View {
                         profileVM: profileVM
                     )
                 } else {
-                    VStack(spacing: 20) {
-                        if activeUser == nil {
-                            Text("Menunggu Data Pengguna...")
-                                .foregroundColor(.gray)
-                        } else {
-                            Image(systemName: "car.circle.fill")
-                                .font(.system(size: 80))
-                                .foregroundColor(.gray.opacity(0.5))
-                            
-                            Text("Total Kendaraan: \(userVehicles.count)")
-                                .font(.caption).foregroundColor(.red)
-                            
-                            Text("Belum ada kendaraan.\nTambahkan di Dashboard.")
-                                .multilineTextAlignment(.center)
-                                .foregroundColor(.gray)
-                        }
-                    }
+                    EmptyVehicleView(selectedTab: $selectedTab, activeUser: activeUser)
                 }
             }
             .tabItem { Label("Vehicle", systemImage: "gauge.with.dots.needle.67percent") }

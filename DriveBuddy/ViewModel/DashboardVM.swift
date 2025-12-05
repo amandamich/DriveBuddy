@@ -29,7 +29,7 @@ class DashboardViewModel: ObservableObject {
 //            userVehicles = []
 //            return
 //        }
-//        
+//
 //        viewContext.refreshAllObjects()
 //        print("Refresh context dipanggil sebelum fetch.")
 //        let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
