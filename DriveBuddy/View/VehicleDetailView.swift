@@ -1,4 +1,7 @@
-// VehicleDetailView
+//
+//  VehicleDetailView.swift
+//  DriveBuddy
+//
 
 import SwiftUI
 import CoreData
@@ -16,10 +19,11 @@ struct VehicleDetailView: View {
     @State private var showMyTax = false
     @ObservedObject var profileVM: ProfileViewModel
     
-    // Add onDismiss callback
+    // ✅ State to force refresh
+    @State private var refreshTrigger = UUID()
+    
     var onDismiss: (() -> Void)?
 
-    // Init untuk menerima objek User Aktif
     init(initialVehicle: Vehicles,
          allVehicles: FetchedResults<Vehicles>,
          context: NSManagedObjectContext,
@@ -42,7 +46,6 @@ struct VehicleDetailView: View {
 
     var body: some View {
         ZStack {
-            // Always use dark background matching the theme
             Color.black.opacity(0.95).ignoresSafeArea()
             
             ScrollView(showsIndicators: false) {
@@ -67,6 +70,7 @@ struct VehicleDetailView: View {
                                     if v.user == viewModel.activeUser {
                                         viewModel.activeVehicle = v
                                         viewModel.loadVehicleData()
+                                        refreshTrigger = UUID()
                                     } else {
                                         print("User B coba pindah mobil ke milik User A")
                                     }
@@ -160,8 +164,8 @@ struct VehicleDetailView: View {
                             ClickableCard(
                                 icon: "wrench.and.screwdriver.fill",
                                 title: "Upcoming Services",
-                                subtitle: viewModel.serviceName.isEmpty ? "No service scheduled" : viewModel.serviceName,
-                                date: viewModel.formatDate(viewModel.nextServiceDate)
+                                subtitle: viewModel.upcomingServiceName,
+                                date: viewModel.formatDate(viewModel.upcomingServiceDate)
                             )
                         }
                         .buttonStyle(CardButtonStyle())
@@ -183,6 +187,7 @@ struct VehicleDetailView: View {
                     }
                     .frame(height: 140)
                     .padding(.horizontal)
+                    .id(refreshTrigger) // ✅ Force view update
                     
                     
                     // MARK: LAST SERVICE + BUTTON
@@ -211,14 +216,14 @@ struct VehicleDetailView: View {
 
                         HStack {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(viewModel.serviceName.isEmpty ? "No service recorded" : viewModel.serviceName)
+                                Text(viewModel.latestServiceName)
                             }
                             .foregroundColor(.white)
 
                             Spacer()
 
                             VStack(alignment: .trailing, spacing: 6) {
-                                Text(viewModel.formatDate(viewModel.lastServiceDate))
+                                Text(viewModel.formatDate(viewModel.latestServiceDate))
                             }
                             .foregroundColor(.white.opacity(0.8))
                         }
@@ -229,6 +234,7 @@ struct VehicleDetailView: View {
                     .cornerRadius(18)
                     .shadow(color: .cyan.opacity(0.25), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
+                    .id(refreshTrigger) // ✅ Force view update
 
                     
                     Spacer(minLength: 60)
@@ -240,8 +246,15 @@ struct VehicleDetailView: View {
             viewModel.loadVehicleData()
         }
         .onDisappear {
-            // Call onDismiss when view disappears
             onDismiss?()
+        }
+        // ✅ Listen for context changes - use Task to avoid publishing during view update
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            Task { @MainActor in
+                print("🔔 Context changed - refreshing view")
+                viewModel.loadVehicleData()
+                refreshTrigger = UUID()
+            }
         }
         
         // MARK: - My Service Sheet
@@ -280,8 +293,13 @@ struct VehicleDetailView: View {
             }
         }
         
-        // MARK: - Add Service Sheet
-        .sheet(isPresented: $showAddService) {
+        // MARK: - Add Service Sheet - ✅ FIXED
+        .sheet(isPresented: $showAddService, onDismiss: {
+            // ✅ Refresh immediately when sheet is dismissed
+            print("🔄 AddService sheet dismissed - reloading data")
+            viewModel.loadVehicleData()
+            refreshTrigger = UUID()
+        }) {
             NavigationStack {
                 AddServiceView(
                     vehicle: viewModel.activeVehicle,
@@ -292,7 +310,6 @@ struct VehicleDetailView: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
                             showAddService = false
-                            viewModel.loadVehicleData() // Reload after adding service
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
@@ -304,10 +321,10 @@ struct VehicleDetailView: View {
         }
         
         // MARK: - Edit Vehicle Sheet
-        .sheet(isPresented: $viewModel.isEditing) {
-            // Refresh data when edit sheet is dismissed
+        .sheet(isPresented: $viewModel.isEditing, onDismiss: {
             viewModel.loadVehicleData()
-        } content: {
+            refreshTrigger = UUID()
+        }) {
             EditVehicleView(viewModel: viewModel)
         }
         
@@ -343,7 +360,6 @@ struct ClickableCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             
-            // Icon and title section
             HStack(spacing: 8) {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .semibold))
@@ -365,7 +381,6 @@ struct ClickableCard: View {
             
             Spacer(minLength: 2)
             
-            // Date section at bottom
             HStack(spacing: 6) {
                 Image(systemName: "calendar")
                     .font(.system(size: 10, weight: .medium))
@@ -375,7 +390,6 @@ struct ClickableCard: View {
                 
                 Spacer()
                 
-                // Chevron indicator
                 Image(systemName: "chevron.right")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.cyan.opacity(0.9))

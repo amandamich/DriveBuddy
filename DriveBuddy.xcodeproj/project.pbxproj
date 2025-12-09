@@ -280,6 +280,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DriveBuddy/Info.plist;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "DriveBuddy needs access to your calendar to automatically add vehicle tax due dates and service reminders, helping you stay on top of your vehicle maintenance schedule.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "DriveBuddy needs calendar access to create reminders for your vehicle tax renewals and scheduled services.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -316,6 +318,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DriveBuddy/Info.plist;
+				INFOPLIST_KEY_NSCalendarsUsageDescription = "DriveBuddy needs access to your calendar to automatically add vehicle tax due dates and service reminders, helping you stay on top of your vehicle maintenance schedule.";
+				INFOPLIST_KEY_NSCalendarsWriteOnlyAccessUsageDescription = "DriveBuddy needs calendar access to create reminders for your vehicle tax renewals and scheduled services.";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "DriveBuddy needs your location to find nearby workshops";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

@@ -4,232 +4,244 @@
 //
 
 import SwiftUI
-import CoreData
 
 struct EditVehicleView: View {
-    @Environment(\.dismiss) private var dismiss
+    
     @ObservedObject var viewModel: VehicleDetailViewModel
+    @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.95).ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                HStack {
-                    // Back Button
-                    Button(action: {dismiss()}) {
-                        HStack() {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .padding(.horizontal, 15)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius:100000)
-                                .fill(Color.white.opacity(0.15))
-                        )
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 5)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-                    // Title
-                    Text("Edit Vehicle")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding()
-                    
-                    Spacer()
-                }
+        NavigationView {
+            ZStack {
+                Color.black.opacity(0.95).ignoresSafeArea()
                 
-                Divider()
-                    .background(Color.cyan.opacity(0.3))
-                
-                // MARK: - Scrollable Content
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
                         
-                        // MARK: - Vehicle Info Section
-                        VStack(alignment: .leading, spacing: 12) {
+                        // MARK: - Vehicle Information Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Vehicle Information")
+                                .font(.headline)
+                                .foregroundColor(.white)
                             
-                            Group {
-                                // Make & Model
+                            // Make & Model
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text("Make & Model")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 15, weight: .medium))
-                                TextField("Honda Brio", text: $viewModel.makeModel)
-                                    .textFieldStyle(CustomTextFieldStyle())
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
                                 
-                                // Plate Number
-                                Text("Plate Number")
+                                TextField("e.g., Toyota Avanza", text: $viewModel.makeModel)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
                                     .foregroundColor(.white)
-                                    .font(.system(size: 15, weight: .medium))
-                                TextField("L 567 GX", text: $viewModel.plateNumber)
-                                    .textFieldStyle(CustomTextFieldStyle())
-                                    .textInputAutocapitalization(.characters)
-                                
-                                // Odometer
-                                Text("Odometer (km)")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 15, weight: .medium))
-                                TextField("45000", text: $viewModel.odometer)
-                                    .textFieldStyle(CustomTextFieldStyle())
-                                    .keyboardType(.numberPad)
                             }
                             
-                            // Tax Date
-                            Text("Tax Due Date")
-                                .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            DatePicker("", selection: $viewModel.taxDueDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .datePickerStyle(.compact)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
+                            // Plate Number
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Plate Number")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                TextField("e.g., B 1234 XYZ", text: $viewModel.plateNumber)
+                                    .textInputAutocapitalization(.characters)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
                             
-                            // STNK
-                            Text("STNK Due Date")
+                            // Odometer
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Current Odometer (km)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                TextField("e.g., 50000", text: $viewModel.odometer)
+                                    .keyboardType(.numberPad)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding()
+                        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+                        .cornerRadius(18)
+                        
+                        // MARK: - Document Dates Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Document Dates")
+                                .font(.headline)
                                 .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            DatePicker("", selection: $viewModel.stnkDueDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .datePickerStyle(.compact)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
                             
-                            // Last Service Name
-                            Text("Last Service Name")
+                            // Tax Due Date
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Tax Due Date")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                DatePicker("", selection: $viewModel.taxDueDate, displayedComponents: .date)
+                                    .datePickerStyle(.compact)
+                                    .labelsHidden()
+                                    .colorScheme(.dark)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                            }
+                            
+                            // STNK Due Date
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("STNK Due Date")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                DatePicker("", selection: $viewModel.stnkDueDate, displayedComponents: .date)
+                                    .datePickerStyle(.compact)
+                                    .labelsHidden()
+                                    .colorScheme(.dark)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                            }
+                        }
+                        .padding()
+                        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+                        .cornerRadius(18)
+                        
+                        // MARK: - Last Service Information Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Last Service Information")
+                                .font(.headline)
                                 .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            TextField("Tune-Up", text: $viewModel.serviceName)
-                                .textFieldStyle(CustomTextFieldStyle())
+                            
+                            // Service Name
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Service Name")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                TextField("e.g., Oil Change", text: $viewModel.serviceName)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
                             
                             // Last Service Date
-                            Text("Last Service Date")
-                                .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            DatePicker("", selection: $viewModel.lastServiceDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .datePickerStyle(.compact)
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(10)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Service Date")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                DatePicker("", selection: $viewModel.lastServiceDate, displayedComponents: .date)
+                                    .datePickerStyle(.compact)
+                                    .labelsHidden()
+                                    .colorScheme(.dark)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                            }
                             
-                            // Last Odometer
-                            Text("Last Odometer (km)")
-                                .foregroundColor(.white)
-                                .font(.system(size: 15, weight: .medium))
-                            TextField("42000", text: $viewModel.lastOdometer)
-                                .textFieldStyle(CustomTextFieldStyle())
-                                .keyboardType(.numberPad)
+                            // Last Service Odometer
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Odometer at Service (km)")
+                                    .font(.subheadline)
+                                    .foregroundColor(.gray)
+                                
+                                TextField("e.g., 48000", text: $viewModel.lastOdometer)
+                                    .keyboardType(.numberPad)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(10)
+                                    .foregroundColor(.white)
+                            }
                         }
                         .padding()
-                        .background(Color.blue.opacity(0.15))
-                        .cornerRadius(15)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 15)
-                                .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
-                        )
+                        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
+                        .cornerRadius(18)
                         
                         // MARK: - Save Button
-                        Button {
+                        Button(action: {
                             viewModel.updateVehicle()
-                            viewModel.addServiceHistoryEntry()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            if viewModel.errorMessage == nil {
                                 dismiss()
                             }
-                        } label: {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 18))
-                                Text("Save Changes")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color.cyan.opacity(0.8))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.cyan, lineWidth: 2)
-                            )
-                            .shadow(color: .cyan.opacity(0.5), radius: 10)
+                        }) {
+                            Text("Save Changes")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.cyan],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(12)
+                                .shadow(color: .cyan.opacity(0.4), radius: 8, x: 0, y: 4)
                         }
                         .padding(.top, 10)
                         
-                        // MARK: - Cancel Button (Optional)
-                        Button {
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Image(systemName: "xmark.circle")
-                                    .font(.system(size: 18))
-                                Text("Cancel")
-                                    .font(.headline)
-                            }
-                            .foregroundColor(.gray)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray.opacity(0.5), lineWidth: 2)
-                            )
+                        // MARK: - Delete Button
+                        Button(action: {
+                            viewModel.isShowingDeleteConfirmation = true
+                        }) {
+                            Text("Delete Vehicle")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.red.opacity(0.8))
+                                .cornerRadius(12)
                         }
+                        
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 20)
-                    .padding(.bottom, 40)
+                    .padding()
+                }
+            }
+            .navigationTitle("Edit Vehicle")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.cyan)
+                }
+            }
+            .alert("Error", isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                }
+            }
+            .alert("Delete Vehicle?", isPresented: $viewModel.isShowingDeleteConfirmation) {
+                Button("Cancel", role: .cancel) { }
+                Button("Delete", role: .destructive) {
+                    viewModel.deleteVehicle()
+                    dismiss()
+                }
+            } message: {
+                Text("This action cannot be undone. All service history for this vehicle will also be deleted.")
+            }
+            .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
+                Button("OK") {
+                    viewModel.successMessage = nil
+                }
+            } message: {
+                if let success = viewModel.successMessage {
+                    Text(success)
                 }
             }
         }
-        .navigationBarHidden(true) // Hide default navigation bar
-    }
-    
-    struct CustomTextFieldStyle: TextFieldStyle {
-        func _body(configuration: TextField<Self._Label>) -> some View {
-            configuration
-                .padding()
-                .background(Color.white)
-                .cornerRadius(10)
-                .foregroundColor(.black)
-        }
-    }
-}
-
-// MARK: - Preview
-#Preview {
-    PreviewWrapper()
-}
-struct PreviewWrapper: View {
-    let context = PersistenceController.shared.container.viewContext
-    
-    var body: some View {
-        let mockUser = User(context: context)
-        mockUser.user_id = UUID()
-        mockUser.email = "preview@drivebuddy.com"
-        
-        let mockVehicle = Vehicles(context: context)
-        mockVehicle.vehicles_id = UUID()
-        mockVehicle.make_model = "Toyota Fortuner"
-        mockVehicle.vehicle_type = "Car"
-        mockVehicle.plate_number = "L 1990 ZZH"
-        mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-        mockVehicle.stnk_due_date = Calendar.current.date(byAdding: .month, value: 2, to: Date())
-        mockVehicle.last_service_date = Calendar.current.date(byAdding: .month, value: -3, to: Date())
-        mockVehicle.odometer = 324422
-        mockVehicle.user = mockUser
-        
-        let mockVM = VehicleDetailViewModel(
-            context: context,
-            vehicle: mockVehicle,
-            activeUser: mockUser
-        )
-        
-        return EditVehicleView(viewModel: mockVM)
     }
 }

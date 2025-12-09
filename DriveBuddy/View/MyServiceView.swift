@@ -19,7 +19,6 @@ struct MyServiceView: View {
     var activeUser: User?
 
     // MARK: - Init
-    // Init disesuaikan dengan ViewModel Anda yang sudah ada
     init(vehicle: Vehicles, context: NSManagedObjectContext, activeUser: User?) {
         self.activeUser = activeUser
         _viewModel = StateObject(wrappedValue: MyServiceViewModel(context: context, vehicle: vehicle))
@@ -34,7 +33,7 @@ struct MyServiceView: View {
                 VStack(alignment: .leading, spacing: 24) {
 
                     // MARK: - HEADER
-                    Text("My Service")
+                    Text("Service History")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -42,36 +41,17 @@ struct MyServiceView: View {
 
                     Spacer(minLength: 5)
 
-                    // MARK: - Upcoming Services
-                    if !viewModel.upcomingServices.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Upcoming Service")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-
-                            // Menggunakan ServiceHistory
-                            ForEach(viewModel.upcomingServices, id: \.objectID) { service in
-                                ServiceCard(
-                                    title: service.service_name ?? "Unknown",
-                                    date: formatted(service.service_date),
-                                    detail: "\(Int(service.odometer)) km | Next Service",
-                                    type: .upcoming
-                                )
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
+                    // ✅ REMOVED: Upcoming Services section (only show in VehicleDetailView card)
+                    // Now only showing completed service history
 
                     // MARK: - Completed Services
                     if !viewModel.completedServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Completed Service")
+                            Text("Completed Services")
                                 .font(.title3)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.white)
 
-                            // Menggunakan ServiceHistory
                             ForEach(viewModel.completedServices, id: \.objectID) { service in
                                 ServiceCard(
                                     title: service.service_name ?? "Unknown",
@@ -85,17 +65,25 @@ struct MyServiceView: View {
                     }
 
                     // MARK: - Empty State
-                    if viewModel.completedServices.isEmpty && viewModel.upcomingServices.isEmpty {
+                    if viewModel.completedServices.isEmpty {
                         VStack(spacing: 16) {
-                            Text("No services yet")
+                            Image(systemName: "wrench.and.screwdriver")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray.opacity(0.5))
+                                .padding(.bottom, 8)
+                            
+                            Text("No service history yet")
                                 .foregroundColor(.gray)
                                 .font(.headline)
-                            Text("Add a new service to see it here.")
+                            
+                            Text("Add a completed service to see it here.")
                                 .foregroundColor(.gray.opacity(0.7))
                                 .font(.subheadline)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 60)
+                        .padding(.top, 80)
                     }
                 }
                 .padding(.bottom, 80)
@@ -113,7 +101,7 @@ struct MyServiceView: View {
     }
 }
 
-// MARK: - Enum & Card Components (Tidak berubah, pastikan ini ada di file)
+// MARK: - Enum & Card Components
 enum ServiceType {
     case upcoming
     case completed
@@ -177,7 +165,7 @@ struct ServiceCard: View {
     }
 }
 
-// MARK: - Preview (Diperbarui)
+// MARK: - Preview
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     
@@ -195,7 +183,7 @@ struct ServiceCard: View {
         MyServiceView(
             vehicle: sampleVehicle,
             context: context,
-            activeUser: user // Sesuaikan dengan init baru
+            activeUser: user
         )
         .environment(\.managedObjectContext, context)
     }

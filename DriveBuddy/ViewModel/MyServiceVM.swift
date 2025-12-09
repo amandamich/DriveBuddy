@@ -1,10 +1,3 @@
-//
-//  MyServiceVM.swift
-//  DriveBuddy
-//
-//  Created by Student on 12/11/25.
-//
-
 import Foundation
 import CoreData
 import SwiftUI
@@ -12,19 +5,16 @@ import Combine
 
 @MainActor
 class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsControllerDelegate {
-    // MARK: - Core Data
+
     private let context: NSManagedObjectContext
     private let vehicle: Vehicles
     
-    // MARK: - Published properties
     @Published var upcomingServices: [ServiceHistory] = []
     @Published var completedServices: [ServiceHistory] = []
 
-    
     private var fetchedResultsController: NSFetchedResultsController<ServiceHistory>!
     private var timer: Timer?
-
-    // MARK: - Init
+    
     init(context: NSManagedObjectContext, vehicle: Vehicles) {
         self.context = context
         self.vehicle = vehicle
@@ -34,7 +24,6 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
         startDailyUpdateTimer()
     }
 
-    // MARK: - Setup FetchedResultsController (live Core Data listener)
     private func setupFetchedResultsController() {
         let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         request.predicate = NSPredicate(format: "vehicle == %@", vehicle)
@@ -49,7 +38,6 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
         fetchedResultsController.delegate = self
     }
 
-    // MARK: - Perform initial fetch
     private func performFetch() {
         do {
             try fetchedResultsController.performFetch()
@@ -59,12 +47,10 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
         }
     }
 
-    // MARK: - React to Core Data changes
     func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
         updateServices()
     }
 
-    // MARK: - Classify services dynamically
     private func updateServices() {
         guard let fetchedObjects = fetchedResultsController.fetchedObjects else {
             upcomingServices = []
@@ -72,20 +58,24 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
             return
         }
 
-        let now = Date()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
 
         upcomingServices = fetchedObjects.filter { service in
             guard let date = service.service_date else { return false }
-            return date > now
+            return calendar.startOfDay(for: date) > today
         }
 
         completedServices = fetchedObjects.filter { service in
             guard let date = service.service_date else { return false }
-            return date <= now
+            return calendar.startOfDay(for: date) <= today
         }
+
+        print("\n🔍 CLASSIFY RESULT")
+        print("Upcoming:", upcomingServices.count)
+        print("Completed:", completedServices.count)
     }
 
-    // MARK: - Delete a service
     func deleteService(_ service: ServiceHistory) {
         context.delete(service)
         do {
@@ -95,7 +85,6 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
         }
     }
 
-    // MARK: - Optional: Refresh automatically every hour
     private func startDailyUpdateTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 3600, repeats: true) { [weak self] _ in

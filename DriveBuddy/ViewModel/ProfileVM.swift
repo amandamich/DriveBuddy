@@ -521,36 +521,69 @@ class ProfileViewModel: ObservableObject {
 
         do {
             guard let userId = user?.user_id else { return }
-
-            let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
-            request.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
-
-            let vehicles = try viewContext.fetch(request)
             var addedCount = 0
 
+            // ✅ 1. SYNC TAX DUE DATES
+            let vehicleRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+            vehicleRequest.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
+            let vehicles = try viewContext.fetch(vehicleRequest)
+
             for vehicle in vehicles {
-                guard let serviceDate = vehicle.next_service_date else { continue }
+                // Only add future tax dates
+                if let taxDate = vehicle.tax_due_date,
+                   taxDate > Date(),
+                   let vehicleName = vehicle.make_model {
+                    
+                    try await addCalendarEvent(
+                        title: "🚗 Tax Due: \(vehicleName)",
+                        notes: "Vehicle tax renewal due for \(vehicleName)",
+                        startDate: taxDate,
+                        alarmOffsetDays: 7
+                    )
+                    addedCount += 1
+                    print("✅ Added tax date for \(vehicleName)")
+                }
+            }
+
+            // ✅ 2. SYNC UPCOMING SERVICES FROM ServiceHistory
+            let serviceRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            serviceRequest.predicate = NSPredicate(
+                format: "vehicle.user.user_id == %@ AND service_date > %@",
+                userId as CVarArg,
+                Date() as CVarArg
+            )
+            
+            let upcomingServices = try viewContext.fetch(serviceRequest)
+
+            for service in upcomingServices {
+                guard let serviceDate = service.service_date,
+                      let vehicleName = service.vehicle?.make_model,
+                      let serviceName = service.service_name else { continue }
 
                 try await addCalendarEvent(
-                    title: "🔧 Service: \(vehicle.make_model ?? "Service")",
-                    notes: "Scheduled service for \(vehicle.make_model ?? "Vehicle")",
+                    title: "🔧 \(serviceName): \(vehicleName)",
+                    notes: "Scheduled \(serviceName) for \(vehicleName)\nOdometer: \(Int(service.odometer)) km",
                     startDate: serviceDate,
                     alarmOffsetDays: 7
                 )
                 addedCount += 1
+                print("✅ Added service: \(serviceName) for \(vehicleName)")
             }
 
             await MainActor.run {
-                self.successMessage = "✅ Added \(addedCount) vehicle(s) to calendar"
+                if addedCount > 0 {
+                    self.successMessage = "✅ Added \(addedCount) event(s) to calendar"
+                } else {
+                    self.successMessage = "No upcoming events to add"
+                }
             }
         } catch {
-            print("❌ Failed to sync vehicles to calendar: \(error.localizedDescription)")
+            print("❌ Failed to sync to calendar: \(error.localizedDescription)")
             await MainActor.run {
-                self.errorMessage = "Failed to sync to calendar"
+                self.errorMessage = "Failed to sync to calendar: \(error.localizedDescription)"
             }
         }
     }
-
     
     // MARK: - 🆕 Test Notification
     

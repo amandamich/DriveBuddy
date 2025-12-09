@@ -2,8 +2,6 @@
 //  VehicleDetailViewModel.swift
 //  DriveBuddy
 //
-//  Created by Jennifer Alicia Litan on 03/11/25.
-//
 
 import Foundation
 import CoreData
@@ -46,19 +44,96 @@ class VehicleDetailViewModel: ObservableObject {
     
     // MARK: - Service History List (for UI)
     @Published var serviceHistories: [ServiceHistory] = []
+    
+    // ✅ FIXED: Published computed properties for UI binding
+    @Published var latestServiceName: String = "No service recorded"
+    @Published var latestServiceDate: Date? = nil
+    @Published var upcomingServiceName: String = "No service scheduled"
+    @Published var upcomingServiceDate: Date? = nil
+    @Published var latestServiceOdometer: Double? = nil
 
-    // Fetch service history from the activeVehicle relationship
+    // ✅ FIXED: Compare actual date/time, not just day
+    private func isDateInPast(_ date: Date) -> Bool {
+        return date < Date()
+    }
+    
+    private func isDateInFuture(_ date: Date) -> Bool {
+        return date > Date()
+    }
+
+    // ✅ FIXED: Fetch and immediately update published properties
     func fetchServiceHistory() {
-        // relationship name MUST match your data model: "servicehistory"
-        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
-            // sort by service_date descending (newest first)
-            serviceHistories = set.sorted {
-                let d0 = $0.service_date ?? Date.distantPast
-                let d1 = $1.service_date ?? Date.distantPast
-                return d0 > d1
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(format: "vehicle == %@", activeVehicle)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: false)]
+        
+        do {
+            serviceHistories = try context.fetch(request)
+            
+            print("\n📋 LOADED \(serviceHistories.count) SERVICES:")
+            for service in serviceHistories {
+                let serviceDate = service.service_date ?? Date()
+                let isPast = isDateInPast(serviceDate)
+                print("- \(service.service_name ?? "NO NAME")")
+                print("  Date: \(serviceDate)")
+                print("  Status: [\(isPast ? "PAST" : "FUTURE")]")
             }
-        } else {
+            
+            // ✅ FIXED: Immediately update computed properties
+            updateComputedProperties()
+            
+        } catch {
+            print("❌ Failed to fetch service history: \(error)")
             serviceHistories = []
+            updateComputedProperties()
+        }
+    }
+    
+    // ✅ NEW: Centralized method to update all computed properties
+    private func updateComputedProperties() {
+        // Update latest completed service
+        let completed = serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInPast(date)
+        }.first
+        
+        if let service = completed {
+            latestServiceName = service.service_name?.isEmpty == false ? service.service_name! : "Service Record"
+            latestServiceDate = service.service_date
+            latestServiceOdometer = service.odometer
+        } else {
+            latestServiceName = "No service recorded"
+            latestServiceDate = nil
+            latestServiceOdometer = nil
+        }
+        
+        // Update upcoming service
+        let upcoming = serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInFuture(date)
+        }.sorted {
+            ($0.service_date ?? .distantFuture) < ($1.service_date ?? .distantFuture)
+        }.first
+        
+        if let service = upcoming {
+            upcomingServiceName = service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service"
+            upcomingServiceDate = service.service_date
+        } else {
+            // ✅ If no upcoming service in database, show calculated next service
+            if let calculatedDate = calculatedNextServiceDate {
+                upcomingServiceName = "Scheduled Service"
+                upcomingServiceDate = calculatedDate
+            } else {
+                upcomingServiceName = "No service scheduled"
+                upcomingServiceDate = nil
+            }
+        }
+        
+        print("\n📊 Updated Properties:")
+        print("Latest: \(latestServiceName) on \(latestServiceDate?.description ?? "N/A")")
+        print("Upcoming: \(upcomingServiceName) on \(upcomingServiceDate?.description ?? "N/A")")
+        if let calc = calculatedNextServiceDate {
+            print("Calculated next service: \(calc.description)")
         }
     }
 
@@ -68,7 +143,6 @@ class VehicleDetailViewModel: ObservableObject {
         self.context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         self.activeVehicle = vehicle
         self.activeUser = activeUser
-        loadVehicleData()
         
         if let existingDate = vehicle.tax_due_date {
             self.tempTaxDate = existingDate
@@ -77,20 +151,36 @@ class VehicleDetailViewModel: ObservableObject {
             self.tempTaxDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
             self.hasTaxDate = false
         }
-        fetchServiceHistory()
+        
+        // ✅ FIXED: Load data after all properties are initialized
+        loadVehicleData()
     }
 
     // MARK: - Load Data
     func loadVehicleData() {
+        print("\n🔄 Loading vehicle data...")
+        
+        // ✅ Force refresh from persistent store
+        context.refreshAllObjects()
+        context.refresh(activeVehicle, mergeChanges: true)
+        
+        // ✅ Fetch service history AFTER refreshing context
+        fetchServiceHistory()
+        
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
         odometer = String(format: "%.0f", activeVehicle.odometer)
         taxDueDate = activeVehicle.tax_due_date ?? Date()
         stnkDueDate = activeVehicle.stnk_due_date ?? Date()
+        
+        // ✅ Load from latest completed service for editing
         serviceName = latestServiceName
         lastServiceDate = latestServiceDate ?? Date()
         lastOdometer = String(format: "%.0f", latestServiceOdometer ?? activeVehicle.odometer)
+        
         hasTaxDate = activeVehicle.tax_due_date != nil
+        
+        print("✅ Vehicle data loaded")
     }
 
     // MARK: - Start Editing
@@ -111,10 +201,20 @@ class VehicleDetailViewModel: ObservableObject {
         activeVehicle.odometer = Double(odometer) ?? 0
         activeVehicle.tax_due_date = taxDueDate
         activeVehicle.stnk_due_date = stnkDueDate
-        activeVehicle.service_name = serviceName
-        activeVehicle.last_service_date = lastServiceDate
-        activeVehicle.last_odometer = Double(lastOdometer) ?? 0
         activeVehicle.user = activeUser
+        
+        // ✅ FIXED: Only update the LATEST COMPLETED service history entry
+        let completed = serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInPast(date)
+        }.first
+        
+        if let latestService = completed {
+            latestService.service_name = serviceName
+            latestService.service_date = lastServiceDate
+            latestService.odometer = Double(lastOdometer) ?? 0
+            print("✅ Updated existing service history entry")
+        }
 
         do {
             try context.save()
@@ -127,37 +227,7 @@ class VehicleDetailViewModel: ObservableObject {
             print("SAVE FAILED: \(error.localizedDescription)")
             errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
-        context.refresh(activeVehicle, mergeChanges: true)
-        fetchServiceHistory()
-
     }
-
-    // MARK: - Create Service History Entry
-    func addServiceHistoryEntry() {
-        let history = ServiceHistory(context: context)
-
-        history.history_id = UUID()
-        history.service_name = self.serviceName
-        history.service_date = self.lastServiceDate
-        history.odometer = Double(self.lastOdometer) ?? 0
-        history.created_at = Date()
-        history.vehicle = activeVehicle
-
-        // ⬇️ Tambahkan ke relationship "servicehistory" (to-many)
-        let set = activeVehicle.mutableSetValue(forKey: "servicehistory")
-        set.add(history)
-
-        do {
-            try context.save()
-            print("✅ Service history entry added")
-            context.refresh(activeVehicle, mergeChanges: true)
-            fetchServiceHistory()   // refresh list
-        } catch {
-            print("❌ Failed to save service history entry: \(error)")
-            self.errorMessage = "Failed to save service history"
-        }
-    }
-
 
     // MARK: - Tax Updates
     func updateTaxDueDate() async {
@@ -248,9 +318,6 @@ class VehicleDetailViewModel: ObservableObject {
         } catch {
             errorMessage = "Failed to delete: \(error.localizedDescription)"
         }
-        context.refresh(activeVehicle, mergeChanges: true)
-        fetchServiceHistory()
-
     }
 
     // MARK: - Create New Vehicle
@@ -282,38 +349,15 @@ class VehicleDetailViewModel: ObservableObject {
         return ("Up to Date", .green)
     }
     
-    // MARK: - Latest Service Helpers
-    var latestService: ServiceHistory? {
-        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
-            return set.sorted {
-                ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast)
-            }.first
-        }
-        return nil
-    }
-
-    var latestServiceName: String {
-        latestService?.service_name ?? "No service recorded"
-    }
-
-    var latestServiceDate: Date? {
-        latestService?.service_date
-    }
-
-    // Next service date is stored on Vehicles, not ServiceHistory
     var nextServiceDate: Date? {
-        activeVehicle.next_service_date
+        upcomingServiceDate ?? activeVehicle.next_service_date ?? calculatedNextServiceDate
     }
     
-    var latestServiceOdometer: Double? {
-        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
-            return set.sorted { ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast) }
-                .first?.odometer
-        }
-        return nil
+    // ✅ Calculate next service date based on last service (6 months later)
+    var calculatedNextServiceDate: Date? {
+        guard let lastDate = latestServiceDate else { return nil }
+        return Calendar.current.date(byAdding: .month, value: 6, to: lastDate)
     }
-
-
 
     // MARK: - Helpers
     var formattedOdometer: String {
@@ -339,4 +383,3 @@ class VehicleDetailViewModel: ObservableObject {
         return formatter.string(from: date)
     }
 }
-
