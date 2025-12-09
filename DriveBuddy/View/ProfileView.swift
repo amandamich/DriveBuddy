@@ -225,3 +225,8 @@ struct ProfileView: View {
             .padding(.leading, 16)
     }
 }
+
+// MARK: - Preview
+#Preview {
+    ProfileView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
+}
