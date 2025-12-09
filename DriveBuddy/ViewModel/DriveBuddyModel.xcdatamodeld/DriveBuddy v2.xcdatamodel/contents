@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24411" systemVersion="25B78" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="Reminders" representedClassName="Reminders" syncable="YES" codeGenerationType="class">
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="reminder_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
@@ -49,7 +49,7 @@
         <attribute name="year_manufacture" optional="YES" attributeType="String"/>
         <relationship name="reminder" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Reminders" inverseName="vehicle" inverseEntity="Reminders"/>
         <relationship name="schedule" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Schedules" inverseName="vehicle" inverseEntity="Schedules"/>
-        <relationship name="servicehistory" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
+        <relationship name="servicehistory" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="ServiceHistory" inverseName="vehicle" inverseEntity="ServiceHistory"/>
         <relationship name="user" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="User" inverseName="vehicles" inverseEntity="User"/>
     </entity>
     <entity name="Workshops" representedClassName="Workshops" syncable="YES" codeGenerationType="class">

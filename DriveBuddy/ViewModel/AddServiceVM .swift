@@ -22,22 +22,32 @@ class AddServiceViewModel: ObservableObject {
     private let profileVM: ProfileViewModel
 
     init(context: NSManagedObjectContext, vehicle: Vehicles, profileVM: ProfileViewModel) {
+        print("🏁 AddServiceViewModel initialized")
         self.viewContext = context
-        self.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        // ✅ Try NSMergeByPropertyStoreTrumpMergePolicy to keep store data
+        self.viewContext.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
         self.vehicle = vehicle
         self.profileVM = profileVM
     }
 
     func addService() {
+        // ⚠️ CRITICAL DEBUG - This should ALWAYS print if function is called
+        print("\n🔴🔴🔴 addService() FUNCTION CALLED 🔴🔴🔴")
+        print("Service Name: \(serviceName)")
+        print("Selected Date: \(selectedDate)")
+        print("Odometer: \(odometer)")
+        
         successMessage = nil
         errorMessage = nil
 
         guard !serviceName.isEmpty else {
+            print("❌ Service name is empty")
             errorMessage = "Please enter the service name."
             return
         }
 
         guard !odometer.isEmpty, let odometerValue = Double(odometer) else {
+            print("❌ Odometer is invalid")
             errorMessage = "Please enter a valid odometer value."
             return
         }
@@ -84,6 +94,16 @@ class AddServiceViewModel: ObservableObject {
         do {
             print("\n💾 ATTEMPTING FIRST SAVE...")
             
+            // ✅ Check what's in context BEFORE save
+            let allObjectsRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            allObjectsRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
+            if let allBeforeSave = try? viewContext.fetch(allObjectsRequest) {
+                print("\n📋 SERVICES IN CONTEXT BEFORE SAVE:")
+                for service in allBeforeSave {
+                    print("   - \(service.service_name ?? "nil") [\(service.isDeleted ? "DELETED" : "ACTIVE")]")
+                }
+            }
+            
             // ✅ FIRST: Save the main service
             try viewContext.save()
             print("✅ Context save succeeded")
@@ -98,6 +118,15 @@ class AddServiceViewModel: ObservableObject {
                 print("✅ Service still exists in context")
             }
             
+            // ✅ Check what's in the persistent store AFTER save
+            viewContext.refreshAllObjects()
+            if let allAfterSave = try? viewContext.fetch(allObjectsRequest) {
+                print("\n📋 SERVICES IN PERSISTENT STORE AFTER SAVE:")
+                for service in allAfterSave {
+                    print("   - \(service.service_name ?? "nil") (ID: \(service.history_id?.uuidString ?? "nil"))")
+                }
+            }
+            
             // ✅ Verify the service was saved
             let afterCount = (try? viewContext.count(for: beforeRequest)) ?? 0
             print("\n📊 AFTER FIRST SAVE: \(afterCount) services (was \(beforeCount))")
@@ -105,6 +134,7 @@ class AddServiceViewModel: ObservableObject {
             if afterCount <= beforeCount {
                 print("⚠️⚠️⚠️ WARNING: Service count didn't increase!")
                 print("   Expected: \(beforeCount + 1), Got: \(afterCount)")
+                print("   This suggests a unique constraint or merge policy issue")
             } else {
                 print("✅ Service count increased correctly!")
             }
@@ -133,12 +163,28 @@ class AddServiceViewModel: ObservableObject {
             // ✅ SECOND: Auto-create upcoming service if needed
             if isPastService {
                 print("\n🔄 Service is in the past, attempting auto-create...")
+                // ✅ CRITICAL: Refresh context to ensure we have latest data
+                viewContext.refreshAllObjects()
                 autoCreateUpcomingServiceIfNeeded()
             } else {
                 print("\n⏭️ Service is in the future, skipping auto-create")
             }
             
-            // ✅ THIRD: Verify final count
+            // ✅ THIRD: Verify final count AFTER auto-create
+            viewContext.refreshAllObjects()
+            let finalRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            finalRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
+            if let finalServices = try? viewContext.fetch(finalRequest) {
+                print("\n📊 FINAL SERVICE LIST (\(finalServices.count) total):")
+                for (index, service) in finalServices.enumerated() {
+                    let isPast = (service.service_date ?? Date()) < Date()
+                    print("   \(index + 1). \(service.service_name ?? "nil")")
+                    print("      Date: \(service.service_date?.description ?? "nil")")
+                    print("      Past: \(isPast)")
+                    print("      ID: \(service.history_id?.uuidString ?? "nil")")
+                }
+            }
+            
             let finalCount = (try? viewContext.count(for: beforeRequest)) ?? 0
             print("\n📊 FINAL COUNT: \(finalCount) services")
             
@@ -189,22 +235,33 @@ class AddServiceViewModel: ObservableObject {
         }
     }
     
-    // ✅ NEW: Auto-create upcoming service if the added service is in the past
+    // ✅ FIXED: Auto-create upcoming service if the added service is in the past
     private func autoCreateUpcomingServiceIfNeeded() {
+        print("\n🔄 AUTO-CREATE: Starting...")
+        
         // Only auto-create if the service we just added is in the past
         guard selectedDate < Date() else {
             print("ℹ️ Service is in the future, not auto-creating next service")
             return
         }
         
-        // Check if there's already a future service
+        // ✅ FIXED: Fetch fresh data to check for existing future services
         let futureRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         futureRequest.predicate = NSPredicate(format: "vehicle == %@ AND service_date > %@", vehicle, Date() as NSDate)
         
-        let hasFutureService = (try? viewContext.count(for: futureRequest)) ?? 0 > 0
-        
-        guard !hasFutureService else {
-            print("ℹ️ Future service already exists, skipping auto-create")
+        do {
+            let existingFutureServices = try viewContext.fetch(futureRequest)
+            print("🔍 Found \(existingFutureServices.count) existing future services")
+            
+            if !existingFutureServices.isEmpty {
+                print("ℹ️ Future service already exists:")
+                for service in existingFutureServices {
+                    print("   - \(service.service_name ?? "nil") on \(service.service_date?.description ?? "nil")")
+                }
+                return
+            }
+        } catch {
+            print("❌ Failed to check for future services: \(error)")
             return
         }
         
@@ -214,19 +271,35 @@ class AddServiceViewModel: ObservableObject {
             return
         }
         
-        // ✅ Mark as auto-generated by using a special service name prefix
+        print("📝 Creating new upcoming service for \(nextDate)")
+        
+        // ✅ Create in the SAME context
         let upcomingService = ServiceHistory(context: viewContext)
         upcomingService.history_id = UUID()
-        upcomingService.service_name = "Scheduled Maintenance" // Generic name for auto-created
+        upcomingService.service_name = "Scheduled Maintenance"
         upcomingService.service_date = nextDate
         upcomingService.odometer = 0
         upcomingService.created_at = Date()
         upcomingService.vehicle = vehicle
         
+        print("   Service ID: \(upcomingService.history_id?.uuidString ?? "nil")")
+        print("   Name: \(upcomingService.service_name ?? "nil")")
+        print("   Date: \(upcomingService.service_date?.description ?? "nil")")
+        
         do {
             try viewContext.save()
             viewContext.processPendingChanges()
-            print("✅ Auto-created upcoming service for \(nextDate)")
+            
+            // ✅ Verify it was saved
+            let verifyRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            verifyRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
+            let allServices = try viewContext.fetch(verifyRequest)
+            
+            print("✅ Auto-created upcoming service successfully")
+            print("📊 Total services now: \(allServices.count)")
+            for (index, service) in allServices.enumerated() {
+                print("   \(index + 1). \(service.service_name ?? "nil") - \(service.service_date?.description ?? "nil")")
+            }
         } catch {
             print("❌ Failed to auto-create upcoming service: \(error)")
         }
