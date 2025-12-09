@@ -8,6 +8,15 @@
 import SwiftUI
 import CoreLocation
 
+// MARK: - Daily Schedule Model
+struct DailySchedule: Identifiable {
+    let id = UUID()
+    let day: String
+    let hours: String
+    let isOpen: Bool
+}
+
+// MARK: - Main Workshop View
 struct WorkshopView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var favoriteManager = FavoriteWorkshopManagerVM.shared
@@ -136,26 +145,25 @@ struct WorkshopView: View {
                 }
             }
             .navigationBarHidden(true)
-			.onAppear {
-				print("🎬 WorkshopView appeared")
-				locationManager.requestPermission()
-				
-				// If location already available, update immediately
-				if locationManager.userLocation != nil {
-					print("✅ Location already available on appear")
-					updateWorkshopDistances()
-				}
-			}
-			.onChange(of: locationManager.userLocation) { oldValue, newValue in
-				print("🔄 Location changed - Old: \(oldValue?.coordinate.latitude ?? 0), New: \(newValue?.coordinate.latitude ?? 0)")
-				
-				// Update whenever location changes
-				if newValue != nil {
-					print("✅ New location available, updating distances...")
-					updateWorkshopDistances()
-				}
-			}
-
+            .onAppear {
+                print("🎬 WorkshopView appeared")
+                locationManager.requestPermission()
+                
+                // If location already available, update immediately
+                if locationManager.userLocation != nil {
+                    print("✅ Location already available on appear")
+                    updateWorkshopDistances()
+                }
+            }
+            .onChange(of: locationManager.userLocation) { oldValue, newValue in
+                print("🔄 Location changed - Old: \(oldValue?.coordinate.latitude ?? 0), New: \(newValue?.coordinate.latitude ?? 0)")
+                
+                // Update whenever location changes
+                if newValue != nil {
+                    print("✅ New location available, updating distances...")
+                    updateWorkshopDistances()
+                }
+            }
             .alert("Location Permission Required", isPresented: $showLocationAlert) {
                 Button("Settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -278,6 +286,185 @@ struct WorkshopCard: View {
     let isDarkMode: Bool
     @State private var isExpanded = false
     
+    // Get real schedule based on workshop name from Google Maps
+    private var weeklySchedule: [DailySchedule] {
+        switch workshop.name {
+        case "Bengkel Harris Mobil Surabaya":
+            return [
+                DailySchedule(day: "Monday", hours: "08:30 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:30 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:30 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:30 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:30 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 03:30 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Bengkel Jaya Anda Surabaya":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Mobeng Jemusari":
+            return [
+                DailySchedule(day: "Monday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "09:00 AM - 09:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "09:00 AM - 09:00 PM", isOpen: true)
+            ]
+            
+        case "FT Garage":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 04:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Bengkel Mobil 88":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Auto Care Plus":
+            return [
+                DailySchedule(day: "Monday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "09:00 AM - 08:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "09:00 AM - 08:00 PM", isOpen: true)
+            ]
+            
+        case "Bengkel Resmi Honda":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Tire Master Surabaya":
+            return [
+                DailySchedule(day: "Monday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:30 AM - 06:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+            case "Bengkel Mobil Karya Abadi":
+                return [
+                    DailySchedule(day: "Monday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Open 24 hours", isOpen: true)
+                ]
+
+            case "Jaya Anda Workshop - Car Suspension Specialist":
+                return [
+                    DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+                ]
+
+            case "Bengkel Metropolis":
+                return [
+                    DailySchedule(day: "Monday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "08:00 AM - 06:00 PM", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+                ]
+
+            case "Bengkel Dunia Mobil Surabaya":
+                return [
+                    DailySchedule(day: "Monday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "08:00 AM - 04:30 PM", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+                ]
+
+            case "Bengkel Mobil FT Garage Kedung Asem":
+                return [
+                    DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+                ]
+
+            case "Bengkel Panggilan Noviant Remaap ECU":
+                return [
+                    DailySchedule(day: "Monday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Open 24 hours", isOpen: true)
+                ]
+
+        default:
+            // Default schedule for any other workshops
+                return [
+                    DailySchedule(day: "Monday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Tuesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Wednesday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Thursday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Friday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Saturday", hours: "Open 24 hours", isOpen: true),
+                    DailySchedule(day: "Sunday", hours: "Open 24 hours", isOpen: true)
+                ]
+        }
+    }
+    
+    // Get today's schedule
+    private var todaySchedule: DailySchedule? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        let today = formatter.string(from: Date())
+        return weeklySchedule.first { $0.day == today }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // MARK: - Workshop Name with Distance Badge and Favorite Button
@@ -301,7 +488,7 @@ struct WorkshopCard: View {
                             )
                     }
                     
-                    // 🆕 Favorite Button
+                    // Favorite Button
                     FavoriteButtonVM(
                         workshopId: workshop.id.uuidString,
                         favoriteManager: favoriteManager,
@@ -322,25 +509,70 @@ struct WorkshopCard: View {
             }
             .font(.system(size: 13))
             
-            // MARK: - Open Hours with Dropdown
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded.toggle()
+            // MARK: - Open Hours with Dropdown Schedule
+            VStack(alignment: .leading, spacing: 8) {
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isExpanded.toggle()
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Text("Open Hours:")
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 70, alignment: .leading)
+                        
+                        // Show current day's hours or summary
+                        if let today = todaySchedule {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(today.isOpen ? Color.green : Color.red)
+                                    .frame(width: 6, height: 6)
+                                Text(today.isOpen ? today.hours : "Closed today")
+                                    .foregroundColor(.white)
+                            }
+                        } else {
+                            Text(workshop.openHours)
+                                .foregroundColor(.white)
+                        }
+                        
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .foregroundColor(.white.opacity(0.7))
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .font(.system(size: 12))
+                    }
+                    .font(.system(size: 13))
                 }
-            }) {
-                HStack(spacing: 6) {
-                    Text("Open Hours:")
-                        .foregroundColor(.white.opacity(0.7))
-                        .frame(width: 70, alignment: .leading)
-                    Text(workshop.openHours)
-                        .foregroundColor(.white)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .foregroundColor(.white.opacity(0.7))
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                        .font(.system(size: 12))
+                
+                // MARK: - Expanded Schedule
+                if isExpanded {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(weeklySchedule) { dailySchedule in
+                            HStack {
+                                Text(dailySchedule.day)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.8))
+                                    .frame(width: 80, alignment: .leading)
+                                
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(dailySchedule.isOpen ? Color.green.opacity(0.8) : Color.red.opacity(0.8))
+                                        .frame(width: 5, height: 5)
+                                    
+                                    Text(dailySchedule.hours)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(dailySchedule.isOpen ? .white : .white.opacity(0.5))
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 2)
+                            .padding(.leading, 76)
+                        }
+                    }
+                    .padding(.top, 4)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .font(.system(size: 13))
             }
             
             // MARK: - Rating
@@ -391,6 +623,7 @@ struct WorkshopCard: View {
     }
 }
 
+// MARK: - Preview
 #Preview {
     WorkshopView()
 }
