@@ -58,7 +58,7 @@ struct Workshop: Identifiable {
 			openHours: "Monday, 08:30am - 17:00pm",
 			rating: 4.9,
 			reviewCount: 0,
-			services: []
+			services: ["Tune Up", "AC Car", "Scale Service", "Scanner", "Remap ECU"]
 		),
 		Workshop(
 			name: "Bengkel Mobil 88",
@@ -95,7 +95,76 @@ struct Workshop: Identifiable {
 			rating: 4.6,
 			reviewCount: 678,
 			services: ["Tire Change", "Wheel Alignment", "Balancing", "Tire Sales"]
-		)
+		),
+        Workshop(
+            name: "Bengkel Mobil Karya Abadi",
+            address: "Jl. Lakarsantri No.124, Lakarsantri, Kec. Lakarsantri",
+            coordinate: CLLocationCoordinate2D(latitude: -7.3558, longitude: 112.6722),
+            openHours: "Open 24 hours",
+            rating: 4.9,
+            reviewCount: 49,
+            services: ["General Repair", "24 Hour Service", "Emergency Service"]
+        ),
+
+        Workshop(
+            name: "Jaya Anda Workshop - Car Suspension Specialist",
+            address: "Jl. Ngagel Tim. No.25, Pucang Sewu, Kec. Gubeng",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2925, longitude: 112.7525),
+            openHours: "Open · Closes 5:00 PM",
+            rating: 4.9,
+            reviewCount: 2900,
+            services: ["Suspension Specialist", "Understel", "Spooring Balancing"]
+        ),
+
+        Workshop(
+            name: "Bengkel Metropolis",
+            address: "Jl. Bukit Darmo Golf I No.3, Pradahkalikendal, Kec. Dukuhpakis",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2847, longitude: 112.7156),
+            openHours: "Open · Closes 6:00 PM",
+            rating: 4.7,
+            reviewCount: 59,
+            services: ["Car Repair", "Maintenance", "General Service"]
+        ),
+
+        Workshop(
+            name: "Bengkel Dunia Mobil Surabaya",
+            address: "Jl. Kenjeran No.323, Bulak, Kec. Bulak",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2289, longitude: 112.7644),
+            openHours: "Open · Closes 4:30 PM",
+            rating: 5.0,
+            reviewCount: 268,
+            services: ["Auto Repair", "Body Paint", "Engine Service"]
+        ),
+
+        Workshop(
+            name: "Bengkel Mobil FT Garage Kedung Asem",
+            address: "Jl. Raya Kedung Asem No.99, Kedung Baruk, Kec. Rungkut",
+            coordinate: CLLocationCoordinate2D(latitude: -7.3401, longitude: 112.7822),
+            openHours: "Open · Closes 5:00 PM",
+            rating: 4.9,
+            reviewCount: 519,
+            services: ["Auto Repair Shop", "General Service", "Maintenance"]
+        ),
+
+        Workshop(
+            name: "Bengkel Panggilan Noviant Remaap ECU",
+            address: "Jl. Bengawan No.8, Darmo, Kec. Wonokromo",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2889, longitude: 112.7311),
+            openHours: "Open 24 hours",
+            rating: 5.0,
+            reviewCount: 264,
+            services: ["ECU Remapping", "Mobile Service", "24 Hour Service"]
+        ),
+
+        Workshop(
+            name: "Bengkel Panggilan 24 Jam Mitra Mekanik Surabaya",
+            address: "Jl. Gubeng Kertajaya VII C No.29, Kertajaya, Kec. Gubeng",
+            coordinate: CLLocationCoordinate2D(latitude: -7.2836, longitude: 112.7522),
+            openHours: "Open 24 hours",
+            rating: 4.7,
+            reviewCount: 59,
+            services: ["Mobile Service", "24 Hour Service", "Emergency Repair"]
+        )
 	]
 }
 

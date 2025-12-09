@@ -31,13 +31,14 @@ struct AddVehicleView: View {
 
     let vehicleTypes = ["Car", "Motorbike"]
 
-    // MARK: HEADER
+    // MARK: HEADER - Updated Layout
     var headerView: some View {
-        HStack {
+        HStack(spacing: 12) {
             // Back button
             Button(action: { dismiss() }) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
                     .padding(10)
                     .background(
                         RoundedRectangle(cornerRadius: 100000)
@@ -45,14 +46,12 @@ struct AddVehicleView: View {
                     )
             }
 
-            Spacer()
-
-            // Title
+            // Title - Now next to back button
             Text("New Vehicle")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(.white)
 
-            Spacer().frame(width: 40)
+            Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -60,7 +59,7 @@ struct AddVehicleView: View {
         .background(Color.black.opacity(0.95))
     }
 
-    // scroll content
+    // MARK: - SCROLL CONTENT
     var contentView: some View {
         VStack(alignment: .leading, spacing: 24) {
 
@@ -188,7 +187,7 @@ struct AddVehicleView: View {
                     .shadow(color: .blue, radius: 10)
             }
 
-            // MARK: Feedback
+            // MARK: Feedback Messages
             if let success = addVehicleVM.successMessage {
                 Text(success)
                     .foregroundColor(.green)
@@ -217,19 +216,21 @@ struct AddVehicleView: View {
         .padding(.horizontal)
     }
 
-    // MARK: - BODY FINAL
+    // MARK: - BODY
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
 
             VStack(spacing: 0) {
-                headerView      // Gak ikut scroll
-                ScrollView {    // Yang bisa discroll
+                headerView
+                
+                ScrollView {
                     contentView
                         .padding(.top, 10)
                 }
             }
         }
+        .navigationBarHidden(true)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -270,6 +271,7 @@ struct CustomTextFieldStyle: TextFieldStyle {
     }
 }
 
+// MARK: - Preview
 #Preview {
     AddVehicleView(authVM: AuthenticationViewModel(context: PersistenceController.shared.container.viewContext))
 }
