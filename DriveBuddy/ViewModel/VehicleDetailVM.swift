@@ -391,4 +391,49 @@ class VehicleDetailViewModel: ObservableObject {
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: date)
     }
+    // MARK: - Service History Helpers
+
+    /// Get the last N completed services
+    func getLastServices(limit: Int = 3) -> [ServiceHistory] {
+        let completed = serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInPast(date)
+        }
+        return Array(completed.prefix(limit))
+    }
+
+    /// Get total count of completed services
+    func getTotalCompletedServices() -> Int {
+        return serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInPast(date)
+        }.count
+    }
+
+    /// Get upcoming services (returns array of name and date tuples)
+    func getUpcomingServices() -> [(name: String, date: Date)] {
+        let upcoming = serviceHistories.filter { service in
+            guard let date = service.service_date else { return false }
+            return isDateInFuture(date)
+        }.sorted {
+            ($0.service_date ?? .distantFuture) < ($1.service_date ?? .distantFuture)
+        }
+        
+        // Return array of (name, date) tuples
+        return upcoming.map { service in
+            let name = service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service"
+            let date = service.service_date ?? Date()
+            return (name: name, date: date)
+        }
+    }
+
+    /// Check if there are multiple services on the same date
+    func hasMultipleServicesOnSameDate(_ targetDate: Date) -> Bool {
+        let calendar = Calendar.current
+        let servicesOnDate = serviceHistories.filter { service in
+            guard let serviceDate = service.service_date else { return false }
+            return calendar.isDate(serviceDate, inSameDayAs: targetDate)
+        }
+        return servicesOnDate.count > 1
+    }
 }

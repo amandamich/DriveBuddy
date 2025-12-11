@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24411" systemVersion="25B78" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="Reminders" representedClassName="Reminders" syncable="YES" codeGenerationType="class">
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="reminder_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="reminder_option" optional="YES" attributeType="String"/>
+        <attribute name="reminder_option" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="reminder_type" optional="YES" attributeType="String"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicles" inverseName="reminder" inverseEntity="Vehicles"/>
     </entity>
@@ -20,6 +20,7 @@
         <attribute name="history_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="next_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="reminder_days_before" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="service_name" optional="YES" attributeType="String"/>
         <relationship name="vehicle" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Vehicles" inverseName="servicehistory" inverseEntity="Vehicles"/>

@@ -523,13 +523,16 @@ class ProfileViewModel: ObservableObject {
             guard let userId = user?.user_id else { return }
             var addedCount = 0
 
-            // ✅ 1. SYNC TAX DUE DATES
+            await MainActor.run {
+                viewContext.refreshAllObjects()
+            }
+
+            // ✅ 1. SYNC TAX DUE DATES (always 7 days - this is fixed)
             let vehicleRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
             vehicleRequest.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
             let vehicles = try viewContext.fetch(vehicleRequest)
 
             for vehicle in vehicles {
-                // Only add future tax dates
                 if let taxDate = vehicle.tax_due_date,
                    taxDate > Date(),
                    let vehicleName = vehicle.make_model {
@@ -538,50 +541,89 @@ class ProfileViewModel: ObservableObject {
                         title: "🚗 Tax Due: \(vehicleName)",
                         notes: "Vehicle tax renewal due for \(vehicleName)",
                         startDate: taxDate,
-                        alarmOffsetDays: 7
+                        alarmOffsetDays: 7 // Tax reminders are always 7 days
                     )
                     addedCount += 1
-                    print("✅ Added tax date for \(vehicleName)")
                 }
             }
 
-            // ✅ 2. SYNC UPCOMING SERVICES FROM ServiceHistory
+            // ✅ 2. SYNC UPCOMING SERVICES WITH USER'S REMINDER PREFERENCE
             let serviceRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
             serviceRequest.predicate = NSPredicate(
                 format: "vehicle.user.user_id == %@ AND service_date > %@",
                 userId as CVarArg,
                 Date() as CVarArg
             )
+            serviceRequest.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: true)]
             
             let upcomingServices = try viewContext.fetch(serviceRequest)
 
+            print("\n📋 Found \(upcomingServices.count) upcoming services:")
             for service in upcomingServices {
                 guard let serviceDate = service.service_date,
                       let vehicleName = service.vehicle?.make_model,
-                      let serviceName = service.service_name else { continue }
+                      let serviceName = service.service_name else {
+                    continue
+                }
+
+                // ✅ USE STORED REMINDER PREFERENCE (default to 7 if not set)
+                let reminderDays = Int(service.reminder_days_before > 0 ? service.reminder_days_before : 7)
+                
+                print("   - \(serviceName) for \(vehicleName)")
+                print("     Date: \(serviceDate)")
+                print("     Reminder: \(reminderDays) days before")
 
                 try await addCalendarEvent(
                     title: "🔧 \(serviceName): \(vehicleName)",
                     notes: "Scheduled \(serviceName) for \(vehicleName)\nOdometer: \(Int(service.odometer)) km",
                     startDate: serviceDate,
-                    alarmOffsetDays: 7
+                    alarmOffsetDays: reminderDays // ✅ USE USER'S SAVED PREFERENCE
                 )
                 addedCount += 1
-                print("✅ Added service: \(serviceName) for \(vehicleName)")
+                print("     ✅ Added to calendar with \(reminderDays) day reminder")
             }
 
             await MainActor.run {
                 if addedCount > 0 {
                     self.successMessage = "✅ Added \(addedCount) event(s) to calendar"
                 } else {
-                    self.successMessage = "No upcoming events to add"
+                    self.successMessage = "ℹ️ No upcoming events to add"
                 }
             }
+            
         } catch {
             print("❌ Failed to sync to calendar: \(error.localizedDescription)")
             await MainActor.run {
-                self.errorMessage = "Failed to sync to calendar: \(error.localizedDescription)"
+                self.errorMessage = "Failed to sync to calendar"
             }
+        }
+    }
+    // Add this to ProfileVM.swift for debugging
+    func debugPrintAllServices() async {
+        guard let userId = user?.user_id else { return }
+        
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(format: "vehicle.user.user_id == %@", userId as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: false)]
+        
+        do {
+            let services = try viewContext.fetch(request)
+            print("\n" + String(repeating: "=", count: 60))
+            print("📋 ALL SERVICES IN DATABASE (\(services.count) total):")
+            print(String(repeating: "=", count: 60))
+            
+            for (index, service) in services.enumerated() {
+                let isPast = (service.service_date ?? Date()) < Date()
+                print("\n\(index + 1). \(service.service_name ?? "NO NAME")")
+                print("   Vehicle: \(service.vehicle?.make_model ?? "Unknown")")
+                print("   Date: \(service.service_date?.description ?? "nil")")
+                print("   Status: [\(isPast ? "✅ PAST" : "🔮 FUTURE")]")
+                print("   Odometer: \(service.odometer) km")
+                print("   ID: \(service.history_id?.uuidString ?? "nil")")
+            }
+            print(String(repeating: "=", count: 60) + "\n")
+        } catch {
+            print("❌ Failed to fetch services: \(error)")
         }
     }
     
