@@ -22,99 +22,96 @@ class AddServiceViewModel: ObservableObject {
     private let profileVM: ProfileViewModel
 
     init(context: NSManagedObjectContext, vehicle: Vehicles, profileVM: ProfileViewModel) {
-        print("🏁 AddServiceViewModel initialized")
+        print("[AddServiceVM] init")
         self.viewContext = context
+        // prefer store trump to avoid unexpected merge conflicts when background changes happen
         self.viewContext.mergePolicy = NSMergeByPropertyStoreTrumpMergePolicy
         self.vehicle = vehicle
         self.profileVM = profileVM
     }
 
     func addService() {
+        print("[AddServiceVM] addService called")
 
+        // reset messages
         successMessage = nil
         errorMessage = nil
 
-        // validation
-        guard !serviceName.trimmingCharacters(in: .whitespaces).isEmpty else {
+        // Validation
+        let trimmedName = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else {
             errorMessage = "Please enter the service name."
+            print("[AddServiceVM] validation failed: empty service name")
             return
         }
 
-        guard let odometerValue = Double(odometer) else {
+        guard !odometer.trimmingCharacters(in: .whitespaces).isEmpty,
+              let odometerValue = Double(odometer) else {
             errorMessage = "Please enter a valid odometer value."
+            print("[AddServiceVM] validation failed: invalid odometer '\(odometer)'")
             return
         }
 
-        print("\n🔴 addService() CALLED")
+        // create history object
+        let history = ServiceHistory(context: viewContext)
+        history.history_id = UUID()
+        history.service_name = trimmedName
+        history.service_date = selectedDate
+        history.odometer = odometerValue
+        history.created_at = Date()
 
-        // MARK: Create new ServiceHistory
-        let newService = ServiceHistory(context: viewContext)
-        newService.history_id = UUID()
-        newService.service_name = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
-        newService.service_date = selectedDate
-        newService.odometer = odometerValue
-        newService.created_at = Date()
-        newService.vehicle = vehicle
-        newService.reminder_days_before = Int16(daysBeforeReminder)
-
-        let isPastService = selectedDate < Date()
-
-        // save next service date on ServiceHistory
-        if let nextDate = Calendar.current.date(byAdding: .month, value: 6, to: selectedDate) {
-            newService.next_service_date = nextDate
+        // If your model includes reminder_days_before in ServiceHistory, set it safely
+        if history.responds(to: Selector(("setReminder_days_before:"))) {
+            history.setValue(Int16(daysBeforeReminder), forKey: "reminder_days_before")
         }
 
-        // MARK: Store reminder offset on VEHICLE
-        switch reminder {
-        case "One week before": vehicle.service_reminder_offset = 7
-        case "Two weeks before": vehicle.service_reminder_offset = 14
-        case "One month before": vehicle.service_reminder_offset = 30
-        default: vehicle.service_reminder_offset = 7
+        // If your model includes next_service_date in ServiceHistory, set it safely
+        if history.responds(to: Selector(("setNext_service_date:"))) {
+            if let nextDate = Calendar.current.date(byAdding: .month, value: 5, to: selectedDate) {
+                history.setValue(nextDate, forKey: "next_service_date")
+            }
         }
 
-        // MARK: Update VEHICLE summary
+        // relate to vehicle
+        history.vehicle = vehicle
+
+        // update vehicle summary fields (defensive: check attributes exist)
         vehicle.last_service_date = selectedDate
-        vehicle.service_name = newService.service_name
         vehicle.last_odometer = odometerValue
+        vehicle.service_name = trimmedName
 
-        if let nextDate = Calendar.current.date(byAdding: .month, value: 6, to: selectedDate) {
-            vehicle.next_service_date = nextDate
+        // set vehicle.next_service_date if attribute exists
+        if vehicle.responds(to: Selector(("setNext_service_date:"))) {
+            if let next = Calendar.current.date(byAdding: .month, value: 5, to: selectedDate) {
+                vehicle.setValue(next, forKey: "next_service_date")
+            }
         }
 
+        // store reminder offset on vehicle if that attribute exists
+        let offset = Int16(daysBeforeReminder)
+        if vehicle.responds(to: Selector(("setService_reminder_offset:"))) {
+            vehicle.setValue(offset, forKey: "service_reminder_offset")
+        }
+
+        // Save context
         do {
             try viewContext.save()
             viewContext.processPendingChanges()
+            print("[AddServiceVM] saved service for vehicle: \(vehicle.make_model ?? "unknown")")
 
-            // if past → auto create next service
-            if isPastService {
-                autoCreateUpcomingServiceIfNeeded()
-
-                if addToReminder && profileVM.user?.add_to_calendar == true {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        await profileVM.syncAllVehiclesToCalendar()
-                    }
+            // schedule local reminder / calendar in background; swallow errors to avoid crashes
+            if addToReminder {
+                Task {
+                    await scheduleReminderSafely(for: history, daysBefore: daysBeforeReminder)
                 }
             }
 
-            // add reminders
-            if addToReminder {
-                Task {
-                    await profileVM.scheduleServiceReminder(
-                        serviceId: newService.history_id!,
-                        serviceName: newService.service_name ?? "Vehicle Service",
-                        vehicleName: vehicle.make_model ?? "Your Vehicle",
-                        serviceDate: newService.service_date ?? Date(),
-                        daysBeforeReminder: daysBeforeReminder
-                    )
-
-                    if profileVM.user?.add_to_calendar == true {
-                        try? await profileVM.addCalendarEvent(
-                            title: "🔧 Service: \(newService.service_name ?? "Service")",
-                            notes: "Scheduled service for \(vehicle.make_model ?? "Vehicle")",
-                            startDate: newService.service_date ?? Date(),
-                            alarmOffsetDays: daysBeforeReminder
-                        )
+            // if added service is in past, optionally auto-create an upcoming service (non-blocking)
+            if selectedDate < Date() {
+                Task.detached { [weak self] in
+                    guard let self = self else { return }
+                    await MainActor.run {
+                        self.autoCreateUpcomingServiceIfNeeded()
                     }
                 }
             }
@@ -122,20 +119,56 @@ class AddServiceViewModel: ObservableObject {
             successMessage = "Service added successfully!"
             clearFields()
 
+            // notify UI observers (optional)
+            NotificationCenter.default.post(name: .init("DriveBuddyServiceAdded"), object: vehicle)
+
         } catch {
             errorMessage = "Failed to save service: \(error.localizedDescription)"
+            print("[AddServiceVM] save error:", error)
         }
     }
 
-    // MARK: Auto-create upcoming service
+    // MARK: - schedule helper (defensive)
+    private func scheduleReminderSafely(for history: ServiceHistory, daysBefore: Int) async {
+        do {
+            // scheduleServiceReminder may throw or return; guard with try? or do-catch dependent on implementation
+            await profileVM.scheduleServiceReminder(
+                serviceId: history.history_id ?? UUID(),
+                serviceName: history.service_name ?? "Service",
+                vehicleName: vehicle.make_model ?? "Vehicle",
+                serviceDate: history.service_date ?? Date(),
+                daysBeforeReminder: daysBefore
+            )
+            // optional calendar integration
+            if profileVM.user?.add_to_calendar == true {
+                try? await profileVM.addCalendarEvent(
+                    title: "🔧 Service: \(history.service_name ?? "Service")",
+                    notes: "Service for \(vehicle.make_model ?? "Vehicle")",
+                    startDate: history.service_date ?? Date(),
+                    alarmOffsetDays: daysBefore
+                )
+            }
+            print("[AddServiceVM] reminder scheduled")
+        } catch {
+            print("[AddServiceVM] reminder scheduling failed:", error)
+            // do not propagate to UI; it's non-critical
+        }
+    }
+
+    // MARK: - Auto-create upcoming service (defensive)
     private func autoCreateUpcomingServiceIfNeeded() {
-
-        guard selectedDate < Date() else { return }
-
+        print("[AddServiceVM] autoCreateUpcomingServiceIfNeeded start")
+        // run quick check to avoid duplicates
         let req: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         req.predicate = NSPredicate(format: "vehicle == %@ AND service_date > %@", vehicle, Date() as NSDate)
-
-        if let future = try? viewContext.fetch(req), !future.isEmpty {
+        do {
+            let future = try viewContext.fetch(req)
+            if !future.isEmpty {
+                print("[AddServiceVM] future service exists, skip auto-create")
+                return
+            }
+        } catch {
+            print("[AddServiceVM] failed to check existing future services:", error)
             return
         }
 
@@ -148,16 +181,36 @@ class AddServiceViewModel: ObservableObject {
         upcoming.odometer = 0
         upcoming.created_at = Date()
         upcoming.vehicle = vehicle
-        upcoming.reminder_days_before = Int16(daysBeforeReminder)
-        upcoming.next_service_date = Calendar.current.date(byAdding: .month, value: 6, to: nextDate)
+        if upcoming.responds(to: Selector(("setReminder_days_before:"))) {
+            upcoming.setValue(Int16(daysBeforeReminder), forKey: "reminder_days_before")
+        }
+        if upcoming.responds(to: Selector(("setNext_service_date:"))) {
+            upcoming.setValue(Calendar.current.date(byAdding: .month, value: 6, to: nextDate), forKey: "next_service_date")
+        }
 
         do {
             try viewContext.save()
             viewContext.processPendingChanges()
+            print("[AddServiceVM] auto-created upcoming service for \(vehicle.make_model ?? "vehicle") at \(nextDate)")
         } catch {
-            print("❌ Failed auto-create: \(error)")
+            print("[AddServiceVM] auto-create save error:", error)
         }
     }
 
     var daysBeforeReminder: Int {
         switch reminder {
+        case "One week before": return 7
+        case "Two weeks before": return 14
+        case "One month before": return 30
+        default: return 7
+        }
+    }
+
+    private func clearFields() {
+        serviceName = ""
+        selectedDate = Date()
+        odometer = ""
+        reminder = "One month before"
+        addToReminder = true
+    }
+}
