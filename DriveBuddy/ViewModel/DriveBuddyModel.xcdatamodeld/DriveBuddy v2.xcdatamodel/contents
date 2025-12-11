@@ -18,6 +18,7 @@
     <entity name="ServiceHistory" representedClassName="ServiceHistory" syncable="YES" codeGenerationType="class">
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="history_id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="next_service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="service_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="service_name" optional="YES" attributeType="String"/>
@@ -41,6 +42,7 @@
         <attribute name="odometer" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="plate_number" optional="YES" attributeType="String"/>
         <attribute name="service_name" optional="YES" attributeType="String"/>
+        <attribute name="service_reminder_offset" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="stnk_due_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="tax_due_date" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="tax_reminder" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>

@@ -66,39 +66,38 @@ class AddVehicleViewModel: ObservableObject {
         newVehicle.user = user
 
         // ✅ SAVE SERVICE DATA (if provided)
-        if !serviceName.isEmpty {
+        // SAVE SERVICE DATA TO SERVICE HISTORY ENTITY
+        if !serviceName.trimmingCharacters(in: .whitespaces).isEmpty {
+
             let firstService = ServiceHistory(context: viewContext)
             firstService.history_id = UUID()
-            firstService.service_name = serviceName
+            firstService.service_name = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
             firstService.service_date = lastServiceDate
+            firstService.odometer = Double(lastOdometer) ?? newVehicle.odometer
+            firstService.created_at = Date()
 
-            // Relate service to vehicle
+            // calculate next service (5 months)
+            if let next = Calendar.current.date(byAdding: .month, value: 5, to: lastServiceDate) {
+                firstService.next_service_date = next
+                newVehicle.next_service_date = next
+            }
+
+            // relationship
             firstService.vehicle = newVehicle
 
-            // Update vehicle summary fields
-            newVehicle.service_name = serviceName
-            newVehicle.last_service_date = lastServiceDate
-            newVehicle.last_odometer = Double(lastOdometer) ?? 0
-
-            // Calculate next service date
-            newVehicle.next_service_date = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate)
-
-            print("✅ First service saved to ServiceHistory:")
-            print("   - Name: \(serviceName)")
-            print("   - Date: \(lastServiceDate)")
-
-            // Add to calendar if user enables it
-            if profileVM.user?.add_to_calendar == true {
-                Task {
-                    try? await profileVM.addCalendarEvent(
-                        title: "🔧 Service: \(serviceName)",
-                        notes: "Scheduled service for \(makeModel)",
-                        startDate: lastServiceDate,
-                        alarmOffsetDays: 7 // Can be customized based on the reminder options
-                    )
-                }
-            }
+            // update vehicle summary too
+            newVehicle.service_name = firstService.service_name
+            newVehicle.last_service_date = firstService.service_date
+            newVehicle.last_odometer = firstService.odometer
+            newVehicle.service_reminder_offset = 30 // default reminder
+        } else {
+            // no service provided
+            newVehicle.service_name = nil
+            newVehicle.last_service_date = nil
+            newVehicle.last_odometer = 0
+            newVehicle.next_service_date = nil
         }
+
 
         // Tax date will be set later in detail view
         newVehicle.tax_due_date = nil

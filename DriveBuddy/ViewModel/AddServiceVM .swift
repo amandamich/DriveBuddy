@@ -31,209 +31,66 @@ class AddServiceViewModel: ObservableObject {
     }
 
     func addService() {
-        // ⚠️ CRITICAL DEBUG - This should ALWAYS print if function is called
-        print("\n🔴🔴🔴 addService() FUNCTION CALLED 🔴🔴🔴")
-        print("Service Name: \(serviceName)")
-        print("Selected Date: \(selectedDate)")
-        print("Odometer: \(odometer)")
-        
         successMessage = nil
         errorMessage = nil
 
-        guard !serviceName.isEmpty else {
-            print("❌ Service name is empty")
+        // validation
+        guard !serviceName.trimmingCharacters(in: .whitespaces).isEmpty else {
             errorMessage = "Please enter the service name."
             return
         }
-
-        guard !odometer.isEmpty, let odometerValue = Double(odometer) else {
-            print("❌ Odometer is invalid")
+        guard let odometerValue = Double(odometer) else {
             errorMessage = "Please enter a valid odometer value."
             return
         }
 
-        print("\n" + String(repeating: "=", count: 60))
-        print("🚀 STARTING ADD SERVICE PROCESS")
-        print(String(repeating: "=", count: 60))
+        // 1) create ServiceHistory
+        let history = ServiceHistory(context: viewContext)
+        history.history_id = UUID()
+        history.service_name = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+        history.service_date = selectedDate
+        history.odometer = odometerValue
+        history.created_at = Date()
 
-        // ✅ Check services for THIS vehicle BEFORE
-        let beforeRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
-        beforeRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
-        let beforeCount = (try? viewContext.count(for: beforeRequest)) ?? 0
-        print("🔍 BEFORE SAVE: \(beforeCount) services for THIS vehicle")
-        print("   Vehicle ID: \(vehicle.vehicles_id?.uuidString ?? "nil")")
-        print("   Vehicle Name: \(vehicle.make_model ?? "nil")")
+        // relate
+        history.vehicle = vehicle
 
-        // ✅ Create NEW service (never update existing ones)
-        let newService = ServiceHistory(context: viewContext)
-        newService.history_id = UUID()
-        newService.service_name = serviceName
-        newService.service_date = selectedDate
-        newService.odometer = odometerValue
-        newService.created_at = Date()
-        newService.vehicle = vehicle
-
-        let isPastService = selectedDate < Date()
-        
-        print("\n📝 CREATING NEW SERVICE:")
-        print("   Service ID: \(newService.history_id?.uuidString ?? "nil")")
-        print("   Name: \(newService.service_name ?? "nil")")
-        print("   Date: \(newService.service_date?.description ?? "nil")")
-        print("   Is Past: \(isPastService)")
-        print("   Odometer: \(odometerValue)")
-        print("   Context has changes: \(viewContext.hasChanges)")
-        print("   Context inserted objects: \(viewContext.insertedObjects.count)")
-
-        // ✅ Check if service object is properly created
-        guard newService.managedObjectContext != nil else {
-            print("❌ CRITICAL: Service has no managed object context!")
-            errorMessage = "Failed to create service: No context"
-            return
+        // 2) calculate next service (ONLY ON VEHICLE)
+        if let next = Calendar.current.date(byAdding: .month, value: 5, to: selectedDate) {
+            vehicle.next_service_date = next
         }
 
+        // 3) store reminder offset
+        switch reminder {
+        case "One week before": vehicle.service_reminder_offset = 7
+        case "Two weeks before": vehicle.service_reminder_offset = 14
+        case "One month before": vehicle.service_reminder_offset = 30
+        default: vehicle.service_reminder_offset = 7
+        }
+
+        // 4) update vehicle summary
+        vehicle.last_service_date = selectedDate
+        vehicle.service_name = history.service_name
+        vehicle.last_odometer = odometerValue
+
+        // 5) save context
         do {
-            print("\n💾 ATTEMPTING FIRST SAVE...")
-            
-            // ✅ Check what's in context BEFORE save
-            let allObjectsRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
-            allObjectsRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
-            if let allBeforeSave = try? viewContext.fetch(allObjectsRequest) {
-                print("\n📋 SERVICES IN CONTEXT BEFORE SAVE:")
-                for service in allBeforeSave {
-                    print("   - \(service.service_name ?? "nil") [\(service.isDeleted ? "DELETED" : "ACTIVE")]")
-                }
-            }
-            
-            // ✅ FIRST: Save the main service
             try viewContext.save()
-            print("✅ Context save succeeded")
-            
-            viewContext.processPendingChanges()
-            print("✅ Pending changes processed")
-            
-            // ✅ Verify the service still exists in context
-            if newService.isDeleted {
-                print("❌ CRITICAL: Service was deleted after save!")
-            } else {
-                print("✅ Service still exists in context")
-            }
-            
-            // ✅ Check what's in the persistent store AFTER save
-            viewContext.refreshAllObjects()
-            if let allAfterSave = try? viewContext.fetch(allObjectsRequest) {
-                print("\n📋 SERVICES IN PERSISTENT STORE AFTER SAVE:")
-                for service in allAfterSave {
-                    print("   - \(service.service_name ?? "nil") (ID: \(service.history_id?.uuidString ?? "nil"))")
-                }
-            }
-            
-            // ✅ Verify the service was saved
-            let afterCount = (try? viewContext.count(for: beforeRequest)) ?? 0
-            print("\n📊 AFTER FIRST SAVE: \(afterCount) services (was \(beforeCount))")
-            
-            if afterCount <= beforeCount {
-                print("⚠️⚠️⚠️ WARNING: Service count didn't increase!")
-                print("   Expected: \(beforeCount + 1), Got: \(afterCount)")
-                print("   This suggests a unique constraint or merge policy issue")
-            } else {
-                print("✅ Service count increased correctly!")
-            }
-            
-            // ✅ Try to fetch the specific service we just created
-            let verifyRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
-            verifyRequest.predicate = NSPredicate(format: "history_id == %@", newService.history_id! as CVarArg)
-            if let found = try? viewContext.fetch(verifyRequest), !found.isEmpty {
-                print("✅ Service found in database: \(found[0].service_name ?? "nil")")
-            } else {
-                print("❌ Service NOT found in database by ID!")
-            }
-            
-            // ✅ List all services after save
-            if let allServices = try? viewContext.fetch(beforeRequest) {
-                print("\n📋 ALL SERVICES AFTER MAIN SAVE:")
-                for (index, service) in allServices.enumerated() {
-                    let isPast = (service.service_date ?? Date()) < Date()
-                    print("   \(index + 1). \(service.service_name ?? "nil")")
-                    print("      Date: \(service.service_date?.description ?? "nil")")
-                    print("      Past: \(isPast)")
-                    print("      ID: \(service.history_id?.uuidString ?? "nil")")
-                }
-            }
-            
-            // ✅ SECOND: Auto-create upcoming service if needed
-            if isPastService {
-                print("\n🔄 Service is in the past, attempting auto-create...")
-                // ✅ CRITICAL: Refresh context to ensure we have latest data
-                viewContext.refreshAllObjects()
-                autoCreateUpcomingServiceIfNeeded()
-            } else {
-                print("\n⏭️ Service is in the future, skipping auto-create")
-            }
-            
-            // ✅ THIRD: Verify final count AFTER auto-create
-            viewContext.refreshAllObjects()
-            let finalRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
-            finalRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
-            if let finalServices = try? viewContext.fetch(finalRequest) {
-                print("\n📊 FINAL SERVICE LIST (\(finalServices.count) total):")
-                for (index, service) in finalServices.enumerated() {
-                    let isPast = (service.service_date ?? Date()) < Date()
-                    print("   \(index + 1). \(service.service_name ?? "nil")")
-                    print("      Date: \(service.service_date?.description ?? "nil")")
-                    print("      Past: \(isPast)")
-                    print("      ID: \(service.history_id?.uuidString ?? "nil")")
-                }
-            }
-            
-            let finalCount = (try? viewContext.count(for: beforeRequest)) ?? 0
-            print("\n📊 FINAL COUNT: \(finalCount) services")
-            
-            // ✅ Notify all contexts about the change
-            print("📢 Posting context save notification...")
-            NotificationCenter.default.post(
-                name: NSNotification.Name.NSManagedObjectContextDidSave,
-                object: viewContext
-            )
-            
+            viewContext.refresh(vehicle, mergeChanges: true)
+
             successMessage = "Service added successfully!"
-            print("\n✅ ADD SERVICE COMPLETED SUCCESSFULLY")
-            print(String(repeating: "=", count: 60) + "\n")
 
-            // ✅ Add reminders and calendar events
-            if addToReminder {
-                Task {
-                    await profileVM.scheduleServiceReminder(
-                        serviceId: newService.history_id!,
-                        serviceName: newService.service_name ?? "Vehicle Service",
-                        vehicleName: vehicle.make_model ?? "Your Vehicle",
-                        serviceDate: newService.service_date ?? Date(),
-                        daysBeforeReminder: daysBeforeReminder
-                    )
-
-                    if profileVM.user?.add_to_calendar == true {
-                        try? await profileVM.addCalendarEvent(
-                            title: "🔧 Service: \(newService.service_name ?? "Service")",
-                            notes: "Scheduled service for \(vehicle.make_model ?? "Vehicle")",
-                            startDate: newService.service_date ?? Date(),
-                            alarmOffsetDays: daysBeforeReminder
-                        )
-                    }
-                }
-            }
+            // send UI update
+            NotificationCenter.default.post(name: .init("DriveBuddyServiceAdded"), object: nil)
 
             clearFields()
+
         } catch {
             errorMessage = "Failed to save service: \(error.localizedDescription)"
-            print("❌❌❌ SAVE ERROR: \(error)")
-            print("Error details: \(error)")
-            if let detailedError = error as NSError? {
-                print("Error domain: \(detailedError.domain)")
-                print("Error code: \(detailedError.code)")
-                print("Error userInfo: \(detailedError.userInfo)")
-            }
-            print(String(repeating: "=", count: 60) + "\n")
         }
     }
+
+
     
     // ✅ FIXED: Auto-create upcoming service if the added service is in the past
     private func autoCreateUpcomingServiceIfNeeded() {

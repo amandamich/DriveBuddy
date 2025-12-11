@@ -174,9 +174,9 @@ class VehicleDetailViewModel: ObservableObject {
         stnkDueDate = activeVehicle.stnk_due_date ?? Date()
         
         // ✅ Load from latest completed service for editing
-        serviceName = latestServiceName
-        lastServiceDate = latestServiceDate ?? Date()
-        lastOdometer = String(format: "%.0f", latestServiceOdometer ?? activeVehicle.odometer)
+        serviceName = latestService?.service_name ?? ""
+        lastServiceDate = latestService?.service_date ?? Date()
+        lastOdometer = String(format: "%.0f", latestService?.odometer ?? activeVehicle.odometer)
         
         hasTaxDate = activeVehicle.tax_due_date != nil
         
@@ -349,6 +349,15 @@ class VehicleDetailViewModel: ObservableObject {
         return ("Up to Date", .green)
     }
     
+    var latestService: ServiceHistory? {
+        if let set = activeVehicle.servicehistory as? Set<ServiceHistory> {
+            return set.sorted {
+                ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast)
+            }.first
+        }
+        return nil
+    }
+
     var nextServiceDate: Date? {
         upcomingServiceDate ?? activeVehicle.next_service_date ?? calculatedNextServiceDate
     }
