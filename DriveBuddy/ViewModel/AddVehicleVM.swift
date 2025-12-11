@@ -71,30 +71,46 @@ class AddVehicleViewModel: ObservableObject {
             firstService.history_id = UUID()
             firstService.service_name = serviceName
             firstService.service_date = lastServiceDate
+            firstService.created_at = Date()
+            
+            // ✅ FIX: Save the odometer value from lastOdometer field
+            if let lastOdometerValue = Double(lastOdometer), lastOdometerValue > 0 {
+                firstService.odometer = lastOdometerValue
+                print("✅ Using lastOdometer: \(lastOdometerValue) km")
+            } else {
+                // Fallback: use current vehicle odometer if lastOdometer is empty
+                firstService.odometer = Double(odometerValue)
+                print("⚠️ lastOdometer empty, using vehicle odometer: \(odometerValue) km")
+            }
+            
+            // ✅ OPTIONAL: Save reminder preference (default to 7 days if not set)
+            // If you added the reminder_days_before field to ServiceHistory
+            firstService.reminder_days_before = 7 // Default value, can be customized
 
             // Relate service to vehicle
             firstService.vehicle = newVehicle
 
-            // Update vehicle summary fields
+            // Update vehicle summary fields (optional - for quick access)
             newVehicle.service_name = serviceName
             newVehicle.last_service_date = lastServiceDate
-            newVehicle.last_odometer = Double(lastOdometer) ?? 0
+            newVehicle.last_odometer = firstService.odometer // Use the same value
 
-            // Calculate next service date
+            // Calculate next service date (6 months from last service)
             newVehicle.next_service_date = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate)
 
             print("✅ First service saved to ServiceHistory:")
             print("   - Name: \(serviceName)")
             print("   - Date: \(lastServiceDate)")
+            print("   - Odometer: \(firstService.odometer) km")
 
             // Add to calendar if user enables it
             if profileVM.user?.add_to_calendar == true {
                 Task {
                     try? await profileVM.addCalendarEvent(
                         title: "🔧 Service: \(serviceName)",
-                        notes: "Scheduled service for \(makeModel)",
+                        notes: "Scheduled service for \(makeModel)\nOdometer: \(Int(firstService.odometer)) km",
                         startDate: lastServiceDate,
-                        alarmOffsetDays: 7 // Can be customized based on the reminder options
+                        alarmOffsetDays: 7
                     )
                 }
             }
