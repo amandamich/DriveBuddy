@@ -12,7 +12,6 @@ struct AddVehicleView: View {
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
         
-        // ✅ FIXED: Safe unwrapping WITHOUT fatalError
         if let user = authVM.currentUser {
             _addVehicleVM = StateObject(
                 wrappedValue: AddVehicleViewModel(
@@ -28,7 +27,6 @@ struct AddVehicleView: View {
                 )
             )
         } else {
-            // ✅ Create temporary placeholder WITHOUT crashing
             let tempContext = PersistenceController.shared.container.viewContext
             let tempUser = User(context: tempContext)
             
@@ -51,34 +49,6 @@ struct AddVehicleView: View {
     }
 
     let vehicleTypes = ["Car", "Motorbike"]
-
-    // MARK: HEADER
-    var headerView: some View {
-        HStack(spacing: 12) {
-            // Back button
-            Button(action: { dismiss() }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 100000)
-                            .fill(Color.white.opacity(0.15))
-                    )
-            }
-
-            // Title
-            Text("New Vehicle")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.white)
-
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background(Color.black.opacity(0.95))
-    }
 
     // MARK: - SCROLL CONTENT
     var contentView: some View {
@@ -122,6 +92,12 @@ struct AddVehicleView: View {
             } else {
                 // Normal content when user is logged in
                 VStack(alignment: .leading, spacing: 24) {
+                    // ✅ CHANGED: Removed headerView, added simple title like AddServiceView
+                    Text("Add Vehicle")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.top, 8)
+                    
                     // MARK: Vehicle Info Section
                     SectionBox(title: "Vehicle Info", icon: "car.fill") {
                         Group {
@@ -282,19 +258,13 @@ struct AddVehicleView: View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                headerView
-                
-                ScrollView {
-                    contentView
-                        .padding(.top, 10)
-                }
+            ScrollView {
+                contentView
+                    .padding(.bottom, 30)
             }
         }
-        .navigationBarHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // ✅ Check if user is logged in when view appears
             if authVM.currentUser == nil {
                 print("⚠️ WARNING: currentUser is nil in AddVehicleView")
                 print("⚠️ Email: \(authVM.email)")
@@ -317,7 +287,7 @@ struct SectionBox<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.cyan) // ✅ CHANGED: blue → cyan
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.white)

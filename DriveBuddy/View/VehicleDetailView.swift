@@ -22,27 +22,27 @@ struct VehicleDetailView: View {
     @State private var refreshTrigger = UUID()
     
     var onDismiss: (() -> Void)?
-
+    
     init(initialVehicle: Vehicles,
          allVehicles: FetchedResults<Vehicles>,
          context: NSManagedObjectContext,
          activeUser: User,
          profileVM: ProfileViewModel,
          onDismiss: (() -> Void)? = nil) {
-
+        
         self.allVehicles = allVehicles
         self.profileVM = profileVM
         self.onDismiss = onDismiss
-
+        
         _viewModel = StateObject(wrappedValue:
-            VehicleDetailViewModel(
-                context: context,
-                vehicle: initialVehicle,
-                activeUser: activeUser
-            )
+                                    VehicleDetailViewModel(
+                                        context: context,
+                                        vehicle: initialVehicle,
+                                        activeUser: activeUser
+                                    )
         )
     }
-
+    
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
@@ -180,9 +180,9 @@ struct VehicleDetailView: View {
                             Text("Service History")
                                 .foregroundColor(.white)
                                 .font(.headline)
-
+                            
                             Spacer()
-
+                            
                             Button(action: { showAddService = true }) {
                                 Text("Add a service")
                                     .font(.subheadline)
@@ -194,9 +194,9 @@ struct VehicleDetailView: View {
                                     .foregroundColor(.white)
                             }
                         }
-
+                        
                         Divider().background(Color.white.opacity(0.2))
-
+                        
                         // Show last 3 services
                         let lastServices = viewModel.getLastServices(limit: 3)
                         
@@ -226,9 +226,9 @@ struct VehicleDetailView: View {
                                                     .font(.caption)
                                             }
                                         }
-
+                                        
                                         Spacer()
-
+                                        
                                         Text(viewModel.formatDate(service.service_date))
                                             .foregroundColor(.white.opacity(0.7))
                                             .font(.caption)
@@ -265,7 +265,7 @@ struct VehicleDetailView: View {
                     .shadow(color: .cyan.opacity(0.25), radius: 6, x: 0, y: 4)
                     .padding(.horizontal)
                     .id(refreshTrigger)
-
+                    
                     Spacer(minLength: 60)
                 }
             }
@@ -346,186 +346,195 @@ struct VehicleDetailView: View {
             viewModel.loadVehicleData()
             refreshTrigger = UUID()
         }) {
-            EditVehicleView(viewModel: viewModel)
+            NavigationView {
+                EditVehicleView(viewModel: viewModel)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: { viewModel.isEditing = false }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.headline)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+            }
+        }
+    }
+    
+    // MARK: - Upcoming Services Card
+    struct UpcomingServicesCard: View {
+        let upcomingServices: [(name: String, date: Date)]
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text("Upcoming Services")
+                        .lineLimit(1)
+                        .foregroundColor(.white)
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                
+                if upcomingServices.isEmpty {
+                    Text("No upcoming services")
+                        .foregroundColor(.white.opacity(0.6))
+                        .font(.system(size: 12))
+                        .padding(.vertical, 4)
+                } else {
+                    ForEach(Array(upcomingServices.prefix(2).enumerated()), id: \.offset) { index, service in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(service.name)
+                                .lineLimit(1)
+                                .foregroundColor(.white.opacity(0.85))
+                                .font(.system(size: 13, weight: .regular))
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 10))
+                                Text(formatDateShort(service.date))
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                
+                Spacer(minLength: 2)
+                
+                HStack {
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.cyan.opacity(0.9))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color.black.opacity(0.3),
+                        Color.blue.opacity(0.25)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
+            )
+            .cornerRadius(16)
         }
         
-        .navigationBarBackButtonHidden(false)
-    }
-}
-
-// MARK: - Upcoming Services Card
-struct UpcomingServicesCard: View {
-    let upcomingServices: [(name: String, date: Date)]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Text("Upcoming Services")
-                    .lineLimit(1)
-                    .foregroundColor(.white)
-                    .font(.system(size: 14, weight: .semibold))
-            }
-            
-            if upcomingServices.isEmpty {
-                Text("No upcoming services")
-                    .foregroundColor(.white.opacity(0.6))
-                    .font(.system(size: 12))
-                    .padding(.vertical, 4)
-            } else {
-                ForEach(Array(upcomingServices.prefix(2).enumerated()), id: \.offset) { index, service in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(service.name)
-                            .lineLimit(1)
-                            .foregroundColor(.white.opacity(0.85))
-                            .font(.system(size: 13, weight: .regular))
-                        
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 10))
-                            Text(formatDateShort(service.date))
-                                .font(.system(size: 11, weight: .medium))
-                        }
-                        .foregroundColor(.white.opacity(0.7))
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            
-            Spacer(minLength: 2)
-            
-            HStack {
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.cyan.opacity(0.9))
-            }
+        private func formatDateShort(_ date: Date) -> String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "d MMM yyyy"
+            return formatter.string(from: date)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.3),
-                    Color.blue.opacity(0.25)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
-        )
-        .cornerRadius(16)
     }
     
-    private func formatDateShort(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM yyyy"
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - Tax Payment Card
-struct TaxPaymentCard: View {
-    let hasTaxDate: Bool
-    let taxDate: Date
-    let formatDate: (Date?) -> String
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "banknote.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                
-                Text("Tax Payment")
-                    .lineLimit(1)
-                    .foregroundColor(.white)
-                    .font(.system(size: 14, weight: .semibold))
-            }
-            
-            if !hasTaxDate {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.orange)
-                        Text("Not set")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.orange)
-                    }
+    // MARK: - Tax Payment Card
+    struct TaxPaymentCard: View {
+        let hasTaxDate: Bool
+        let taxDate: Date
+        let formatDate: (Date?) -> String
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Image(systemName: "banknote.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
                     
-                    Text("Tap to add tax due date")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.6))
-                }
-                .padding(.vertical, 4)
-            } else {
-                Text("Next Due")
-                    .foregroundColor(.white.opacity(0.85))
-                    .font(.system(size: 13, weight: .regular))
-                
-                HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 10, weight: .medium))
-                    Text(formatDate(taxDate))
-                        .font(.system(size: 11, weight: .medium))
+                    Text("Tax Payment")
                         .lineLimit(1)
+                        .foregroundColor(.white)
+                        .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundColor(.white.opacity(0.8))
+                
+                if !hasTaxDate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.orange)
+                            Text("Not set")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.orange)
+                        }
+                        
+                        Text("Tap to add tax due date")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .padding(.vertical, 4)
+                } else {
+                    Text("Next Due")
+                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: 13, weight: .regular))
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 10, weight: .medium))
+                        Text(formatDate(taxDate))
+                            .font(.system(size: 11, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundColor(.white.opacity(0.8))
+                }
+                
+                Spacer(minLength: 2)
+                
+                HStack {
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.cyan.opacity(0.9))
+                }
             }
-            
-            Spacer(minLength: 2)
-            
-            HStack {
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.cyan.opacity(0.9))
-            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                LinearGradient(
+                    colors: hasTaxDate ? [
+                        Color.black.opacity(0.3),
+                        Color.blue.opacity(0.25)
+                    ] : [
+                        Color.black.opacity(0.3),
+                        Color.orange.opacity(0.15)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(hasTaxDate ? Color.cyan.opacity(0.5) : Color.orange.opacity(0.6), lineWidth: 1)
+            )
+            .cornerRadius(16)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: hasTaxDate ? [
-                    Color.black.opacity(0.3),
-                    Color.blue.opacity(0.25)
-                ] : [
-                    Color.black.opacity(0.3),
-                    Color.orange.opacity(0.15)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(hasTaxDate ? Color.cyan.opacity(0.5) : Color.orange.opacity(0.6), lineWidth: 1)
-        )
-        .cornerRadius(16)
     }
-}
-
-// MARK: - Button Styles
-struct CardButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .brightness(configuration.isPressed ? 0.08 : 0)
-            .shadow(
-                color: .cyan.opacity(configuration.isPressed ? 0.5 : 0.3),
-                radius: configuration.isPressed ? 12 : 10,
-                x: 0,
-                y: configuration.isPressed ? 3 : 5
-            )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+    
+    // MARK: - Button Styles
+    struct CardButtonStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+                .brightness(configuration.isPressed ? 0.08 : 0)
+                .shadow(
+                    color: .cyan.opacity(configuration.isPressed ? 0.5 : 0.3),
+                    radius: configuration.isPressed ? 12 : 10,
+                    x: 0,
+                    y: configuration.isPressed ? 3 : 5
+                )
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+        }
     }
 }
