@@ -2,7 +2,7 @@
 //  FavoriteWorkshopManager.swift
 //  DriveBuddy
 //
-//  Manages favorite workshops using UserDefaults
+//  Manages favorite workshops with user-specific storage (Core Data)
 //
 
 import Foundation
@@ -13,29 +13,82 @@ class FavoriteWorkshopManagerVM: ObservableObject {
     
     @Published var favoriteWorkshopIds: Set<String> = []
     
-    private let favoritesKey = "favoriteWorkshops"
+    private let favoritesKeyPrefix = "favoriteWorkshops_"
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
+        // Listen for login/logout notifications
+        setupNotificationObservers()
         loadFavorites()
     }
     
-    // Load favorites from UserDefaults
-    func loadFavorites() {
-        if let data = UserDefaults.standard.data(forKey: favoritesKey),
-           let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) {
-            favoriteWorkshopIds = decoded
-        }
+    deinit {
+        cancellables.removeAll()
     }
     
-    // Save favorites to UserDefaults
-    private func saveFavorites() {
-        if let encoded = try? JSONEncoder().encode(favoriteWorkshopIds) {
-            UserDefaults.standard.set(encoded, forKey: favoritesKey)
+    // Setup notification observers for auth state changes
+    private func setupNotificationObservers() {
+        // Listen for user login
+        NotificationCenter.default.publisher(for: .userDidLogin)
+            .sink { [weak self] _ in
+                self?.loadFavorites()
+            }
+            .store(in: &cancellables)
+        
+        // Listen for user logout
+        NotificationCenter.default.publisher(for: .userDidLogout)
+            .sink { [weak self] _ in
+                self?.clearFavorites()
+            }
+            .store(in: &cancellables)
+    }
+    
+    // Get current user ID from UserDefaults
+    private func getCurrentUserId() -> String? {
+        return UserDefaults.standard.string(forKey: "currentUserId")
+    }
+    
+    // Get user-specific UserDefaults key
+    private func getUserSpecificKey() -> String? {
+        guard let userId = getCurrentUserId() else {
+            return nil
         }
+        return favoritesKeyPrefix + userId
+    }
+    
+    // Load favorites from UserDefaults for current user
+    func loadFavorites() {
+        guard let key = getUserSpecificKey(),
+              let data = UserDefaults.standard.data(forKey: key),
+              let decoded = try? JSONDecoder().decode(Set<String>.self, from: data) else {
+            favoriteWorkshopIds = []
+            return
+        }
+        favoriteWorkshopIds = decoded
+    }
+    
+    // Save favorites to UserDefaults for current user
+    private func saveFavorites() {
+        guard let key = getUserSpecificKey(),
+              let encoded = try? JSONEncoder().encode(favoriteWorkshopIds) else {
+            return
+        }
+        UserDefaults.standard.set(encoded, forKey: key)
+    }
+    
+    // Clear favorites (used on logout)
+    private func clearFavorites() {
+        favoriteWorkshopIds = []
     }
     
     // Toggle favorite status
     func toggleFavorite(workshopId: String) {
+        // Check if user is authenticated
+        guard getCurrentUserId() != nil else {
+            print("User must be logged in to favorite workshops")
+            return
+        }
+        
         if favoriteWorkshopIds.contains(workshopId) {
             favoriteWorkshopIds.remove(workshopId)
         } else {
@@ -46,6 +99,10 @@ class FavoriteWorkshopManagerVM: ObservableObject {
     
     // Check if workshop is favorited
     func isFavorite(workshopId: String) -> Bool {
+        // Return false if not authenticated
+        guard getCurrentUserId() != nil else {
+            return false
+        }
         return favoriteWorkshopIds.contains(workshopId)
     }
     
@@ -53,4 +110,10 @@ class FavoriteWorkshopManagerVM: ObservableObject {
     func getFavoriteWorkshops(from allWorkshops: [Workshop]) -> [Workshop] {
         return allWorkshops.filter { favoriteWorkshopIds.contains($0.id.uuidString) }
     }
+}
+
+// MARK: - Notification Names
+extension Notification.Name {
+    static let userDidLogin = Notification.Name("userDidLogin")
+    static let userDidLogout = Notification.Name("userDidLogout")
 }

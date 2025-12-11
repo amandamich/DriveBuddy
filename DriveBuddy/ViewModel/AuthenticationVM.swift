@@ -138,6 +138,7 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Login
+    // MARK: - Login
     func login() {
         print("🟢 LOGIN CALLED")
         errorMessage = nil
@@ -161,6 +162,15 @@ final class AuthenticationViewModel: ObservableObject {
                     self.currentUserID = user.user_id?.uuidString
                     self.isAuthenticated = true
                     self.errorMessage = nil
+                    
+                    // ✅ NEW: Save user ID to UserDefaults
+                    if let userId = user.user_id?.uuidString {
+                        UserDefaults.standard.set(userId, forKey: "currentUserId")
+                        UserDefaults.standard.synchronize()
+                    }
+                    
+                    // ✅ NEW: Post login notification
+                    NotificationCenter.default.post(name: .userDidLogin, object: nil)
                     
                     print("🟢 isAuthenticated set to: \(self.isAuthenticated)")
                     print("🟢 currentUser: \(self.currentUser?.email ?? "nil")")
@@ -242,10 +252,14 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Logout
+    // MARK: - Logout
     func logout() {
         print("🔴 LOGOUT CALLED")
         print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
         print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
+        
+        // ✅ NEW: Post logout notification BEFORE clearing data
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
         
         self.isAuthenticated = false
         self.currentUser = nil
