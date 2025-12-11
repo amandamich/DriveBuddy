@@ -27,8 +27,9 @@ class AddVehicleViewModel: ObservableObject {
         self.user = user
     }
     
-    // MARK: - Add Vehicle
+    // MARK: - Add Vehicle (Fixed with auto-create upcoming service)
     func addVehicle(profileVM: ProfileViewModel) async {
+        // Clear messages
         successMessage = nil
         errorMessage = nil
         warningMessage = nil
@@ -38,20 +39,23 @@ class AddVehicleViewModel: ObservableObject {
             errorMessage = "Please enter vehicle make and model"
             return
         }
+
         guard !vehicleType.isEmpty else {
             errorMessage = "Please select vehicle type"
             return
         }
+
         guard !plateNumber.isEmpty else {
             errorMessage = "Please enter license plate number"
             return
         }
+
         guard let odometerValue = Int64(odometer), odometerValue > 0 else {
             errorMessage = "Please enter a valid odometer reading"
             return
         }
 
-        // Create Vehicle
+        // Create new vehicle
         let newVehicle = Vehicles(context: viewContext)
         newVehicle.vehicles_id = UUID()
         newVehicle.make_model = makeModel.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -61,74 +65,152 @@ class AddVehicleViewModel: ObservableObject {
         newVehicle.odometer = Double(odometerValue)
         newVehicle.user = user
 
-        // MARK: - FIRST SERVICE (optional)
-        if !serviceName.trimmingCharacters(in: .whitespaces).isEmpty {
-
+        // ✅ SAVE SERVICE DATA (if provided)
+        if !serviceName.isEmpty {
             let firstService = ServiceHistory(context: viewContext)
             firstService.history_id = UUID()
-            firstService.service_name = serviceName.trimmingCharacters(in: .whitespacesAndNewlines)
+            firstService.service_name = serviceName
             firstService.service_date = lastServiceDate
             firstService.created_at = Date()
-            firstService.vehicle = newVehicle
             
-            // Odometer input
-            if let lastOdoValue = Double(lastOdometer), lastOdoValue > 0 {
-                firstService.odometer = lastOdoValue
+            // ✅ Save the odometer value
+            if let lastOdometerValue = Double(lastOdometer), lastOdometerValue > 0 {
+                firstService.odometer = lastOdometerValue
+                print("✅ Using lastOdometer: \(lastOdometerValue) km")
             } else {
                 firstService.odometer = Double(odometerValue)
+                print("⚠️ lastOdometer empty, using vehicle odometer: \(odometerValue) km")
             }
             
-            // Default reminder_days_before (allowed if field exists)
+            // ✅ Save reminder preference (default to 7 days)
             firstService.reminder_days_before = 7
+
+            // Relate service to vehicle
+            firstService.vehicle = newVehicle
+
+            // Update vehicle summary fields (optional - for quick access)
+            newVehicle.service_name = serviceName
+            newVehicle.last_service_date = lastServiceDate
+            newVehicle.last_odometer = firstService.odometer
+
+            // Calculate next service date (6 months from last service)
+            newVehicle.next_service_date = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate)
+
+            print("✅ First service saved to ServiceHistory:")
+            print("   - Name: \(serviceName)")
+            print("   - Date: \(lastServiceDate)")
+            print("   - Odometer: \(firstService.odometer) km")
             
-            // Next service date
-            if let nextDate = Calendar.current.date(byAdding: .month, value: 6, to: lastServiceDate) {
-                firstService.next_service_date = nextDate
-                newVehicle.next_service_date = nextDate
+            // ✅ NEW: Auto-create upcoming service if the service is in the past
+            let isPastService = lastServiceDate < Date()
+            if isPastService {
+                print("🔄 Service is in the past, auto-creating upcoming service...")
+                autoCreateUpcomingService(for: newVehicle, basedOn: lastServiceDate)
+            } else {
+                print("⏭️ Service is in the future, no need to auto-create")
             }
 
-            // MARK: Update Vehicle Summary
-            newVehicle.service_name = firstService.service_name
-            newVehicle.last_service_date = firstService.service_date
-            newVehicle.last_odometer = firstService.odometer
-            newVehicle.service_reminder_offset = 30 // default offset
-
-            // Sync to calendar if user enables it
+            // Add to calendar if user enables it
             if profileVM.user?.add_to_calendar == true {
                 Task {
+                    // Add the past service to calendar
                     try? await profileVM.addCalendarEvent(
                         title: "🔧 Service: \(serviceName)",
                         notes: "Scheduled service for \(makeModel)\nOdometer: \(Int(firstService.odometer)) km",
                         startDate: lastServiceDate,
                         alarmOffsetDays: 7
                     )
+                    
+                    // ✅ NEW: If we auto-created an upcoming service, sync it too
+                    if isPastService {
+                        try? await Task.sleep(nanoseconds: 500_000_000)
+                        await profileVM.syncAllVehiclesToCalendar()
+                    }
                 }
             }
-
-        } else {
-            // No service entered during vehicle creation
-            newVehicle.service_name = nil
-            newVehicle.last_service_date = nil
-            newVehicle.last_odometer = 0
-            newVehicle.next_service_date = nil
         }
 
+        // Tax date will be set later in detail view
         newVehicle.tax_due_date = nil
 
-        // Save to CoreData
+        // Save to Core Data
         do {
             try viewContext.save()
+            viewContext.processPendingChanges()
             print("✅ Vehicle saved successfully: \(makeModel)")
-            successMessage = "Vehicle added successfully!"
+            successMessage = "✅ Vehicle added successfully!"
 
+            // Show warning about tax date
             warningMessage = "⚠️ Don't forget to add your tax due date in vehicle details"
-            
         } catch {
-            errorMessage = "Failed to add vehicle: \(error.localizedDescription)"
-            print("❌ CoreData error: \(error)")
+            errorMessage = "❌ Failed to add vehicle: \(error.localizedDescription)"
+            print("❌ Core Data save error: \(error)")
+        }
+    }
+    
+    // ✅ NEW: Auto-create upcoming service function
+    private func autoCreateUpcomingService(for vehicle: Vehicles, basedOn pastDate: Date) {
+        // Check if there's already a future service for this vehicle
+        let futureRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        futureRequest.predicate = NSPredicate(
+            format: "vehicle == %@ AND service_date > %@",
+            vehicle,
+            Date() as NSDate
+        )
+        
+        do {
+            let existingFutureServices = try viewContext.fetch(futureRequest)
+            if !existingFutureServices.isEmpty {
+                print("ℹ️ Future service already exists, skipping auto-create")
+                return
+            }
+        } catch {
+            print("❌ Failed to check for future services: \(error)")
+            return
+        }
+        
+        // Calculate next service date (6 months from the past service)
+        guard let nextDate = Calendar.current.date(byAdding: .month, value: 6, to: pastDate) else {
+            print("❌ Failed to calculate next service date")
+            return
+        }
+        
+        print("📝 Creating upcoming service for \(nextDate)")
+        
+        // Create the upcoming service
+        let upcomingService = ServiceHistory(context: viewContext)
+        upcomingService.history_id = UUID()
+        upcomingService.service_name = "Scheduled Maintenance"
+        upcomingService.service_date = nextDate
+        upcomingService.odometer = 0
+        upcomingService.created_at = Date()
+        upcomingService.reminder_days_before = 7 // Default reminder
+        upcomingService.vehicle = vehicle
+        
+        print("   Service ID: \(upcomingService.history_id?.uuidString ?? "nil")")
+        print("   Name: \(upcomingService.service_name ?? "nil")")
+        print("   Date: \(upcomingService.service_date?.description ?? "nil")")
+        
+        do {
+            try viewContext.save()
+            viewContext.processPendingChanges()
+            print("✅ Auto-created upcoming service successfully")
+            
+            // Verify it was saved
+            let verifyRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            verifyRequest.predicate = NSPredicate(format: "vehicle == %@", vehicle)
+            let allServices = try viewContext.fetch(verifyRequest)
+            print("📊 Total services for this vehicle: \(allServices.count)")
+            for (index, service) in allServices.enumerated() {
+                let isPast = (service.service_date ?? Date()) < Date()
+                print("   \(index + 1). \(service.service_name ?? "nil") - [\(isPast ? "PAST" : "FUTURE")]")
+            }
+        } catch {
+            print("❌ Failed to auto-create upcoming service: \(error)")
         }
     }
 
+    
     // MARK: - Reset Form
     func resetForm() {
         makeModel = ""

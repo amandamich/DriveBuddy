@@ -2,8 +2,6 @@
 //  AddServiceView.swift
 //  DriveBuddy
 //
-//  Created by Jacqlyn on 05/11/25.
-//
 
 import SwiftUI
 import CoreData
@@ -14,7 +12,7 @@ struct AddServiceView: View {
 
     // MARK: - ViewModel
     @StateObject private var viewModel: AddServiceViewModel
-    @ObservedObject var profileVM: ProfileViewModel 
+    @ObservedObject var profileVM: ProfileViewModel
     
     // MARK: - Init
     init(vehicle: Vehicles, context: NSManagedObjectContext, profileVM: ProfileViewModel) {
@@ -157,7 +155,7 @@ struct SectionBoxService<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.cyan) // ✅ CHANGED: blue → cyan
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.white)
