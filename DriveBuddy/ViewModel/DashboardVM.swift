@@ -1,8 +1,6 @@
 //
-//  DashboardVM.swift
+//  DashboardVM.swift - FIXED VERSION
 //  DriveBuddy
-//
-//  Created by Jennifer Alicia Litan on 03/11/25.
 //
 
 import Foundation
@@ -19,43 +17,20 @@ class DashboardViewModel: ObservableObject {
     init(context: NSManagedObjectContext, user: User?) {
         self.viewContext = context
         self.user = user
-//        fetchVehicles()
     }
 
-//    // MARK: - Fetch Vehicles
-//    func fetchVehicles() {
-//        guard let currentUser = user else {
-//            print("No user logged in, cannot fetch vehicles")
-//            userVehicles = []
-//            return
-//        }
-//
-//        viewContext.refreshAllObjects()
-//        print("Refresh context dipanggil sebelum fetch.")
-//        let request: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
-//        request.predicate = NSPredicate(format: "user == %@", currentUser)
-//        request.sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.created_at, ascending: false)]
-//
-//        do {
-//            userVehicles = try viewContext.fetch(request)
-//            print("Fetched vehicles (Updated):")
-//            userVehicles.forEach { print("  - \($0.make_model ?? "Unknown") (\($0.vehicles_id?.uuidString ?? "No ID"))")}
-//        } catch {
-//            print("Error fetching vehicles: \(error.localizedDescription)")
-//        }
-//    }
-
-//    // MARK: - Delete Vehicle
+    // MARK: - Delete Vehicle
     func deleteVehicle(_ vehicle: Vehicles) {
-            viewContext.delete(vehicle)
-            
-            do {
-                try viewContext.save()
-                print("Vehicle deleted successfully")
-            } catch {
-                print("Error deleting vehicle: \(error.localizedDescription)")
-            }
+        viewContext.delete(vehicle)
+        
+        do {
+            try viewContext.save()
+            print("Vehicle deleted successfully")
+        } catch {
+            print("Error deleting vehicle: \(error.localizedDescription)")
         }
+    }
+    
     func deleteVehicles(at offsets: IndexSet, from vehicles: [Vehicles]) {
         for index in offsets {
             let vehicle = vehicles[index]
@@ -91,19 +66,50 @@ class DashboardViewModel: ObservableObject {
         return email
     }
 
-    // MARK: - Service Reminder Logic
+    // MARK: - ✅ FIXED: Get Next Service Date from ServiceHistory
+    func getNextServiceDate(for vehicle: Vehicles) -> Date? {
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "vehicle == %@ AND service_date > %@",
+            vehicle,
+            Date() as NSDate
+        )
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: true)]
+        request.fetchLimit = 1 // Only get the nearest upcoming service
+        
+        do {
+            let upcomingServices = try viewContext.fetch(request)
+            if let nearestService = upcomingServices.first {
+                print("📅 [Dashboard] Next service for \(vehicle.make_model ?? "Unknown"): \(nearestService.service_date?.description ?? "nil")")
+                return nearestService.service_date
+            }
+        } catch {
+            print("❌ [Dashboard] Failed to fetch upcoming services: \(error)")
+        }
+        
+        // Fallback: Calculate from last service if no upcoming service in database
+        if let lastService = vehicle.last_service_date {
+            let calculated = Calendar.current.date(byAdding: .month, value: 6, to: lastService)
+            print("⚠️ [Dashboard] No upcoming service in DB, using calculated: \(calculated?.description ?? "nil")")
+            return calculated
+        }
+        
+        return nil
+    }
+
+    // MARK: - ✅ FIXED: Service Reminder Logic (uses actual ServiceHistory)
     func serviceReminderStatus(for vehicle: Vehicles) -> ServiceReminderStatus {
-        guard let lastService = vehicle.last_service_date else { return .unknown }
-
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-
-        // Approx. next service 6 months after last one
-        guard let nextService = calendar.date(byAdding: .month, value: 6, to: lastService) else {
+        guard let nextService = getNextServiceDate(for: vehicle) else {
             return .unknown
         }
 
-        let daysUntilNext = calendar.dateComponents([.day], from: today, to: nextService).day ?? 0
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let nextServiceDay = calendar.startOfDay(for: nextService)
+
+        let daysUntilNext = calendar.dateComponents([.day], from: today, to: nextServiceDay).day ?? 0
+        
+        print("🔔 [Dashboard] \(vehicle.make_model ?? "Unknown"): \(daysUntilNext) days until next service")
 
         switch daysUntilNext {
         case ..<0:
@@ -177,5 +183,3 @@ enum ServiceReminderStatus {
         }
     }
 }
-
-

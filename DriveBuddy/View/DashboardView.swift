@@ -196,156 +196,185 @@ struct DashboardView: View {
         }
     }
 }
-        // MARK: - Vehicle Card Component
-        extension DashboardView {
-            struct VehicleCard: View {
-                @ObservedObject var vehicle: Vehicles
-                var taxStatus: VehicleTaxStatus
-                var serviceStatus: ServiceReminderStatus
+// MARK: - Vehicle Card Component (FIXED)
+extension DashboardView {
+    struct VehicleCard: View {
+        @ObservedObject var vehicle: Vehicles
+        var taxStatus: VehicleTaxStatus
+        var serviceStatus: ServiceReminderStatus
+        
+        // ✅ ADD: Access to context for fetching services
+        @Environment(\.managedObjectContext) private var viewContext
+        
+        // Check if tax date is missing
+        private var isTaxDateMissing: Bool {
+            vehicle.tax_due_date == nil
+        }
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
                 
-                // Check if tax date is missing
-                private var isTaxDateMissing: Bool {
-                    vehicle.tax_due_date == nil
+                // MARK: - Header (Vehicle Name + Plate)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vehicle.make_model ?? "Unknown Vehicle")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Text("Odometer: \(vehicle.odometer.formatted(.number.grouping(.automatic))) km")
+                        .font(.system(size: 15))
+                        .foregroundColor(.gray)
                 }
                 
-                var body: some View {
-                    VStack(alignment: .leading, spacing: 16) {
+                // MARK: - Tax Warning Banner (if tax date not set)
+                if isTaxDateMissing {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
                         
-                        // MARK: - Header (Vehicle Name + Plate)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(vehicle.make_model ?? "Unknown Vehicle")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.white)
-                            
-                            Text("Odometer: \(vehicle.odometer.formatted(.number.grouping(.automatic))) km")
-                                .font(.system(size: 15))
-                                .foregroundColor(.gray)
-                        }
+                        Text("Tax due date not set. Tap to set.")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
                         
-                        // MARK: - Tax Warning Banner (if tax date not set)
-                        if isTaxDateMissing {
-                            HStack(spacing: 10) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.orange)
-                                
-                                Text("Tax due date not set. Tap to set.")
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.orange)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color.orange.opacity(0.3),
-                                        Color.orange.opacity(0.2)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.orange.opacity(0.5), lineWidth: 1)
-                            )
-                        }
+                        Spacer()
                         
-                        // MARK: - Divider
-                        Divider()
-                            .background(Color.white.opacity(0.15))
-                        
-                        // MARK: - Tax Row (only show if tax date is set)
-                        if !isTaxDateMissing {
-                            HStack(alignment: .center) {
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 17))
-                                    .foregroundColor(.gray)
-                                
-                                Text("Tax:")
-                                    .foregroundColor(.gray)
-                                    .font(.system(size: 15))
-                                
-                                Text(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 15))
-                                Spacer()
-                                
-                                Text(taxStatus.label)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 10)
-                                    .background(taxStatus.color.opacity(0.9))
-                                    .cornerRadius(8)
-                                    .foregroundColor(.white)
-                            }
-                        }
-                        
-                        // MARK: - Service Row
-                        HStack {
-                            Image(systemName: "wrench.and.screwdriver.fill")
-                                .font(.system(size: 17))
-                                .foregroundColor(.gray)
-                            
-                            Text("Next Service:")
-                                .foregroundColor(.gray)
-                                .font(.system(size: 15))
-                            
-                            Text(nextServiceDateText(for: vehicle))
-                                .foregroundColor(.white)
-                                .font(.system(size: 15))
-                            Spacer()
-                            Text(serviceStatus.label)
-                                .font(.system(size: 13, weight: .semibold))
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 10)
-                                .background(serviceStatus.color.opacity(0.9))
-                                .cornerRadius(8)
-                                .foregroundColor(.white)
-                        }
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.orange)
                     }
-                    .padding(20)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color(red: 0.05, green: 0.07, blue: 0.10))
+                        LinearGradient(
+                            colors: [
+                                Color.orange.opacity(0.3),
+                                Color.orange.opacity(0.2)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
                     )
+                    .cornerRadius(10)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: isTaxDateMissing ?
-                                    [.orange.opacity(0.6), .orange.opacity(0.4)] :
-                                        [.cyan.opacity(0.6), .blue.opacity(0.4)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 2
-                            )
-                    )
-                    .shadow(
-                        color: isTaxDateMissing ?
-                            .orange.opacity(0.3) :
-                                .cyan.opacity(0.25),
-                        radius: 12,
-                        x: 0,
-                        y: 4
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.orange.opacity(0.5), lineWidth: 1)
                     )
                 }
                 
-                // MARK: - Service Date Helper
-                private func nextServiceDateText(for vehicle: Vehicles) -> String {
-                    guard let next = vehicle.next_service_date else { return "N/A" }
-                    return next.formatted(date: .abbreviated, time: .omitted)
+                // MARK: - Divider
+                Divider()
+                    .background(Color.white.opacity(0.15))
+                
+                // MARK: - Tax Row (only show if tax date is set)
+                if !isTaxDateMissing {
+                    HStack(alignment: .center) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 17))
+                            .foregroundColor(.gray)
+                        
+                        Text("Tax:")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 15))
+                        
+                        Text(vehicle.tax_due_date?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
+                            .foregroundColor(.white)
+                            .font(.system(size: 15))
+                        Spacer()
+                        
+                        Text(taxStatus.label)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(taxStatus.color.opacity(0.9))
+                            .cornerRadius(8)
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                // MARK: - Service Row
+                HStack {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.system(size: 17))
+                        .foregroundColor(.gray)
+                    
+                    Text("Next Service:")
+                        .foregroundColor(.gray)
+                        .font(.system(size: 15))
+                    
+                    Text(nextServiceDateText())
+                        .foregroundColor(.white)
+                        .font(.system(size: 15))
+                    Spacer()
+                    Text(serviceStatus.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(serviceStatus.color.opacity(0.9))
+                        .cornerRadius(8)
+                        .foregroundColor(.white)
                 }
             }
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(red: 0.05, green: 0.07, blue: 0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        LinearGradient(
+                            colors: isTaxDateMissing ?
+                            [.orange.opacity(0.6), .orange.opacity(0.4)] :
+                                [.cyan.opacity(0.6), .blue.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+            )
+            .shadow(
+                color: isTaxDateMissing ?
+                    .orange.opacity(0.3) :
+                        .cyan.opacity(0.25),
+                radius: 12,
+                x: 0,
+                y: 4
+            )
         }
+        
+        // MARK: - ✅ FIXED: Service Date Helper (fetches from ServiceHistory)
+        private func nextServiceDateText() -> String {
+            // Fetch the nearest upcoming service from ServiceHistory
+            let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+            request.predicate = NSPredicate(
+                format: "vehicle == %@ AND service_date > %@",
+                vehicle,
+                Date() as NSDate
+            )
+            request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: true)]
+            request.fetchLimit = 1
+            
+            do {
+                if let nextService = try viewContext.fetch(request).first,
+                   let serviceDate = nextService.service_date {
+                    print("📅 [Dashboard Card] Next service: \(serviceDate.formatted(date: .abbreviated, time: .omitted))")
+                    return serviceDate.formatted(date: .abbreviated, time: .omitted)
+                }
+            } catch {
+                print("❌ [Dashboard Card] Failed to fetch upcoming service: \(error)")
+            }
+            
+            // Fallback: Calculate from last service date
+            if let lastService = vehicle.last_service_date,
+               let calculated = Calendar.current.date(byAdding: .month, value: 6, to: lastService) {
+                print("⚠️ [Dashboard Card] Using calculated date: \(calculated.formatted(date: .abbreviated, time: .omitted))")
+                return calculated.formatted(date: .abbreviated, time: .omitted)
+            }
+            
+            return "N/A"
+        }
+    }
+}
         
         // MARK: - Preview
         #Preview {

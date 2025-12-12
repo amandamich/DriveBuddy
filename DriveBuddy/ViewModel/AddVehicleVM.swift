@@ -177,14 +177,14 @@ class AddVehicleViewModel: ObservableObject {
         
         print("📝 Creating upcoming service for \(nextDate)")
         
-        // Create the upcoming service
+        // Create the upcoming service with the SAME name
         let upcomingService = ServiceHistory(context: viewContext)
         upcomingService.history_id = UUID()
-        upcomingService.service_name = "Scheduled Maintenance"
+        upcomingService.service_name = serviceName // ✅ FIXED: Use the SAME service name (not "Scheduled Maintenance")
         upcomingService.service_date = nextDate
         upcomingService.odometer = 0
         upcomingService.created_at = Date()
-        upcomingService.reminder_days_before = 7 // Default reminder
+        upcomingService.reminder_days_before = 7
         upcomingService.vehicle = vehicle
         
         print("   Service ID: \(upcomingService.history_id?.uuidString ?? "nil")")
@@ -194,7 +194,7 @@ class AddVehicleViewModel: ObservableObject {
         do {
             try viewContext.save()
             viewContext.processPendingChanges()
-            print("✅ Auto-created upcoming service successfully")
+            print("✅ Auto-created upcoming '\(serviceName)' successfully")
             
             // Verify it was saved
             let verifyRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()

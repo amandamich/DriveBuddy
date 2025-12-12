@@ -410,14 +410,19 @@ class VehicleDetailViewModel: ObservableObject {
         }.count
     }
 
-    /// Get upcoming services (returns array of name and date tuples)
+    // Get upcoming services (returns array of name and date tuples)
     func getUpcomingServices() -> [(name: String, date: Date)] {
         let upcoming = serviceHistories.filter { service in
             guard let date = service.service_date else { return false }
             return isDateInFuture(date)
         }.sorted {
+            // ✅ FIXED: Sort by date ascending (nearest first)
             ($0.service_date ?? .distantFuture) < ($1.service_date ?? .distantFuture)
         }
+        print("\n🔮 UPCOMING SERVICES (\(upcoming.count) total):")
+           for (index, service) in upcoming.enumerated() {
+               print("   \(index + 1). \(service.service_name ?? "nil") - \(service.service_date?.description ?? "nil")")
+           }
         
         // Return array of (name, date) tuples
         return upcoming.map { service in
@@ -427,7 +432,7 @@ class VehicleDetailViewModel: ObservableObject {
         }
     }
 
-    /// Check if there are multiple services on the same date
+    // Check if there are multiple services on the same date
     func hasMultipleServicesOnSameDate(_ targetDate: Date) -> Bool {
         let calendar = Calendar.current
         let servicesOnDate = serviceHistories.filter { service in
@@ -436,4 +441,69 @@ class VehicleDetailViewModel: ObservableObject {
         }
         return servicesOnDate.count > 1
     }
+    func debugAllServices() {
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(format: "vehicle == %@", activeVehicle)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: true)]
+        
+        do {
+            let allServices = try context.fetch(request)
+            
+            print("\n" + String(repeating: "=", count: 70))
+            print("🔍 DEBUG: ALL SERVICES FOR \(activeVehicle.make_model ?? "Unknown")")
+            print(String(repeating: "=", count: 70))
+            
+            for (index, service) in allServices.enumerated() {
+                let isPast = (service.service_date ?? Date()) < Date()
+                let status = isPast ? "✅ PAST" : "🔮 FUTURE"
+                
+                print("\n[\(index + 1)] \(status)")
+                print("   ID: \(service.history_id?.uuidString ?? "NO ID")")
+                print("   Name: '\(service.service_name ?? "NO NAME")'")
+                print("   Date: \(service.service_date?.description ?? "NO DATE")")
+                print("   Odometer: \(service.odometer) km")
+                print("   Created: \(service.created_at?.description ?? "NO CREATED DATE")")
+            }
+            
+            print("\n" + String(repeating: "=", count: 70))
+            print("📊 SUMMARY:")
+            print("   Total services: \(allServices.count)")
+            print("   Past services: \(allServices.filter { ($0.service_date ?? Date()) < Date() }.count)")
+            print("   Future services: \(allServices.filter { ($0.service_date ?? Date()) > Date() }.count)")
+            print(String(repeating: "=", count: 70) + "\n")
+            
+        } catch {
+            print("❌ Failed to fetch all services: \(error)")
+        }
+    }
+    func deleteAllScheduledMaintenance() {
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "vehicle == %@ AND service_name == %@",
+            activeVehicle,
+            "Scheduled Maintenance" as CVarArg
+        )
+        
+        do {
+            let services = try context.fetch(request)
+            
+            print("\n🗑️ DELETING SCHEDULED MAINTENANCE:")
+            print("   Found \(services.count) records to delete")
+            
+            for service in services {
+                print("   - Deleting: \(service.service_name ?? "nil") on \(service.service_date?.description ?? "nil")")
+                context.delete(service)
+            }
+            
+            try context.save()
+            context.processPendingChanges()
+            print("✅ Deleted all 'Scheduled Maintenance' records\n")
+            
+            loadVehicleData()
+            
+        } catch {
+            print("❌ Failed to delete services: \(error)")
+        }
+    }
+
 }
