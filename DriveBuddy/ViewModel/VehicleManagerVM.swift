@@ -2,7 +2,7 @@
 //  VehicleManagerVM.swift
 //  DriveBuddy
 //
-//  Created by student on 27/11/25.
+//  Created by Timothy on 27/11/25.
 //
 
 import Foundation
@@ -36,10 +36,12 @@ class VehicleManagerVM: ObservableObject {
                       let makeModel = cdVehicle.make_model,
                       let vehicleType = cdVehicle.vehicle_type,
                       let plateNumber = cdVehicle.plate_number,
-                      let year = cdVehicle.year_manufacture,
-                      let taxDate = cdVehicle.tax_due_date else {
+                      let year = cdVehicle.year_manufacture else {
                     return nil
                 }
+                
+                // Use tax_due_date instead of a non-existent taxDate property
+                let taxDate = cdVehicle.tax_due_date ?? Date()
                 
                 return Vehicle(
                     id: id,

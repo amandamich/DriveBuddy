@@ -12,6 +12,8 @@ struct TaxHistoryView: View {
     @State private var showAddTaxSheet = false
     @State private var selectedFilter: TaxFilter = .all
     
+    let vehicle: Vehicle // Current vehicle to filter by
+    
     enum TaxFilter: String, CaseIterable {
         case all = "All"
         case valid = "Valid"
@@ -19,17 +21,30 @@ struct TaxHistoryView: View {
         case expired = "Expired"
     }
     
+    // Filter taxes by current vehicle's license plate
+    var vehicleTaxes: [TaxModel] {
+        return taxManager.taxHistories.filter { $0.vehiclePlate == vehicle.licensePlate }
+    }
+    
     var filteredTaxes: [TaxModel] {
         switch selectedFilter {
         case .all:
-            return taxManager.taxHistories
+            return vehicleTaxes
         case .valid:
-            return taxManager.getValidTaxes()
+            return vehicleTaxes.filter { $0.status == .valid }
         case .expiring:
-            return taxManager.getExpiringTaxes()
+            return vehicleTaxes.filter { $0.status == .expiringSoon }
         case .expired:
-            return taxManager.getExpiredTaxes()
+            return vehicleTaxes.filter { $0.status == .expired }
         }
+    }
+    
+    var expiredCount: Int {
+        vehicleTaxes.filter { $0.status == .expired }.count
+    }
+    
+    var expiringCount: Int {
+        vehicleTaxes.filter { $0.status == .expiringSoon }.count
     }
     
     var body: some View {
@@ -45,9 +60,9 @@ struct TaxHistoryView: View {
                         Text("Tax History")
                             .font(.system(size: 34, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Vehicle tax payment records")
+                        Text(vehicle.licensePlate)
                             .font(.system(size: 15))
-                            .foregroundColor(.gray)
+                            .foregroundColor(.cyan)
                     }
                     Spacer()
                     
@@ -64,24 +79,24 @@ struct TaxHistoryView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
                 
-                // Alert Cards
-                if !taxManager.getExpiredTaxes().isEmpty || !taxManager.getExpiringTaxes().isEmpty {
+                // Alert Cards (Blue background)
+                if expiredCount > 0 || expiringCount > 0 {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            if !taxManager.getExpiredTaxes().isEmpty {
-                                AlertCard(
+                            if expiredCount > 0 {
+                                AlertCardBlue(
                                     icon: "exclamationmark.triangle.fill",
                                     title: "Expired",
-                                    count: taxManager.getExpiredTaxes().count,
+                                    count: expiredCount,
                                     color: .red
                                 )
                             }
                             
-                            if !taxManager.getExpiringTaxes().isEmpty {
-                                AlertCard(
+                            if expiringCount > 0 {
+                                AlertCardBlue(
                                     icon: "clock.fill",
                                     title: "Expiring Soon",
-                                    count: taxManager.getExpiringTaxes().count,
+                                    count: expiringCount,
                                     color: .orange
                                 )
                             }
@@ -91,11 +106,11 @@ struct TaxHistoryView: View {
                     .padding(.bottom, 16)
                 }
                 
-                // Filter Tabs
+                // Filter Tabs (Blue when selected)
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(TaxFilter.allCases, id: \.self) { filter in
-                            FilterTab(
+                            FilterTabBlue(
                                 title: filter.rawValue,
                                 isSelected: selectedFilter == filter
                             ) {
@@ -111,13 +126,13 @@ struct TaxHistoryView: View {
                 
                 // Tax List
                 if filteredTaxes.isEmpty {
-                    EmptyStateView(filter: selectedFilter)
+                    EmptyStateTaxView(filter: selectedFilter, vehiclePlate: vehicle.licensePlate)
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 12) {
                             ForEach(filteredTaxes) { tax in
                                 NavigationLink(destination: TaxDetailView(tax: tax)) {
-                                    TaxHistoryCard(tax: tax)
+                                    TaxHistoryCardBlue(tax: tax)
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
@@ -133,13 +148,16 @@ struct TaxHistoryView: View {
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showAddTaxSheet) {
-            AddTaxView()
+            AddTaxView(vehicle: vehicle) // Pass current vehicle
+        }
+        .onAppear {
+            taxManager.loadTaxHistories() // Refresh when view appears
         }
     }
 }
 
-// MARK: - Alert Card
-struct AlertCard: View {
+// MARK: - Alert Card (Blue style)
+struct AlertCardBlue: View {
     let icon: String
     let title: String
     let count: Int
@@ -163,17 +181,17 @@ struct AlertCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(color.opacity(0.1))
+                .fill(Color.blue.opacity(0.2))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
+                        .stroke(color.opacity(0.5), lineWidth: 1)
                 )
         )
     }
 }
 
-// MARK: - Filter Tab
-struct FilterTab: View {
+// MARK: - Filter Tab (Blue when selected)
+struct FilterTabBlue: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
@@ -187,14 +205,14 @@ struct FilterTab: View {
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color.cyan : Color(white: 0.15))
+                        .fill(isSelected ? Color.blue : Color(white: 0.15))
                 )
         }
     }
 }
 
-// MARK: - Tax History Card
-struct TaxHistoryCard: View {
+// MARK: - Tax History Card (Blue accents)
+struct TaxHistoryCardBlue: View {
     let tax: TaxModel
     
     var body: some View {
@@ -202,10 +220,10 @@ struct TaxHistoryCard: View {
             // Vehicle Icon with Status
             ZStack(alignment: .bottomTrailing) {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.cyan.opacity(0.2))
+                    .fill(Color.blue.opacity(0.3))
                     .frame(width: 60, height: 60)
                 
-                Image(systemName: "car.fill")
+                Image(systemName: "doc.text.fill")
                     .font(.system(size: 26))
                     .foregroundColor(.cyan)
                 
@@ -222,11 +240,11 @@ struct TaxHistoryCard: View {
             
             // Info
             VStack(alignment: .leading, spacing: 6) {
-                Text(tax.vehiclePlate)
+                Text(tax.formattedAmount)
                     .font(.system(size: 18, weight: .bold))
                     .foregroundColor(.white)
                 
-                Text(tax.vehicleName)
+                Text(tax.location)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
                 
@@ -260,7 +278,7 @@ struct TaxHistoryCard: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 15)
-                .fill(Color(white: 0.15))
+                .fill(Color.blue.opacity(0.15))
         )
     }
     
@@ -299,8 +317,9 @@ struct StatusBadge: View {
 }
 
 // MARK: - Empty State
-struct EmptyStateView: View {
+struct EmptyStateTaxView: View {
     let filter: TaxHistoryView.TaxFilter
+    let vehiclePlate: String
     
     var body: some View {
         VStack(spacing: 16) {
@@ -312,7 +331,7 @@ struct EmptyStateView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
             
-            Text("Add your vehicle tax payment history to track and get reminders")
+            Text("Add tax payment history for \(vehiclePlate)")
                 .font(.system(size: 15))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -320,11 +339,4 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
-}
-
-#Preview {
-    NavigationStack {
-        TaxHistoryView()
-    }
-    .preferredColorScheme(.dark)
 }

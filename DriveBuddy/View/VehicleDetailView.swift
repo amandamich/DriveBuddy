@@ -327,16 +327,25 @@ struct VehicleDetailView: View {
         
         .sheet(isPresented: $showMyTax) {
             NavigationView {
-                TaxHistoryView()
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button(action: { showMyTax = false }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.headline)
-                                    .foregroundColor(.blue)
-                            }
+                TaxHistoryView(
+                    vehicle: Vehicle(
+                        makeAndModel: viewModel.activeVehicle.make_model ?? "Unknown",
+                        vehicleType: viewModel.activeVehicle.vehicle_type ?? "Car",
+                        licensePlate: viewModel.activeVehicle.plate_number ?? "N/A",
+                        year: "",  // ✅ Just pass empty string since your Core Data doesn't have year
+                        odometer: String(Int(viewModel.activeVehicle.last_odometer)),
+                        taxDate: viewModel.activeVehicle.tax_due_date ?? Date()
+                    )
+                )
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: { showMyTax = false }) {
+                            Image(systemName: "chevron.left")
+                                .font(.headline)
+                                .foregroundColor(.blue)
                         }
                     }
+                }
             }
         }
         // Sheet Add Service

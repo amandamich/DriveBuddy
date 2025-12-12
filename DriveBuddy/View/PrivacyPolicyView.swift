@@ -34,7 +34,7 @@ struct PrivacyPolicyView: View {
 							We collect the following data to provide our services:
 							• Personal Information: your email and password (securely stored).
 							• Device Information: model, OS, and usage data.
-							• Vehicle Data: make, model, license plate, and mileage.
+							• Vehicle Data: maker, model, license plate, and mileage.
 							"""
 						)
 
