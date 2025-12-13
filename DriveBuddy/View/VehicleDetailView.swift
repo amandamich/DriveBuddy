@@ -1,5 +1,5 @@
 //
-//  VehicleDetailView.swift - ENHANCED VERSION
+//  VehicleDetailView.swift - COMPLETE VERSION WITH TAX SYNC
 //  DriveBuddy
 //
 
@@ -61,33 +61,7 @@ struct VehicleDetailView: View {
                     }
                     .padding(.horizontal)
                     .padding(.top, 10)
-//                    // Add after the LogoDriveBuddy Image
-//                    VStack(spacing: 8) {
-//                        Button(action: {
-//                            viewModel.debugAllServices()
-//                        }) {
-//                            Text("🔍 Debug All Services")
-//                                .font(.caption)
-//                                .foregroundColor(.white)
-//                                .padding(.horizontal, 12)
-//                                .padding(.vertical, 6)
-//                                .background(Color.red.opacity(0.8))
-//                                .cornerRadius(8)
-//                        }
-//                        
-//                        Button(action: {
-//                            viewModel.deleteAllScheduledMaintenance()
-//                        }) {
-//                            Text("🗑️ Clean Old Services")
-//                                .font(.caption)
-//                                .foregroundColor(.white)
-//                                .padding(.horizontal, 12)
-//                                .padding(.vertical, 6)
-//                                .background(Color.orange.opacity(0.8))
-//                                .cornerRadius(8)
-//                        }
-//                    }
-//                    .padding(.horizontal)
+                    
                     // MARK: VEHICLE DROPDOWN
                     Menu {
                         ForEach(allVehicles, id: \.objectID) { v in
@@ -106,7 +80,7 @@ struct VehicleDetailView: View {
                             Image(systemName: "car.fill")
                                 .foregroundColor(.cyan)
                             
-                            Text(viewModel.makeModel.isEmpty ? "Nama Kosong" : viewModel.makeModel)
+                            Text(viewModel.makeModel.isEmpty ? "Empty Name" : viewModel.makeModel)
                                 .font(.title3)
                                 .bold()
                                 .foregroundColor(.white)
@@ -151,7 +125,7 @@ struct VehicleDetailView: View {
                                     .bold()
                                     .foregroundColor(.white)
                                 
-                                Text(viewModel.plateNumber.isEmpty ? "No Plat" : viewModel.plateNumber)
+                                Text(viewModel.plateNumber.isEmpty ? "No Plate" : viewModel.plateNumber)
                                     .foregroundColor(.gray)
                                 
                                 Text("\(viewModel.formattedOdometer)")
@@ -176,9 +150,9 @@ struct VehicleDetailView: View {
                     
                     HStack(spacing: 16) {
                         
-                        // UPCOMING SERVICES - Pass viewModel instead of array
+                        // UPCOMING SERVICES
                         Button(action: { showMyService = true }) {
-                            UpcomingServicesCard(viewModel: viewModel) // ✅ Changed to pass viewModel
+                            UpcomingServicesCard(viewModel: viewModel)
                         }
                         .buttonStyle(CardButtonStyle())
                         .frame(maxWidth: .infinity)
@@ -221,7 +195,6 @@ struct VehicleDetailView: View {
                         
                         Divider().background(Color.white.opacity(0.2))
                         
-                        // Show last 3 services
                         let lastServices = viewModel.getLastServices(limit: 3)
                         
                         if lastServices.isEmpty {
@@ -265,7 +238,6 @@ struct VehicleDetailView: View {
                                 }
                             }
                             
-                            // View All button if there are more than 3 services
                             if viewModel.getTotalCompletedServices() > 3 {
                                 Button(action: { showMyService = true }) {
                                     HStack {
@@ -289,11 +261,15 @@ struct VehicleDetailView: View {
                     .padding(.horizontal)
                     .id(refreshTrigger)
                 }
-                    Spacer(minLength: 60)
-                }
+                Spacer(minLength: 60)
+            }
         }
         .onAppear {
             viewModel.loadVehicleData()
+            // ✅ Sync latest tax from TaxHistoryVM when view appears
+            if let plateNumber = viewModel.activeVehicle.plate_number {
+                TaxHistoryVM.shared.syncLatestTaxToVehicle(licensePlate: plateNumber, context: viewContext)
+            }
         }
         .onDisappear {
             onDismiss?()
@@ -325,14 +301,18 @@ struct VehicleDetailView: View {
             }
         }
         
-        .sheet(isPresented: $showMyTax) {
+        .sheet(isPresented: $showMyTax, onDismiss: {
+            // ✅ Refresh when tax sheet closes
+            viewModel.loadVehicleData()
+            refreshTrigger = UUID()
+        }) {
             NavigationView {
                 TaxHistoryView(
                     vehicle: Vehicle(
                         makeAndModel: viewModel.activeVehicle.make_model ?? "Unknown",
                         vehicleType: viewModel.activeVehicle.vehicle_type ?? "Car",
                         licensePlate: viewModel.activeVehicle.plate_number ?? "N/A",
-                        year: "",  // ✅ Just pass empty string since your Core Data doesn't have year
+                        year: "",
                         odometer: String(Int(viewModel.activeVehicle.last_odometer)),
                         taxDate: viewModel.activeVehicle.tax_due_date ?? Date()
                     )
@@ -348,12 +328,11 @@ struct VehicleDetailView: View {
                 }
             }
         }
-        // Sheet Add Service
+        
         .sheet(isPresented: $showAddService, onDismiss: {
-            print("🔄 AddService sheet dismissed - reloading data")
             viewModel.loadVehicleData()
             refreshTrigger = UUID()
-            upcomingServicesRefreshID = UUID() // ✅ ADDED: Refresh upcoming card
+            upcomingServicesRefreshID = UUID()
         }) {
             NavigationView {
                 AddServiceView(
@@ -395,15 +374,14 @@ struct VehicleDetailView: View {
     }
 }
 
-
-// MARK: - Upcoming Services Card (FIXED with ObservableObject)
+// MARK: - Upcoming Services Card
 struct UpcomingServicesCard: View {
     @ObservedObject var viewModel: VehicleDetailViewModel
     
     var body: some View {
         let upcomingServices = viewModel.getUpcomingServices()
         
-        return VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -423,12 +401,10 @@ struct UpcomingServicesCard: View {
                 
                 Spacer()
             } else {
-                // Sort by date to show nearest service first
                 let sortedServices = upcomingServices.sorted { $0.date < $1.date }
                 
-                // Show first 2 upcoming services (nearest first)
                 ForEach(Array(sortedServices.prefix(2).enumerated()), id: \.offset) { index, service in
-                    Text(service.name.trimmingCharacters(in: .whitespaces)) // ✅ Trim spaces
+                    Text(service.name.trimmingCharacters(in: .whitespaces))
                         .lineLimit(1)
                         .foregroundColor(.white.opacity(0.85))
                         .font(.system(size: 13, weight: .regular))
@@ -437,7 +413,6 @@ struct UpcomingServicesCard: View {
                 
                 Spacer()
                 
-                // Show the NEAREST service date
                 if let nearestService = sortedServices.first {
                     HStack {
                         HStack(spacing: 4) {
@@ -526,7 +501,6 @@ struct TaxPaymentCard: View {
                 
                 Spacer()
                 
-                // ✅ Date and arrow on the same line at the bottom
                 HStack {
                     HStack(spacing: 4) {
                         Image(systemName: "calendar")

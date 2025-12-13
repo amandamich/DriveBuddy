@@ -2,8 +2,6 @@
 //  TaxHistoryView.swift
 //  DriveBuddy
 //
-//  Created by Timothy on 26/11/25.
-//
 
 import SwiftUI
 
@@ -11,8 +9,10 @@ struct TaxHistoryView: View {
     @StateObject private var taxManager = TaxHistoryVM.shared
     @State private var showAddTaxSheet = false
     @State private var selectedFilter: TaxFilter = .all
+    @State private var selectedTaxForPayment: TaxModel? = nil
+    @State private var showPayTaxSheet = false
     
-    let vehicle: Vehicle // Current vehicle to filter by
+    let vehicle: Vehicle
     
     enum TaxFilter: String, CaseIterable {
         case all = "All"
@@ -21,7 +21,6 @@ struct TaxHistoryView: View {
         case expired = "Expired"
     }
     
-    // Filter taxes by current vehicle's license plate
     var vehicleTaxes: [TaxModel] {
         return taxManager.taxHistories.filter { $0.vehiclePlate == vehicle.licensePlate }
     }
@@ -49,7 +48,6 @@ struct TaxHistoryView: View {
     
     var body: some View {
         ZStack {
-            // Background
             Color.black
                 .ignoresSafeArea()
             
@@ -79,7 +77,7 @@ struct TaxHistoryView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 16)
                 
-                // Alert Cards (Blue background)
+                // Alert Cards
                 if expiredCount > 0 || expiringCount > 0 {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
@@ -106,7 +104,7 @@ struct TaxHistoryView: View {
                     .padding(.bottom, 16)
                 }
                 
-                // Filter Tabs (Blue when selected)
+                // Filter Tabs
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(TaxFilter.allCases, id: \.self) { filter in
@@ -132,7 +130,13 @@ struct TaxHistoryView: View {
                         VStack(spacing: 12) {
                             ForEach(filteredTaxes) { tax in
                                 NavigationLink(destination: TaxDetailView(tax: tax)) {
-                                    TaxHistoryCardBlue(tax: tax)
+                                    TaxHistoryCardBlue(
+                                        tax: tax,
+                                        onPayTax: {
+                                            selectedTaxForPayment = tax
+                                            showPayTaxSheet = true
+                                        }
+                                    )
                                 }
                                 .buttonStyle(PlainButtonStyle())
                             }
@@ -148,15 +152,31 @@ struct TaxHistoryView: View {
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .sheet(isPresented: $showAddTaxSheet) {
-            AddTaxView(vehicle: vehicle) // Pass current vehicle
+            AddTaxView(vehicle: vehicle)
+        }
+        .sheet(isPresented: $showPayTaxSheet) {
+            if let tax = selectedTaxForPayment {
+                NavigationView {
+                    PayTaxView(existingTax: tax, vehicle: vehicle)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button(action: { showPayTaxSheet = false }) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.headline)
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                }
+            }
         }
         .onAppear {
-            taxManager.loadTaxHistories() // Refresh when view appears
+            taxManager.loadTaxHistories()
         }
     }
 }
 
-// MARK: - Alert Card (Blue style)
+// MARK: - Alert Card
 struct AlertCardBlue: View {
     let icon: String
     let title: String
@@ -190,7 +210,7 @@ struct AlertCardBlue: View {
     }
 }
 
-// MARK: - Filter Tab (Blue when selected)
+// MARK: - Filter Tab
 struct FilterTabBlue: View {
     let title: String
     let isSelected: Bool
@@ -211,9 +231,10 @@ struct FilterTabBlue: View {
     }
 }
 
-// MARK: - Tax History Card (Blue accents)
+// MARK: - Tax History Card
 struct TaxHistoryCardBlue: View {
     let tax: TaxModel
+    let onPayTax: () -> Void
     
     var body: some View {
         HStack(spacing: 16) {
@@ -260,7 +281,7 @@ struct TaxHistoryCardBlue: View {
             
             Spacer()
             
-            // Status & Arrow
+            // Status & Actions
             VStack(alignment: .trailing, spacing: 8) {
                 StatusBadge(status: tax.status)
                 
@@ -270,9 +291,31 @@ struct TaxHistoryCardBlue: View {
                         .foregroundColor(.orange)
                 }
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14))
-                    .foregroundColor(.gray)
+                // Pay Tax button for expired/expiring
+                if tax.status == .expired || tax.status == .expiringSoon {
+                    Button(action: {
+                        onPayTax()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "creditcard.fill")
+                                .font(.system(size: 10))
+                            Text("Pay")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.green.opacity(0.8))
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } else {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
             }
         }
         .padding()
@@ -339,4 +382,21 @@ struct EmptyStateTaxView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+#Preview {
+    NavigationStack {
+        TaxHistoryView(
+            vehicle: Vehicle(
+                id: UUID(),
+                makeAndModel: "Toyota Camry",
+                vehicleType: "Car",
+                licensePlate: "B 1234 CD",
+                year: "2020",
+                odometer: "50000",
+                taxDate: Date()
+            )
+        )
+    }
+    .preferredColorScheme(.dark)
 }

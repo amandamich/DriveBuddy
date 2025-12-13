@@ -33,7 +33,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Empty Vehicle View (Matching VehicleDetailView Style)
+// MARK: - Empty Vehicle View (English)
 struct EmptyVehicleView: View {
     @Binding var selectedTab: Int
     let activeUser: User?
@@ -45,7 +45,7 @@ struct EmptyVehicleView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     
-                    // MARK: HEADER (Same as VehicleDetailView)
+                    // MARK: HEADER
                     HStack {
                         Image("LogoDriveBuddy")
                             .resizable()
@@ -61,7 +61,7 @@ struct EmptyVehicleView: View {
                         Spacer()
                         
                         if activeUser == nil {
-                            Text("Menunggu Data Pengguna...")
+                            Text("Waiting for User Data...")
                                 .foregroundColor(.white.opacity(0.7))
                         } else {
                             VStack(spacing: 24) {
@@ -70,12 +70,12 @@ struct EmptyVehicleView: View {
                                     .foregroundColor(.cyan.opacity(0.6))
                                 
                                 VStack(spacing: 12) {
-                                    Text("Belum ada kendaraan")
+                                    Text("No Vehicles Yet")
                                         .font(.title2)
                                         .fontWeight(.bold)
                                         .foregroundColor(.white)
                                     
-                                    Text("Tambahkan kendaraan pertama Anda\ndi Dashboard untuk memulai")
+                                    Text("Add your first vehicle\nin Dashboard to get started")
                                         .multilineTextAlignment(.center)
                                         .foregroundColor(.white.opacity(0.7))
                                         .font(.subheadline)
@@ -87,7 +87,7 @@ struct EmptyVehicleView: View {
                                 }) {
                                     HStack {
                                         Image(systemName: "plus.circle.fill")
-                                        Text("Tambah Kendaraan")
+                                        Text("Add Vehicle")
                                     }
                                     .font(.headline)
                                     .foregroundColor(.white)
@@ -128,7 +128,6 @@ struct EmptyVehicleView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-
 // MARK: - 2. MAIN CONTENT VIEW (LOGIC UTAMA)
 struct MainContentView: View {
     @ObservedObject var authVM: AuthenticationViewModel

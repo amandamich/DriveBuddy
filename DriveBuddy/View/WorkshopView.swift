@@ -27,7 +27,7 @@ struct WorkshopView: View {
     @State private var showLocationAlert = false
     @Environment(\.colorScheme) private var colorScheme
     
-    let filters = ["car wash", "oil", "brake", "tire", "engine"]
+    let filters = ["Car Wash", "Oil", "Brake", "Tire", "Engine"]
     
     private var isDarkMode: Bool {
         colorScheme == .dark

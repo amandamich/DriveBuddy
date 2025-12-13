@@ -8,6 +8,7 @@
 import Foundation
 import Combine
 import UserNotifications
+import CoreData
 
 class TaxHistoryVM: ObservableObject {
     static let shared = TaxHistoryVM()
@@ -42,29 +43,71 @@ class TaxHistoryVM: ObservableObject {
     }
     
     // MARK: - CRUD Operations
-    func addTaxHistory(_ history: TaxModel) {
+    func addTaxHistory(_ history: TaxModel, context: NSManagedObjectContext? = nil) {
         taxHistories.append(history)
         taxHistories.sort { $0.validUntil > $1.validUntil }
         saveTaxHistories()
         scheduleNotification(for: history)
         print("✅ Added new tax record: \(history.vehiclePlate)")
+        
+        // ✅ SYNC WITH CORE DATA VEHICLE
+        if let context = context {
+            syncTaxDateToVehicle(licensePlate: history.vehiclePlate, validUntil: history.validUntil, context: context)
+        }
     }
     
-    func updateTaxHistory(_ history: TaxModel) {
+    func updateTaxHistory(_ history: TaxModel, context: NSManagedObjectContext? = nil) {
         if let index = taxHistories.firstIndex(where: { $0.id == history.id }) {
             taxHistories[index] = history
             taxHistories.sort { $0.validUntil > $1.validUntil }
             saveTaxHistories()
             scheduleNotification(for: history)
             print("✅ Updated tax record: \(history.vehiclePlate)")
+            
+            // ✅ SYNC WITH CORE DATA VEHICLE
+            if let context = context {
+                syncTaxDateToVehicle(licensePlate: history.vehiclePlate, validUntil: history.validUntil, context: context)
+            }
         }
     }
     
-    func deleteTaxHistory(_ history: TaxModel) {
+    func deleteTaxHistory(_ history: TaxModel, context: NSManagedObjectContext? = nil) {
         taxHistories.removeAll { $0.id == history.id }
         saveTaxHistories()
         cancelNotification(for: history)
         print("✅ Deleted tax record: \(history.vehiclePlate)")
+        
+        // ✅ UPDATE CORE DATA VEHICLE - Check if there's another valid tax, otherwise clear the date
+        if let context = context {
+            if let latestTax = getLatestValidTax(for: history.vehiclePlate) {
+                // Sync to the next valid tax
+                syncTaxDateToVehicle(licensePlate: history.vehiclePlate, validUntil: latestTax.validUntil, context: context)
+            } else {
+                // No more valid taxes, clear the tax_due_date
+                clearVehicleTaxDate(licensePlate: history.vehiclePlate, context: context)
+            }
+        }
+    }
+    
+    // MARK: - ✅ CLEAR TAX DATE FROM CORE DATA VEHICLE
+    private func clearVehicleTaxDate(licensePlate: String, context: NSManagedObjectContext) {
+        let fetchRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "plate_number == %@", licensePlate)
+        
+        do {
+            let vehicles = try context.fetch(fetchRequest)
+            if let vehicle = vehicles.first {
+                vehicle.tax_due_date = nil
+                
+                try context.save()
+                print("✅ Tax date cleared from Core Data vehicle: \(licensePlate)")
+                
+                // Post notification to refresh UI
+                NotificationCenter.default.post(name: .NSManagedObjectContextDidSave, object: context)
+            }
+        } catch {
+            print("❌ Failed to clear tax date: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Filtering
@@ -78,6 +121,49 @@ class TaxHistoryVM: ObservableObject {
     
     func getValidTaxes() -> [TaxModel] {
         return taxHistories.filter { $0.status == .valid }
+    }
+    
+    // MARK: - Get Latest Valid Tax for Vehicle
+    func getLatestValidTax(for licensePlate: String) -> TaxModel? {
+        let vehicleTaxes = taxHistories.filter { $0.vehiclePlate == licensePlate }
+        
+        // Get the tax with the latest validUntil date that is still valid or expiring soon
+        return vehicleTaxes
+            .filter { $0.status == .valid || $0.status == .expiringSoon }
+            .sorted { $0.validUntil > $1.validUntil }
+            .first
+    }
+    
+    // MARK: - ✅ SYNC TAX DATE TO CORE DATA VEHICLE
+    private func syncTaxDateToVehicle(licensePlate: String, validUntil: Date, context: NSManagedObjectContext) {
+        let fetchRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "plate_number == %@", licensePlate)
+        
+        do {
+            let vehicles = try context.fetch(fetchRequest)
+            if let vehicle = vehicles.first {
+                vehicle.tax_due_date = validUntil
+                
+                try context.save()
+                print("✅ Tax date synced to Core Data vehicle: \(licensePlate)")
+                
+                // Post notification to refresh UI
+                NotificationCenter.default.post(name: .NSManagedObjectContextDidSave, object: context)
+            } else {
+                print("⚠️ Vehicle not found for license plate: \(licensePlate)")
+            }
+        } catch {
+            print("❌ Failed to sync tax date: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - ✅ PUBLIC METHOD TO SYNC FROM OUTSIDE
+    func syncLatestTaxToVehicle(licensePlate: String, context: NSManagedObjectContext) {
+        if let latestTax = getLatestValidTax(for: licensePlate) {
+            syncTaxDateToVehicle(licensePlate: licensePlate, validUntil: latestTax.validUntil, context: context)
+        } else {
+            print("ℹ️ No valid tax found for vehicle: \(licensePlate)")
+        }
     }
     
     // MARK: - Notifications
