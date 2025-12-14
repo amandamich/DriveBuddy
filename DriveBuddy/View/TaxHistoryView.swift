@@ -79,28 +79,29 @@ struct TaxHistoryView: View {
                 
                 // Alert Cards
                 if expiredCount > 0 || expiringCount > 0 {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            if expiredCount > 0 {
-                                AlertCardBlue(
-                                    icon: "exclamationmark.triangle.fill",
-                                    title: "Expired",
-                                    count: expiredCount,
-                                    color: .red
-                                )
-                            }
-                            
-                            if expiringCount > 0 {
-                                AlertCardBlue(
-                                    icon: "clock.fill",
-                                    title: "Expiring Soon",
-                                    count: expiringCount,
-                                    color: .orange
-                                )
-                            }
+                    HStack(spacing: 12) {
+                        if expiredCount > 0 {
+                            AlertCardBlue(
+                                icon: "exclamationmark.triangle.fill",
+                                title: "Expired",
+                                count: expiredCount,
+                                color: .red
+                            )
+                            .frame(maxWidth: .infinity)
                         }
-                        .padding(.horizontal, 20)
+                        
+                        if expiringCount > 0 {
+                            AlertCardBlue(
+                                icon: "clock.fill",
+                                title: "Expiring Soon",
+                                count: expiringCount,
+                                color: .orange
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 16)
                 }
                 
@@ -196,7 +197,11 @@ struct AlertCardBlue: View {
                 Text(title)
                     .font(.system(size: 13))
                     .foregroundColor(.gray)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
+            
+            Spacer()
         }
         .padding()
         .background(

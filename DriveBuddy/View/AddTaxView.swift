@@ -80,9 +80,21 @@ struct AddTaxView: View {
                                         Text(vehicle.makeAndModel)
                                             .font(.system(size: 14))
                                             .foregroundColor(.gray)
-                                        Text("\(vehicle.vehicleType) • \(vehicle.year.isEmpty ? "N/A" : vehicle.year)")
-                                            .font(.system(size: 13))
-                                            .foregroundColor(.gray)
+                                        
+                                        // Display year and type
+                                        HStack(spacing: 4) {
+                                            Text(vehicle.vehicleType)
+                                                .font(.system(size: 13))
+                                                .foregroundColor(.gray)
+                                            
+                                            if !vehicle.year.isEmpty && vehicle.year != "N/A" {
+                                                Text("•")
+                                                    .foregroundColor(.gray)
+                                                Text(vehicle.year)
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
                                     }
                                     .padding()
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -264,9 +276,13 @@ struct AddTaxView: View {
                                     .font(.subheadline)
                             }
                             .padding()
-                            .background(Color.blue.opacity(0.15))
-                            .cornerRadius(15)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(10)
                         }
+                        .padding()
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(15)
                         
                         // Add Button
                         Button(action: saveTaxHistory) {

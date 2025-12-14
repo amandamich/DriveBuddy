@@ -309,10 +309,11 @@ struct VehicleDetailView: View {
             NavigationView {
                 TaxHistoryView(
                     vehicle: Vehicle(
+                        id: UUID(),
                         makeAndModel: viewModel.activeVehicle.make_model ?? "Unknown",
                         vehicleType: viewModel.activeVehicle.vehicle_type ?? "Car",
                         licensePlate: viewModel.activeVehicle.plate_number ?? "N/A",
-                        year: "",
+                        year: extractYear(from: viewModel.activeVehicle),
                         odometer: String(Int(viewModel.activeVehicle.last_odometer)),
                         taxDate: viewModel.activeVehicle.tax_due_date ?? Date()
                     )
@@ -371,6 +372,15 @@ struct VehicleDetailView: View {
         }
         
         .navigationBarBackButtonHidden(false)
+    }
+    
+    // Helper function to extract year from vehicle
+    private func extractYear(from vehicle: Vehicles) -> String {
+        // Get year_manufacture from Core Data
+        if let year = vehicle.year_manufacture, !year.isEmpty {
+            return year
+        }
+        return ""
     }
 }
 

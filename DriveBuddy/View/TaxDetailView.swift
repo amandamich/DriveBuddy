@@ -163,26 +163,18 @@ struct TaxDetailView: View {
                         }) {
                             HStack(spacing: 8) {
                                 Image(systemName: "creditcard.fill")
-                                    .font(.system(size: 18))
+                                    .font(.system(size: 16))
                                 Text("Pay Tax")
                             }
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                            .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.green.opacity(0.9), Color.green.opacity(0.7)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .shadow(color: .green.opacity(0.4), radius: 8, x: 0, y: 4)
+                                    .fill(Color.green.opacity(0.8))
                             )
                         }
-                        .padding(.bottom, 8)
                     }
                     
                     // Delete Button
@@ -202,7 +194,6 @@ struct TaxDetailView: View {
                                 .fill(Color.red.opacity(0.8))
                         )
                     }
-                    .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 40)
@@ -489,6 +480,39 @@ struct PayTaxView: View {
                             .cornerRadius(10)
                             .scrollContentBackground(.hidden)
                             .foregroundColor(.black)
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.15))
+                    .cornerRadius(15)
+                    
+                    // Reminder Info
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bell.badge.fill")
+                                .foregroundColor(.cyan)
+                            Text("Reminder Settings")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("You'll be notified:")
+                                .foregroundColor(.white)
+                                .font(.subheadline)
+                            Text("• 30 days before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                            Text("• 7 days before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                            Text("• 1 day before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(10)
                     }
                     .padding()
                     .background(Color.blue.opacity(0.15))
