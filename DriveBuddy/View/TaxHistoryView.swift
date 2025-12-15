@@ -7,10 +7,8 @@ import SwiftUI
 
 struct TaxHistoryView: View {
     @StateObject private var taxManager = TaxHistoryVM.shared
-    @State private var showAddTaxSheet = false
     @State private var selectedFilter: TaxFilter = .all
     @State private var selectedTaxForPayment: TaxModel? = nil
-    @State private var showPayTaxSheet = false
     
     let vehicle: Vehicle
     
@@ -64,10 +62,8 @@ struct TaxHistoryView: View {
                     }
                     Spacer()
                     
-                    // Add Button
-                    Button(action: {
-                        showAddTaxSheet = true
-                    }) {
+                    // Add Button - Using NavigationLink
+                    NavigationLink(destination: AddTaxView(vehicle: vehicle)) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 32))
                             .foregroundColor(.cyan)
@@ -135,7 +131,6 @@ struct TaxHistoryView: View {
                                         tax: tax,
                                         onPayTax: {
                                             selectedTaxForPayment = tax
-                                            showPayTaxSheet = true
                                         }
                                     )
                                 }
@@ -147,30 +142,26 @@ struct TaxHistoryView: View {
                     }
                 }
             }
+            
+            // NavigationLink for Pay Tax (hidden, triggered by state)
+            if let tax = selectedTaxForPayment {
+                NavigationLink(
+                    destination: PayTaxView(existingTax: tax, vehicle: vehicle),
+                    tag: tax.id,
+                    selection: Binding(
+                        get: { selectedTaxForPayment?.id },
+                        set: { if $0 == nil { selectedTaxForPayment = nil } }
+                    )
+                ) {
+                    EmptyView()
+                }
+                .hidden()
+            }
         }
         .preferredColorScheme(.dark)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(Color.black, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .sheet(isPresented: $showAddTaxSheet) {
-            AddTaxView(vehicle: vehicle)
-        }
-        .sheet(isPresented: $showPayTaxSheet) {
-            if let tax = selectedTaxForPayment {
-                NavigationView {
-                    PayTaxView(existingTax: tax, vehicle: vehicle)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button(action: { showPayTaxSheet = false }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.headline)
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                        }
-                }
-            }
-        }
         .onAppear {
             taxManager.loadTaxHistories()
         }

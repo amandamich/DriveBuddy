@@ -23,317 +23,297 @@ struct AddTaxView: View {
     @State private var alertMessage = ""
     
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black
-                    .ignoresSafeArea()
-                
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        // Custom Navigation Bar with Back Button
-                        HStack {
-                            Button(action: {
-                                dismiss()
-                            }) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color(white: 0.2))
-                                        .frame(width: 40, height: 40)
-                                    
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            
-                            Spacer()
-                        }
+        ZStack {
+            Color.black
+                .ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    // Header
+                    Text("Add Tax Record")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, 8)
+                        .padding(.top, 20)
+                    
+                    // Vehicle Info Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "car.fill")
+                                .foregroundColor(.cyan)
+                            Text("Vehicle Info")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
                         
-                        // Header
-                        Text("Add Tax Record")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        // Vehicle Info Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "car.fill")
-                                    .foregroundColor(.cyan)
-                                Text("Vehicle Info")
-                                    .font(.headline)
+                        VStack(alignment: .leading, spacing: 15) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Vehicle")
                                     .foregroundColor(.white)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 15) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Vehicle")
+                                    .font(.headline)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(vehicle.licensePlate)
+                                        .font(.system(size: 18, weight: .bold))
                                         .foregroundColor(.white)
-                                        .font(.headline)
+                                    Text(vehicle.makeAndModel)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
                                     
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(vehicle.licensePlate)
-                                            .font(.system(size: 18, weight: .bold))
-                                            .foregroundColor(.white)
-                                        Text(vehicle.makeAndModel)
-                                            .font(.system(size: 14))
+                                    // Display year and type
+                                    HStack(spacing: 4) {
+                                        Text(vehicle.vehicleType)
+                                            .font(.system(size: 13))
                                             .foregroundColor(.gray)
                                         
-                                        // Display year and type
-                                        HStack(spacing: 4) {
-                                            Text(vehicle.vehicleType)
+                                        if !vehicle.year.isEmpty && vehicle.year != "N/A" {
+                                            Text("•")
+                                                .foregroundColor(.gray)
+                                            Text(vehicle.year)
                                                 .font(.system(size: 13))
                                                 .foregroundColor(.gray)
-                                            
-                                            if !vehicle.year.isEmpty && vehicle.year != "N/A" {
-                                                Text("•")
-                                                    .foregroundColor(.gray)
-                                                Text(vehicle.year)
-                                                    .font(.system(size: 13))
-                                                    .foregroundColor(.gray)
-                                            }
-                                        }
-                                    }
-                                    .padding()
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.white.opacity(0.1))
-                                    .cornerRadius(10)
-                                }
-                            }
-                            .padding()
-                            .background(Color.blue.opacity(0.15))
-                            .cornerRadius(15)
-                        }
-                        
-                        // Tax Information Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.text.fill")
-                                    .foregroundColor(.cyan)
-                                Text("Tax Information")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 15) {
-                                // Tax Amount
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Tax Amount")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                    
-                                    HStack {
-                                        Text("Rp")
-                                            .foregroundColor(.black)
-                                        TextField("0", text: $taxAmount)
-                                            .keyboardType(.numberPad)
-                                            .foregroundColor(.black)
-                                    }
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                    
-                                    if taxAmount.isEmpty {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "exclamationmark.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                            Text("Tax amount is required")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                        }
-                                    } else if Double(taxAmount) == nil {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "exclamationmark.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                            Text("Please enter a valid number")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
                                         }
                                     }
                                 }
-                                
-                                // Payment Date
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Payment Date")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                    
-                                    DatePicker("", selection: $paymentDate, displayedComponents: .date)
-                                        .labelsHidden()
-                                        .datePickerStyle(.compact)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding()
-                                        .background(Color.white)
-                                        .cornerRadius(10)
-                                }
-                                
-                                // Valid Until
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Valid Until")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                    
-                                    DatePicker("", selection: $validUntil, displayedComponents: .date)
-                                        .labelsHidden()
-                                        .datePickerStyle(.compact)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .padding()
-                                        .background(Color.white)
-                                        .cornerRadius(10)
-                                    
-                                    if validUntil <= paymentDate {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "exclamationmark.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                            Text("Valid until must be after payment date")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                        }
-                                    }
-                                }
-                                
-                                // Payment Location
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Payment Location")
-                                        .foregroundColor(.white)
-                                        .font(.headline)
-                                    
-                                    TextField("e.g., Samsat Jakarta Timur", text: $location)
-                                        .padding()
-                                        .background(Color.white)
-                                        .cornerRadius(10)
-                                        .autocorrectionDisabled(true)
-                                        .foregroundColor(.black)
-                                    
-                                    if location.isEmpty {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "exclamationmark.circle.fill")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                            Text("Payment location is required")
-                                                .foregroundColor(.red)
-                                                .font(.system(size: 12))
-                                        }
-                                    }
-                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(10)
                             }
-                            .padding()
-                            .background(Color.blue.opacity(0.15))
-                            .cornerRadius(15)
-                        }
-                        
-                        // Notes Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "note.text")
-                                    .foregroundColor(.cyan)
-                                Text("Notes (Optional)")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 15) {
-                                TextEditor(text: $notes)
-                                    .frame(height: 100)
-                                    .padding(8)
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                    .scrollContentBackground(.hidden)
-                                    .foregroundColor(.black)
-                            }
-                            .padding()
-                            .background(Color.blue.opacity(0.15))
-                            .cornerRadius(15)
-                        }
-                        
-                        // Reminder Info
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "bell.badge.fill")
-                                    .foregroundColor(.cyan)
-                                Text("Reminder Settings")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("You'll be notified:")
-                                    .foregroundColor(.white)
-                                    .font(.subheadline)
-                                Text("• 30 days before expiry")
-                                    .foregroundColor(.gray)
-                                    .font(.subheadline)
-                                Text("• 7 days before expiry")
-                                    .foregroundColor(.gray)
-                                    .font(.subheadline)
-                                Text("• 1 day before expiry")
-                                    .foregroundColor(.gray)
-                                    .font(.subheadline)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.white.opacity(0.1))
-                            .cornerRadius(10)
                         }
                         .padding()
                         .background(Color.blue.opacity(0.15))
                         .cornerRadius(15)
-                        
-                        // Add Button
-                        Button(action: saveTaxHistory) {
-                            Text("Add Tax Record")
+                    }
+                    
+                    // Tax Information Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.cyan)
+                            Text("Tax Information")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(isFormValid ? Color.cyan : Color.gray, lineWidth: 2)
-                                        .shadow(color: isFormValid ? .blue : .clear, radius: 8)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.black.opacity(0.5))
-                                        )
-                                )
-                                .shadow(color: isFormValid ? .blue : .clear, radius: 10)
                         }
-                        .disabled(!isFormValid)
                         
-                        // Overall validation message
-                        if !isFormValid {
-                            HStack(spacing: 8) {
-                                Image(systemName: "info.circle.fill")
-                                    .foregroundColor(.orange)
-                                Text("Please fill in all required fields to continue")
-                                    .foregroundColor(.orange)
-                                    .font(.system(size: 14))
+                        VStack(alignment: .leading, spacing: 15) {
+                            // Tax Amount
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Tax Amount")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                
+                                HStack {
+                                    Text("Rp")
+                                        .foregroundColor(.black)
+                                    TextField("0", text: $taxAmount)
+                                        .keyboardType(.numberPad)
+                                        .foregroundColor(.black)
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
+                                
+                                if taxAmount.isEmpty {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                        Text("Tax amount is required")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                    }
+                                } else if Double(taxAmount) == nil {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                        Text("Please enter a valid number")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                    }
+                                }
                             }
+                            
+                            // Payment Date
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Payment Date")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                
+                                DatePicker("", selection: $paymentDate, displayedComponents: .date)
+                                    .labelsHidden()
+                                    .datePickerStyle(.compact)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                            }
+                            
+                            // Valid Until
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Valid Until")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                
+                                DatePicker("", selection: $validUntil, displayedComponents: .date)
+                                    .labelsHidden()
+                                    .datePickerStyle(.compact)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                
+                                if validUntil <= paymentDate {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                        Text("Valid until must be after payment date")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                    }
+                                }
+                            }
+                            
+                            // Payment Location
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Payment Location")
+                                    .foregroundColor(.white)
+                                    .font(.headline)
+                                
+                                TextField("e.g., Samsat Jakarta Timur", text: $location)
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                    .autocorrectionDisabled(true)
+                                    .foregroundColor(.black)
+                                
+                                if location.isEmpty {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.circle.fill")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                        Text("Payment location is required")
+                                            .foregroundColor(.red)
+                                            .font(.system(size: 12))
+                                    }
+                                }
+                            }
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(15)
+                    }
+                    
+                    // Notes Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "note.text")
+                                .foregroundColor(.cyan)
+                            Text("Notes (Optional)")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 15) {
+                            TextEditor(text: $notes)
+                                .frame(height: 100)
+                                .padding(8)
+                                .background(Color.white)
+                                .cornerRadius(10)
+                                .scrollContentBackground(.hidden)
+                                .foregroundColor(.black)
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(15)
+                    }
+                    
+                    // Reminder Info
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bell.badge.fill")
+                                .foregroundColor(.cyan)
+                            Text("Reminder Settings")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("You'll be notified:")
+                                .foregroundColor(.white)
+                                .font(.subheadline)
+                            Text("• 30 days before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                            Text("• 7 days before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                            Text("• 1 day before expiry")
+                                .foregroundColor(.gray)
+                                .font(.subheadline)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.15))
+                    .cornerRadius(15)
+                    
+                    // Add Button
+                    Button(action: saveTaxHistory) {
+                        Text("Add Tax Record")
+                            .font(.headline)
+                            .foregroundColor(.white)
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.orange.opacity(0.15))
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(isFormValid ? Color.cyan : Color.gray, lineWidth: 2)
+                                    .shadow(color: isFormValid ? .blue : .clear, radius: 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.black.opacity(0.5))
+                                    )
                             )
-                        }
+                            .shadow(color: isFormValid ? .blue : .clear, radius: 10)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 30)
+                    .disabled(!isFormValid)
+                    
+                    // Overall validation message
+                    if !isFormValid {
+                        HStack(spacing: 8) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.orange)
+                            Text("Please fill in all required fields to continue")
+                                .foregroundColor(.orange)
+                                .font(.system(size: 14))
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.orange.opacity(0.15))
+                        )
+                    }
                 }
+                .padding(.horizontal)
+                .padding(.bottom, 30)
             }
-            .preferredColorScheme(.dark)
-            .navigationBarHidden(true)
-            .alert("Success", isPresented: $showAlert) {
-                Button("OK") {
-                    dismiss()
-                }
-            } message: {
-                Text(alertMessage)
+        }
+        .preferredColorScheme(.dark)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color.black, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .alert("Success", isPresented: $showAlert) {
+            Button("OK") {
+                dismiss()
             }
+        } message: {
+            Text(alertMessage)
         }
     }
     
@@ -365,17 +345,17 @@ struct AddTaxView: View {
 }
 
 #Preview {
-    let sampleVehicle = Vehicle(
-        id: UUID(),
-        makeAndModel: "Mitsubishi Pajero Sport",
-        vehicleType: "SUV",
-        licensePlate: "L 1111 E",
-        year: "2020",
-        odometer: "85000",
-        taxDate: Date()
-    )
-    
-    AddTaxView(vehicle: sampleVehicle)
+    NavigationStack {
+        AddTaxView(vehicle: Vehicle(
+            id: UUID(),
+            makeAndModel: "Mitsubishi Pajero Sport",
+            vehicleType: "SUV",
+            licensePlate: "L 1111 E",
+            year: "2020",
+            odometer: "85000",
+            taxDate: Date()
+        ))
         .preferredColorScheme(.dark)
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    }
 }

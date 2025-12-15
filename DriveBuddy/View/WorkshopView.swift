@@ -189,24 +189,24 @@ struct WorkshopView: View {
 	}
 
 	// MARK: - Workshop List View
-	private var workshopListView: some View {
-		ScrollView(showsIndicators: false) {
-			VStack(spacing: 15) {
-				ForEach(filteredAndSortedWorkshops) { workshop in
-					NavigationLink(destination: WorkshopDetailView(workshop: workshop)) {
-						WorkshopCard(
-							workshop: workshop,
-							favoriteManager: favoriteManager,
-							isDarkMode: isDarkMode
-						)
-					}
-					.buttonStyle(PlainButtonStyle())
-				}
-			}
-			.padding(.horizontal)
-			.padding(.bottom, 100)
-		}
-	}
+    private var workshopListView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 15) {
+                ForEach(filteredAndSortedWorkshops) { workshop in
+                    NavigationLink(destination: WorkshopDetailView(workshop: workshop)) {
+                        WorkshopCard(
+                            workshop: workshop,
+                            favoriteManager: favoriteManager,
+                            isDarkMode: isDarkMode
+                        )
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                }
+            }
+            .padding(.horizontal)
+            .padding(.bottom, 100)
+        }
+    }
     
     // MARK: - Filter and Sort Workshops
     var filteredAndSortedWorkshops: [Workshop] {

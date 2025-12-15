@@ -33,6 +33,7 @@ struct FavoriteWorkshopsView: View {
                         .shadow(color: .blue, radius: 10)
                 }
                 .padding(.horizontal)
+                .padding(.top, 10)
                 
                 // Content
                 if favoriteWorkshops.isEmpty {
@@ -78,6 +79,8 @@ struct FavoriteWorkshopsView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.blue)
         .preferredColorScheme(.dark)
     }
 }
