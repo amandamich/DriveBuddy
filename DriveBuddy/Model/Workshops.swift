@@ -17,6 +17,7 @@ struct Workshop: Identifiable {
 	let rating: Double
 	let reviewCount: Int
 	let services: [String]
+	let phoneNumber: String  // ← NEW: WhatsApp number
 	
 	// Properties untuk menyimpan jarak yang sudah dihitung
 	var distance: String = "-"
@@ -31,7 +32,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday, 08:30am - 17:00pm",
 			rating: 4.9,
 			reviewCount: 1613,
-			services: ["AC Car", "Spooring Balancing", "Tune Up", "Oil Change and Matic"]
+			services: ["AC Car", "Spooring Balancing", "Tune Up", "Oil Change and Matic"],
+			phoneNumber: "681254569197"
 		),
 		Workshop(
 			name: "Bengkel Jaya Anda Surabaya",
@@ -40,7 +42,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday, 08:00am - 17:00pm",
 			rating: 4.9,
 			reviewCount: 2955,
-			services: ["Specialist onderstel / understelsel"]
+			services: ["Specialist onderstel / understelsel"],
+			phoneNumber: "6289613866920"
 		),
 		Workshop(
 			name: "Mobeng Jemusari",
@@ -49,7 +52,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday, 09:00am - 21:00pm",
 			rating: 4.6,
 			reviewCount: 519,
-			services: ["Oil Change", "Spare parts"]
+			services: ["Oil Change", "Spare parts"],
+			phoneNumber: "6281279172289"
 		),
 		Workshop(
 			name: "FT Garage",
@@ -58,7 +62,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday, 08:30am - 17:00pm",
 			rating: 4.9,
 			reviewCount: 0,
-			services: ["Tune Up", "AC Car", "Scale Service", "Scanner", "Remap ECU"]
+			services: ["Tune Up", "AC Car", "Scale Service", "Scanner", "Remap ECU"],
+			phoneNumber: "6281279172289"
 		),
 		Workshop(
 			name: "Bengkel Mobil 88",
@@ -67,7 +72,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday - Saturday, 08:00am - 18:00pm",
 			rating: 4.7,
 			reviewCount: 845,
-			services: ["General Service", "Engine Repair", "Transmission", "AC Service"]
+			services: ["General Service", "Engine Repair", "Transmission", "AC Service"],
+			phoneNumber: "628123238789"
 		),
 		Workshop(
 			name: "Auto Care Plus",
@@ -76,7 +82,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday - Sunday, 09:00am - 20:00pm",
 			rating: 4.8,
 			reviewCount: 1234,
-			services: ["Car Wash", "Detailing", "Coating", "Polish"]
+			services: ["Car Wash", "Detailing", "Coating", "Polish"],
+			phoneNumber: "628123238789"
 		),
 		Workshop(
 			name: "Bengkel Resmi Honda",
@@ -85,7 +92,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday - Saturday, 08:00am - 17:00pm",
 			rating: 4.9,
 			reviewCount: 2156,
-			services: ["Authorized Service", "Spare Parts", "Body Repair", "Warranty Service"]
+			services: ["Authorized Service", "Spare Parts", "Body Repair", "Warranty Service"],
+			phoneNumber: "628123238789"
 		),
 		Workshop(
 			name: "Tire Master Surabaya",
@@ -94,7 +102,8 @@ struct Workshop: Identifiable {
 			openHours: "Monday - Saturday, 08:30am - 18:00pm",
 			rating: 4.6,
 			reviewCount: 678,
-			services: ["Tire Change", "Wheel Alignment", "Balancing", "Tire Sales"]
+			services: ["Tire Change", "Wheel Alignment", "Balancing", "Tire Sales"],
+			phoneNumber: "6281254569197"
 		),
         Workshop(
             name: "Bengkel Mobil Karya Abadi",
@@ -103,7 +112,8 @@ struct Workshop: Identifiable {
             openHours: "Open 24 hours",
             rating: 4.9,
             reviewCount: 49,
-            services: ["General Repair", "24 Hour Service", "Emergency Service"]
+			services: ["General Repair", "24 Hour Service", "Emergency Service"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -113,7 +123,8 @@ struct Workshop: Identifiable {
             openHours: "Open · Closes 5:00 PM",
             rating: 4.9,
             reviewCount: 2900,
-            services: ["Suspension Specialist", "Understel", "Spooring Balancing"]
+            services: ["Suspension Specialist", "Understel", "Spooring Balancing"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -123,7 +134,8 @@ struct Workshop: Identifiable {
             openHours: "Open · Closes 6:00 PM",
             rating: 4.7,
             reviewCount: 59,
-            services: ["Car Repair", "Maintenance", "General Service"]
+            services: ["Car Repair", "Maintenance", "General Service"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -133,7 +145,8 @@ struct Workshop: Identifiable {
             openHours: "Open · Closes 4:30 PM",
             rating: 5.0,
             reviewCount: 268,
-            services: ["Auto Repair", "Body Paint", "Engine Service"]
+            services: ["Auto Repair", "Body Paint", "Engine Service"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -143,7 +156,8 @@ struct Workshop: Identifiable {
             openHours: "Open · Closes 5:00 PM",
             rating: 4.9,
             reviewCount: 519,
-            services: ["Auto Repair Shop", "General Service", "Maintenance"]
+            services: ["Auto Repair Shop", "General Service", "Maintenance"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -153,7 +167,8 @@ struct Workshop: Identifiable {
             openHours: "Open 24 hours",
             rating: 5.0,
             reviewCount: 264,
-            services: ["ECU Remapping", "Mobile Service", "24 Hour Service"]
+            services: ["ECU Remapping", "Mobile Service", "24 Hour Service"],
+			phoneNumber: "628123238789"
         ),
 
         Workshop(
@@ -163,7 +178,8 @@ struct Workshop: Identifiable {
             openHours: "Open 24 hours",
             rating: 4.7,
             reviewCount: 59,
-            services: ["Mobile Service", "24 Hour Service", "Emergency Repair"]
+            services: ["Mobile Service", "24 Hour Service", "Emergency Repair"],
+			phoneNumber: "628123238789"
         )
 	]
 }
@@ -179,7 +195,8 @@ extension Workshop {
 		openHours: String,
 		rating: Double,
 		reviewCount: Int,
-		services: [String]
+		services: [String],
+		phoneNumber: String
 	) -> Workshop {
 		return Workshop(
 			name: name,
@@ -188,7 +205,8 @@ extension Workshop {
 			openHours: openHours,
 			rating: rating,
 			reviewCount: reviewCount,
-			services: services
+			services: services,
+			phoneNumber: phoneNumber
 		)
 	}
 }
