@@ -47,10 +47,8 @@ struct WorkshopDetailView: View {
                         .cornerRadius(0)
                         
                         // Top Bar with Favorite Button only
-                        HStack {
-                            Spacer()
-                            
-                            // Favorite Button
+                        VStack {
+                            // Favorite Button - moved higher
                             Button(action: {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
                                     favoriteManager.toggleFavorite(workshopId: workshop.id.uuidString)
@@ -67,9 +65,11 @@ struct WorkshopDetailView: View {
                                     )
                                     .scaleEffect(favoriteManager.isFavorite(workshopId: workshop.id.uuidString) ? 1.1 : 1.0)
                             }
+                            
+                            Spacer()
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 50)
+                        .padding(.top, 10)
                     }
                     
                     // MARK: - Content
