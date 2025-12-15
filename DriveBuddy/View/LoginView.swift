@@ -337,7 +337,8 @@ struct LoginView: View {
                             .resizable()
                             .scaledToFit()
                             .frame(height: 250)
-                            .padding(.trailing, -120)
+                            .padding(.trailing)
+							.offset(x:0, y: 20)
                     }
                 }
                 .frame(maxWidth: .infinity)
