@@ -1,6 +1,6 @@
 // NotificationSettingsView.swift
 // DriveBuddy
-//Created by Student on 26/11/25.
+// Improved with better status messages and calendar sync
 
 import SwiftUI
 import UserNotifications
@@ -10,6 +10,29 @@ import EventKit
 struct NotificationSettingsView: View {
     @ObservedObject var profileVM: ProfileViewModel
     @State private var isAnimating = false
+    @State private var showStatusMessage = false
+    @State private var statusMessage = ""
+    @State private var statusMessageType: MessageType = .success
+    
+    enum MessageType {
+        case success, error, warning
+        
+        var color: Color {
+            switch self {
+            case .success: return .green
+            case .error: return .red
+            case .warning: return .orange
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .success: return "checkmark.circle.fill"
+            case .error: return "xmark.circle.fill"
+            case .warning: return "exclamationmark.triangle.fill"
+            }
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -54,6 +77,34 @@ struct NotificationSettingsView: View {
                     )
                     .padding(.horizontal, 16)
                     
+                    // ✅ Status Message Toast
+                    if showStatusMessage {
+                        HStack(spacing: 12) {
+                            Image(systemName: statusMessageType.icon)
+                                .foregroundColor(statusMessageType.color)
+                                .font(.title3)
+                            
+                            Text(statusMessage)
+                                .foregroundColor(.white)
+                                .font(.subheadline)
+                                .multilineTextAlignment(.leading)
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(statusMessageType.color.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(statusMessageType.color.opacity(0.5), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.spring(response: 0.3), value: showStatusMessage)
+                    }
+                    
                     // Reminder Settings
                     VStack(spacing: 0) {
                         // Tax Reminder Toggle
@@ -64,7 +115,7 @@ struct NotificationSettingsView: View {
                             isOn: $profileVM.taxReminderEnabled,
                             action: { newValue in
                                 Task {
-                                    await profileVM.toggleTaxReminder(newValue)
+                                    await handleTaxReminderToggle(newValue)
                                 }
                             }
                         )
@@ -81,7 +132,7 @@ struct NotificationSettingsView: View {
                             isOn: $profileVM.serviceReminderEnabled,
                             action: { newValue in
                                 Task {
-                                    await profileVM.toggleServiceReminder(newValue)
+                                    await handleServiceReminderToggle(newValue)
                                 }
                             }
                         )
@@ -97,7 +148,7 @@ struct NotificationSettingsView: View {
                             subtitle: "Automatically add events to calendar",
                             isOn: $profileVM.addToCalendar,
                             action: { newValue in
-                                profileVM.toggleAddToCalendar(newValue)
+                                handleAddToCalendarToggle(newValue)
                             }
                         )
                     }
@@ -112,69 +163,10 @@ struct NotificationSettingsView: View {
                     )
                     .padding(.horizontal, 16)
                     
-                    // ✅ SYNC ALL TO CALENDAR BUTTON
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Calendar Sync")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        Text("Add all existing vehicles and their tax due dates to your calendar")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        
-                        Button(action: {
-                            Task {
-                                await profileVM.syncAllVehiclesToCalendar()
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "arrow.triangle.2.circlepath")
-                                    .foregroundColor(.cyan)
-                                Text("Sync All to Calendar")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                            }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.cyan, lineWidth: 2)
-                                    .shadow(color: .blue, radius: 8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.black.opacity(0.5))
-                                    )
-                            )
-                            .shadow(color: .blue, radius: 10)
-                        }
-                        .disabled(profileVM.calendarStatus != .authorized ||
-                                  profileVM.addToCalendar != true)
-                        .opacity((profileVM.calendarStatus == .authorized &&
-                                  profileVM.addToCalendar == true) ? 1.0 : 0.5)
-                        
-                        if profileVM.calendarStatus != .authorized ||
-                           profileVM.addToCalendar != true {
-                            Text("Enable calendar permission and 'Add to Calendar' first")
-                                .font(.caption2)
-                                .foregroundColor(.orange)
-                        }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.black.opacity(0.6))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.cyan.opacity(0.5), lineWidth: 1)
-                            )
-                            .shadow(color: .blue.opacity(0.3), radius: 10)
-                    )
-                    .padding(.horizontal, 16)
-                    
                     // Test Notification Button
                     Button(action: {
                         Task {
-                            await profileVM.sendTestNotification()
+                            await sendTestNotification()
                         }
                     }) {
                         HStack {
@@ -197,28 +189,9 @@ struct NotificationSettingsView: View {
                         )
                         .shadow(color: .blue, radius: 10)
                     }
+                    .disabled(profileVM.notificationStatus != .authorized)
+                    .opacity(profileVM.notificationStatus == .authorized ? 1.0 : 0.5)
                     .padding(.horizontal, 16)
-                    
-                    // Success/Error Messages
-                    if let success = profileVM.successMessage {
-                        Text(success)
-                            .foregroundColor(.green)
-                            .font(.caption)
-                            .padding()
-                            .background(Color.green.opacity(0.2))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                    }
-                    
-                    if let error = profileVM.errorMessage {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .padding()
-                            .background(Color.red.opacity(0.2))
-                            .cornerRadius(8)
-                            .padding(.horizontal)
-                    }
                     
                     // Info Text
                     Text("Enable reminders to never miss important vehicle maintenance dates")
@@ -235,6 +208,84 @@ struct NotificationSettingsView: View {
         .onAppear {
             Task {
                 await profileVM.checkPermissionStatuses()
+            }
+        }
+    }
+    
+    // MARK: - Toggle Handlers
+    private func handleTaxReminderToggle(_ newValue: Bool) async {
+        await profileVM.toggleTaxReminder(newValue)
+        
+        if newValue {
+            if profileVM.notificationStatus == .authorized {
+                showMessage("Tax reminders enabled", type: .success)
+            } else {
+                showMessage("Please enable notifications in settings", type: .warning)
+            }
+        } else {
+            showMessage("Tax reminders disabled", type: .success)
+        }
+    }
+    
+    private func handleServiceReminderToggle(_ newValue: Bool) async {
+        await profileVM.toggleServiceReminder(newValue)
+        
+        if newValue {
+            if profileVM.notificationStatus == .authorized {
+                showMessage("Service reminders enabled", type: .success)
+            } else {
+                showMessage("Please enable notifications in settings", type: .warning)
+            }
+        } else {
+            showMessage("Service reminders disabled", type: .success)
+        }
+    }
+    
+    private func handleAddToCalendarToggle(_ newValue: Bool) {
+        if newValue {
+            // ✅ Check calendar permission first
+            if profileVM.calendarStatus == .authorized || profileVM.calendarStatus == .fullAccess {
+                profileVM.toggleAddToCalendar(newValue)
+                
+                // ✅ Auto-sync all vehicles to calendar when enabled
+                Task {
+                    await profileVM.syncAllVehiclesToCalendar()
+                    showMessage("Calendar sync enabled. All events added to calendar", type: .success)
+                }
+            } else {
+                // Permission not granted
+                profileVM.addToCalendar = false
+                showMessage("Please enable calendar access in settings", type: .warning)
+            }
+        } else {
+            profileVM.toggleAddToCalendar(newValue)
+            showMessage("Calendar sync disabled", type: .success)
+        }
+    }
+    
+    private func sendTestNotification() async {
+        await profileVM.sendTestNotification()
+        
+        if profileVM.notificationStatus == .authorized {
+            showMessage("Test notification sent!", type: .success)
+        } else {
+            showMessage("Notification permission required", type: .error)
+        }
+    }
+    
+    // MARK: - Status Message Helper
+    private func showMessage(_ message: String, type: MessageType) {
+        statusMessage = message
+        statusMessageType = type
+        withAnimation {
+            showStatusMessage = true
+        }
+        
+        // Auto-hide after 3 seconds
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation {
+                showStatusMessage = false
             }
         }
     }
