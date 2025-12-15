@@ -18,7 +18,7 @@ struct ContentView: View {
             } else {
                 // ✅ User NOT logged in → show StartScreen
                 NavigationStack {
-                    SplashView()
+                    StartScreen()
                         .environmentObject(authVM)
                 }
             }
