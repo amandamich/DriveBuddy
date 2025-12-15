@@ -27,7 +27,7 @@ class AddVehicleViewModel: ObservableObject {
         self.user = user
     }
     
-    // MARK: - Add Vehicle (Fixed with auto-create upcoming service)
+    // MARK: - Add Vehicle (Fixed - no auto odometer for upcoming)
     func addVehicle(profileVM: ProfileViewModel) async {
         // Clear messages
         successMessage = nil
@@ -73,7 +73,7 @@ class AddVehicleViewModel: ObservableObject {
             firstService.service_date = lastServiceDate
             firstService.created_at = Date()
             
-            // ✅ Save the odometer value
+            // ✅ Save the odometer value for completed service
             if let lastOdometerValue = Double(lastOdometer), lastOdometerValue > 0 {
                 firstService.odometer = lastOdometerValue
                 print("✅ Using lastOdometer: \(lastOdometerValue) km")
@@ -88,7 +88,7 @@ class AddVehicleViewModel: ObservableObject {
             // Relate service to vehicle
             firstService.vehicle = newVehicle
 
-            // Update vehicle summary fields (optional - for quick access)
+            // Update vehicle summary fields
             newVehicle.service_name = serviceName
             newVehicle.last_service_date = lastServiceDate
             newVehicle.last_odometer = firstService.odometer
@@ -101,11 +101,15 @@ class AddVehicleViewModel: ObservableObject {
             print("   - Date: \(lastServiceDate)")
             print("   - Odometer: \(firstService.odometer) km")
             
-            // ✅ NEW: Auto-create upcoming service if the service is in the past
+            // ✅ Auto-create upcoming service if the service is in the past
             let isPastService = lastServiceDate < Date()
             if isPastService {
                 print("🔄 Service is in the past, auto-creating upcoming service...")
-                autoCreateUpcomingService(for: newVehicle, basedOn: lastServiceDate)
+                autoCreateUpcomingService(
+                    for: newVehicle,
+                    basedOn: lastServiceDate,
+                    serviceName: serviceName
+                )
             } else {
                 print("⏭️ Service is in the future, no need to auto-create")
             }
@@ -121,7 +125,7 @@ class AddVehicleViewModel: ObservableObject {
                         alarmOffsetDays: 7
                     )
                     
-                    // ✅ NEW: If we auto-created an upcoming service, sync it too
+                    // ✅ If we auto-created an upcoming service, sync it too
                     if isPastService {
                         try? await Task.sleep(nanoseconds: 500_000_000)
                         await profileVM.syncAllVehiclesToCalendar()
@@ -148,20 +152,30 @@ class AddVehicleViewModel: ObservableObject {
         }
     }
     
-    // ✅ NEW: Auto-create upcoming service function
-    private func autoCreateUpcomingService(for vehicle: Vehicles, basedOn pastDate: Date) {
-        // Check if there's already a future service for this vehicle
+    // ✅ FIXED: Auto-create upcoming service WITHOUT odometer
+    private func autoCreateUpcomingService(for vehicle: Vehicles, basedOn pastDate: Date, serviceName: String) {
+        // Validate service name
+        guard !serviceName.trimmingCharacters(in: .whitespaces).isEmpty else {
+            print("❌ Cannot create service with empty name")
+            return
+        }
+        
+        // Check if there's already a future service with the SAME NAME
         let futureRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         futureRequest.predicate = NSPredicate(
-            format: "vehicle == %@ AND service_date > %@",
+            format: "vehicle == %@ AND service_name ==[c] %@ AND service_date > %@",
             vehicle,
+            serviceName as CVarArg,
             Date() as NSDate
         )
         
         do {
             let existingFutureServices = try viewContext.fetch(futureRequest)
             if !existingFutureServices.isEmpty {
-                print("ℹ️ Future service already exists, skipping auto-create")
+                print("ℹ️ Future '\(serviceName)' already exists, skipping auto-create")
+                for existing in existingFutureServices {
+                    print("   - Existing: '\(existing.service_name ?? "NO NAME")' on \(existing.service_date?.description ?? "N/A")")
+                }
                 return
             }
         } catch {
@@ -175,21 +189,22 @@ class AddVehicleViewModel: ObservableObject {
             return
         }
         
-        print("📝 Creating upcoming service for \(nextDate)")
+        print("📝 Creating upcoming '\(serviceName)' for \(nextDate)")
         
-        // Create the upcoming service with the SAME name
+        // ✅ FIXED: Create upcoming service with odometer = 0 (user will input manually)
         let upcomingService = ServiceHistory(context: viewContext)
         upcomingService.history_id = UUID()
-        upcomingService.service_name = serviceName // ✅ FIXED: Use the SAME service name (not "Scheduled Maintenance")
+        upcomingService.service_name = serviceName // ✅ Same service name
         upcomingService.service_date = nextDate
-        upcomingService.odometer = 0
+        upcomingService.odometer = 0 // ✅ FIXED: Set to 0, user inputs manually
         upcomingService.created_at = Date()
         upcomingService.reminder_days_before = 7
         upcomingService.vehicle = vehicle
         
         print("   Service ID: \(upcomingService.history_id?.uuidString ?? "nil")")
-        print("   Name: \(upcomingService.service_name ?? "nil")")
+        print("   Name: '\(upcomingService.service_name ?? "nil")'")
         print("   Date: \(upcomingService.service_date?.description ?? "nil")")
+        print("   Odometer: 0 km (manual input required)")
         
         do {
             try viewContext.save()
@@ -203,7 +218,7 @@ class AddVehicleViewModel: ObservableObject {
             print("📊 Total services for this vehicle: \(allServices.count)")
             for (index, service) in allServices.enumerated() {
                 let isPast = (service.service_date ?? Date()) < Date()
-                print("   \(index + 1). \(service.service_name ?? "nil") - [\(isPast ? "PAST" : "FUTURE")]")
+                print("   \(index + 1). '\(service.service_name ?? "nil")' - [\(isPast ? "PAST" : "FUTURE")] - \(Int(service.odometer)) km")
             }
         } catch {
             print("❌ Failed to auto-create upcoming service: \(error)")

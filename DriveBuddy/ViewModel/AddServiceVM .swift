@@ -149,15 +149,14 @@ class AddServiceViewModel: ObservableObject {
             return
         }
         
-        // Calculate next odometer
-        let nextOdometer = fromOdometer + Double(nextServiceInterval)
+        // ✅ FIXED: Don't calculate next odometer - let user input manually
         
         // ✅ Create the next service with SAME NAME
         let upcomingService = ServiceHistory(context: viewContext)
         upcomingService.history_id = UUID()
         upcomingService.service_name = serviceName // ✅ CRITICAL: Use exact same name
         upcomingService.service_date = nextDate
-        upcomingService.odometer = nextOdometer // ✅ FIXED: Use calculated odometer
+        upcomingService.odometer = 0 // ✅ FIXED: Set to 0, user inputs manually when completing
         upcomingService.created_at = Date()
         upcomingService.vehicle = vehicle
         
@@ -169,8 +168,8 @@ class AddServiceViewModel: ObservableObject {
         print("   ID: \(upcomingService.history_id?.uuidString ?? "N/A")")
         print("   Name: '\(serviceName)'")
         print("   Date: \(nextDate)")
-        print("   Odometer: \(Int(nextOdometer)) km")
-        print("   Interval: +\(nextServiceInterval) km / +\(nextServiceMonths) months")
+        print("   Odometer: 0 km (manual input required)")
+        print("   Interval: +\(nextServiceMonths) months")
         
         do {
             try viewContext.save()
