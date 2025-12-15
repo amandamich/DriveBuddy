@@ -1,5 +1,5 @@
 //
-//  CompleteServiceView.swift
+//  CompleteServiceView.swift - WITH IMPROVED SAVE AND NOTIFICATION
 //  DriveBuddy
 //
 
@@ -17,7 +17,7 @@ struct CompleteServiceView: View {
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
     
-    // ✅ NEW: Auto-create next service options
+    // ✅ Auto-create next service options
     @State private var autoCreateNext: Bool = true
     @State private var nextServiceInterval: Int = 5000 // Default 5000 km
     @State private var nextServiceMonths: Int = 6 // Default 6 months
@@ -120,7 +120,7 @@ struct CompleteServiceView: View {
                         }
                     }
                     
-                    // ✅ NEW: Auto-create Next Service Section
+                    // ✅ Auto-create Next Service Section
                     SectionBoxService(title: "Next Service", icon: "arrow.clockwise.circle.fill") {
                         VStack(alignment: .leading, spacing: 15) {
                             
@@ -231,6 +231,12 @@ struct CompleteServiceView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            // ✅ Pre-fill odometer with vehicle's current odometer if available
+            if let vehicle = service.vehicle, vehicle.last_odometer > 0 {
+                actualOdometer = String(Int(vehicle.last_odometer))
+            }
+        }
     }
     
     // MARK: - Functions
@@ -248,45 +254,51 @@ struct CompleteServiceView: View {
         }
         
         print("\n🔄 Marking service as done:")
+        print("   Service: \(service.service_name ?? "Unknown")")
         print("   Before - Date: \(service.service_date?.description ?? "nil")")
         print("   After - Date: \(completionDate.description)")
+        print("   Odometer: \(Int(odometerValue)) km")
         
-        // ✅ Update the date to completion date (move to past)
+        // ✅ Update the service date to completion date (move to past)
         service.service_date = completionDate
         service.odometer = odometerValue
         service.created_at = Date()
         
-        // Update vehicle's last service info
+        // ✅ Update vehicle's last service info and odometer
         if let vehicle = service.vehicle {
             vehicle.last_service_date = completionDate
             vehicle.last_odometer = odometerValue
-            vehicle.odometer = odometerValue
+            vehicle.odometer = odometerValue // ✅ This is the key update!
             vehicle.service_name = service.service_name
             
             print("✅ Updated vehicle: \(vehicle.make_model ?? "Unknown")")
+            print("   New odometer: \(Int(odometerValue)) km")
             
-            // ✅ NEW: Auto-create next service
+            // ✅ Auto-create next service
             if autoCreateNext {
                 createNextService(for: vehicle, currentOdometer: odometerValue)
             }
         }
         
-        // Save
+        // ✅ Save with proper context management
         do {
             try viewContext.save()
+            
+            // ✅ Force context to process changes immediately
             viewContext.processPendingChanges()
             viewContext.refreshAllObjects()
             
-            print("✅ Service marked as done: \(service.service_name ?? "Unknown")")
-            print("   New Date: \(completionDate)")
-            print("   Odometer: \(odometerValue) km")
+            print("✅ Service marked as done successfully")
+            print("   Saved to Core Data")
             
+            // ✅ Post notification to refresh all views
             NotificationCenter.default.post(
                 name: NSNotification.Name.NSManagedObjectContextDidSave,
                 object: viewContext
             )
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // ✅ Dismiss after a short delay to ensure save completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 dismiss()
             }
             
@@ -297,7 +309,7 @@ struct CompleteServiceView: View {
         }
     }
     
-    // ✅ NEW: Create next service automatically
+    // ✅ Create next service automatically
     private func createNextService(for vehicle: Vehicles, currentOdometer: Double) {
         let nextService = ServiceHistory(context: viewContext)
         nextService.history_id = UUID()
@@ -308,7 +320,7 @@ struct CompleteServiceView: View {
         let nextOdometer = currentOdometer + Double(nextServiceInterval)
         nextService.odometer = nextOdometer
         
-        // Calculate next date (whichever comes first)
+        // Calculate next date
         if let nextDate = Calendar.current.date(byAdding: .month, value: nextServiceMonths, to: completionDate) {
             nextService.service_date = nextDate
         } else {
@@ -337,6 +349,7 @@ struct CompleteServiceView: View {
     
     let vehicle = Vehicles(context: context)
     vehicle.make_model = "Honda Civic"
+    vehicle.last_odometer = 45000
     
     let service = ServiceHistory(context: context)
     service.service_name = "Tune-Up"
