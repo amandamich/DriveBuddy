@@ -1,30 +1,25 @@
 //
-//  MyServiceView.swift
+//  MyServiceView.swift - UPDATED
 //  DriveBuddy
 //
-//  Created by Antonius Trimaryono on 09/11/25.
-//
-
-import SwiftUI
 import CoreData
+import SwiftUI
 
 struct MyServiceView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
 
-    // MARK: - ViewModel
     @StateObject private var viewModel: MyServiceViewModel
+    @State private var selectedService: ServiceHistory?
+    @State private var showCompleteService = false
     
-    // Property User (Opsional, untuk konsistensi navigasi)
     var activeUser: User?
 
-    // MARK: - Init
     init(vehicle: Vehicles, context: NSManagedObjectContext, activeUser: User?) {
         self.activeUser = activeUser
         _viewModel = StateObject(wrappedValue: MyServiceViewModel(context: context, vehicle: vehicle))
     }
 
-    // MARK: - Body
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
@@ -32,7 +27,6 @@ struct MyServiceView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: - HEADER
                     Text("Service History")
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white)
@@ -41,22 +35,56 @@ struct MyServiceView: View {
 
                     Spacer(minLength: 5)
 
-                    // ✅ REMOVED: Upcoming Services section (only show in VehicleDetailView card)
-                    // Now only showing completed service history
+                    // MARK: - Upcoming Services
+                    if !viewModel.upcomingServices.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "calendar.badge.clock")
+                                    .foregroundColor(.cyan)
+                                    .font(.title3)
+                                Text("Upcoming Services")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                            }
+
+                            ForEach(viewModel.upcomingServices, id: \.objectID) { service in
+                                // ✅ Make card tappable
+                                Button(action: {
+                                    selectedService = service
+                                    showCompleteService = true
+                                }) {
+                                    ServiceCard(
+                                        title: service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service",
+                                        date: formatted(service.service_date),
+                                        detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Tap to complete",
+                                        type: .upcoming
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
 
                     // MARK: - Completed Services
                     if !viewModel.completedServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Completed Services")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
+                            HStack {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                                    .font(.title3)
+                                Text("Completed Services")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+                            }
 
                             ForEach(viewModel.completedServices, id: \.objectID) { service in
                                 ServiceCard(
-                                    title: service.service_name ?? "Unknown",
+                                    title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
                                     date: formatted(service.service_date),
-                                    detail: "\(Int(service.odometer)) km",
+                                    detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
                                     type: .completed
                                 )
                             }
@@ -65,7 +93,7 @@ struct MyServiceView: View {
                     }
 
                     // MARK: - Empty State
-                    if viewModel.completedServices.isEmpty {
+                    if viewModel.completedServices.isEmpty && viewModel.upcomingServices.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "wrench.and.screwdriver")
                                 .font(.system(size: 60))
@@ -76,7 +104,7 @@ struct MyServiceView: View {
                                 .foregroundColor(.gray)
                                 .font(.headline)
                             
-                            Text("Add a completed service to see it here.")
+                            Text("Add a service to see it here.")
                                 .foregroundColor(.gray.opacity(0.7))
                                 .font(.subheadline)
                                 .multilineTextAlignment(.center)
@@ -90,13 +118,41 @@ struct MyServiceView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
+        .onAppear {
+            viewModel.refreshServices()
+        }
+        // ✅ FIXED: Listen to Core Data changes
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                viewModel.refreshServices()
+            }
+        }
+        // ✅ FIXED: Refresh when sheet dismisses
+        .sheet(isPresented: $showCompleteService, onDismiss: {
+            // Refresh services when sheet is dismissed
+            viewModel.refreshServices()
+        }) {
+            if let service = selectedService {
+                NavigationView {
+                    CompleteServiceView(service: service)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button(action: { showCompleteService = false }) {
+                                    Image(systemName: "xmark")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                        }
+                }
+            }
+        }
     }
 
-    // MARK: - Helper
     private func formatted(_ date: Date?) -> String {
         guard let date else { return "Unknown Date" }
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
+        formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: date)
     }
 }
@@ -119,6 +175,13 @@ enum ServiceType {
         case .completed: return .green
         }
     }
+    
+    var icon: String {
+        switch self {
+        case .upcoming: return "calendar.badge.clock"
+        case .completed: return "checkmark.circle.fill"
+        }
+    }
 }
 
 struct ServiceCard: View {
@@ -128,40 +191,60 @@ struct ServiceCard: View {
     var type: ServiceType
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.headline)
-                        .foregroundColor(.white)
-
+        HStack(alignment: .top, spacing: 16) {
+            // Left side - Icon
+            Image(systemName: type.icon)
+                .font(.system(size: 28))
+                .foregroundColor(type.color)
+                .frame(width: 40, height: 40)
+            
+            // Middle - Content
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundColor(.white)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                    Text(date)
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "gauge.with.dots.needle.67percent")
+                        .font(.caption)
+                        .foregroundColor(.gray)
                     Text(detail)
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.9))
-                        .padding(.top, 2)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 6) {
-                    Text(date)
-                        .foregroundColor(.white.opacity(0.9))
-
-                    Text(type.title)
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .background(type.color)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .foregroundColor(.white.opacity(0.8))
                 }
             }
+            
+            Spacer()
+            
+            // Right side - Badge
+            Text(type.title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(type.color.opacity(0.9))
+                .foregroundColor(.white)
+                .cornerRadius(8)
         }
-        .padding()
-        .background(Color(red: 17/255, green: 33/255, blue: 66/255))
-        .cornerRadius(18)
-        .shadow(color: .black.opacity(0.5), radius: 6, x: 0, y: 4)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(red: 17/255, green: 33/255, blue: 66/255))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(type.color.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: type.color.opacity(0.2), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -178,6 +261,21 @@ struct ServiceCard: View {
     let sampleVehicle = Vehicles(context: context)
     sampleVehicle.make_model = "Honda Brio"
     sampleVehicle.user = user
+    
+    // 3. Buat Sample Services
+    let pastService = ServiceHistory(context: context)
+    pastService.history_id = UUID()
+    pastService.service_name = "Oil Change"
+    pastService.service_date = Calendar.current.date(byAdding: .day, value: -30, to: Date())
+    pastService.odometer = 45000
+    pastService.vehicle = sampleVehicle
+    
+    let futureService = ServiceHistory(context: context)
+    futureService.history_id = UUID()
+    futureService.service_name = "Tire Rotation"
+    futureService.service_date = Calendar.current.date(byAdding: .day, value: 30, to: Date())
+    futureService.odometer = 50000
+    futureService.vehicle = sampleVehicle
 
     return NavigationView {
         MyServiceView(

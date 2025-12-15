@@ -32,150 +32,181 @@ struct WorkshopView: View {
     private var isDarkMode: Bool {
         colorScheme == .dark
     }
+	
+	// MARK: - Fixed Location (Universitas Ciputra)
+		private let universityCiputraLocation = CLLocation(
+			latitude: -7.2865722,
+			longitude: 112.6320953
+		)
     
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                // MARK: - Background
-                Color.black.opacity(0.95).ignoresSafeArea()
-                
-                VStack(spacing: 0) {
-                    // MARK: - Header
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image("LogoDriveBuddy")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 150, height: 35)
-                            Spacer()
-                            
-                            // Location status indicator with more info
-                            HStack(spacing: 4) {
-                                if locationManager.userLocation != nil {
-                                    Image(systemName: "location.fill")
-                                        .foregroundColor(.green)
-                                        .font(.system(size: 12))
-                                    Text("GPS Active")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.white.opacity(0.7))
-                                } else {
-                                    ProgressView()
-                                        .scaleEffect(0.7)
-                                        .tint(.white)
-                                    Text("Getting location...")
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.white.opacity(0.7))
-                                }
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color.white.opacity(0.1))
-                            )
-                            .onTapGesture {
-                                if locationManager.userLocation == nil {
-                                    showLocationAlert = true
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.top, 10)
-                        
-                        Text("Welcome, Jonny")
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.8))
-                            .padding(.horizontal)
-                    }
-                    .padding(.bottom, 15)
-                    
-                    // MARK: - Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        
-                        TextField("find a workshop for your next service", text: $searchText)
-                            .foregroundColor(.white)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled(true)
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.white.opacity(0.8))
-                    )
-                    .padding(.horizontal)
-                    .padding(.bottom, 15)
-                    
-                    // MARK: - Filter Chips
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
-                            ForEach(filters, id: \.self) { filter in
-                                FilterChip(
-                                    title: filter,
-                                    isSelected: selectedFilter == filter
-                                ) {
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        selectedFilter = selectedFilter == filter ? nil : filter
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.bottom, 15)
-                    
-                    // MARK: - Workshop List
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 15) {
-                            ForEach(filteredAndSortedWorkshops) { workshop in
-                                NavigationLink(destination: WorkshopDetailView(workshop: workshop)) {
-                                    WorkshopCard(
-                                        workshop: workshop,
-                                        favoriteManager: favoriteManager,
-                                        isDarkMode: isDarkMode
-                                    )
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.bottom, 100)
-                    }
-                }
-            }
-            .navigationBarHidden(true)
-            .onAppear {
-                print("🎬 WorkshopView appeared")
-                locationManager.requestPermission()
-                
-                // If location already available, update immediately
-                if locationManager.userLocation != nil {
-                    print("✅ Location already available on appear")
-                    updateWorkshopDistances()
-                }
-            }
-            .onChange(of: locationManager.userLocation) { oldValue, newValue in
-                print("🔄 Location changed - Old: \(oldValue?.coordinate.latitude ?? 0), New: \(newValue?.coordinate.latitude ?? 0)")
-                
-                // Update whenever location changes
-                if newValue != nil {
-                    print("✅ New location available, updating distances...")
-                    updateWorkshopDistances()
-                }
-            }
-            .alert("Location Permission Required", isPresented: $showLocationAlert) {
-                Button("Settings") {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Please enable location access to see distances to workshops.")
-            }
-        }
-    }
+	var body: some View {
+		NavigationStack {
+			ZStack {
+				// MARK: - Background
+				Color.black.opacity(0.95).ignoresSafeArea()
+				
+				mainContentView
+			}
+			.navigationBarHidden(true)
+			.onAppear {
+				print("🎬 WorkshopView appeared")
+				locationManager.requestPermission()
+				
+				// If location already available, update immediately
+				if locationManager.userLocation != nil {
+					print("✅ Location already available on appear")
+					updateWorkshopDistances()
+				}
+			}
+			.onChange(of: locationManager.userLocation) { oldValue, newValue in
+				print("🔄 Location changed - Old: \(oldValue?.coordinate.latitude ?? 0), New: \(newValue?.coordinate.latitude ?? 0)")
+				
+				// Update whenever location changes
+				if newValue != nil {
+					print("✅ New location available, updating distances...")
+					updateWorkshopDistances()
+				}
+			}
+			.alert("Location Permission Required", isPresented: $showLocationAlert) {
+				Button("Settings") {
+					if let url = URL(string: UIApplication.openSettingsURLString) {
+						UIApplication.shared.open(url)
+					}
+				}
+				Button("Cancel", role: .cancel) {}
+			} message: {
+				Text("Please enable location access to see distances to workshops.")
+			}
+		}
+	}
+
+	// MARK: - Main Content View
+	private var mainContentView: some View {
+		VStack(spacing: 0) {
+			// MARK: - Header
+			headerView
+			
+			// MARK: - Search Bar
+			searchBarView
+			
+			// MARK: - Filter Chips
+			filterChipsView
+			
+			// MARK: - Workshop List
+			workshopListView
+		}
+	}
+
+	// MARK: - Header View
+	private var headerView: some View {
+		VStack(alignment: .leading, spacing: 8) {
+			HStack {
+				Image("LogoDriveBuddy")
+					.resizable()
+					.scaledToFit()
+					.frame(width: 150, height: 35)
+				Spacer()
+				
+				// Location status indicator with more info
+				HStack(spacing: 4) {
+					if locationManager.userLocation != nil {
+						Image(systemName: "location.fill")
+							.foregroundColor(.green)
+							.font(.system(size: 12))
+						Text("GPS Active")
+							.font(.system(size: 10))
+							.foregroundColor(.white.opacity(0.7))
+					} else {
+						ProgressView()
+							.scaleEffect(0.7)
+							.tint(.white)
+						Text("Getting location...")
+							.font(.system(size: 10))
+							.foregroundColor(.white.opacity(0.7))
+					}
+				}
+				.padding(.horizontal, 8)
+				.padding(.vertical, 4)
+				.background(
+					RoundedRectangle(cornerRadius: 8)
+						.fill(Color.white.opacity(0.1))
+				)
+				.onTapGesture {
+					if locationManager.userLocation == nil {
+						showLocationAlert = true
+					}
+				}
+			}
+			.padding(.horizontal)
+			.padding(.top, 10)
+			
+			Text("Welcome, Jonny")
+				.font(.subheadline)
+				.foregroundColor(.white.opacity(0.8))
+				.padding(.horizontal)
+		}
+		.padding(.bottom, 15)
+	}
+
+	// MARK: - Search Bar View
+	private var searchBarView: some View {
+		HStack {
+			Image(systemName: "magnifyingglass")
+				.foregroundColor(.gray)
+			
+			TextField("find a workshop for your next service", text: $searchText)
+				.foregroundColor(.white)
+				.textInputAutocapitalization(.never)
+				.autocorrectionDisabled(true)
+		}
+		.padding()
+		.background(
+			RoundedRectangle(cornerRadius: 12)
+				.fill(Color.white.opacity(0.8))
+		)
+		.padding(.horizontal)
+		.padding(.bottom, 15)
+	}
+
+	// MARK: - Filter Chips View
+	private var filterChipsView: some View {
+		ScrollView(.horizontal, showsIndicators: false) {
+			HStack(spacing: 10) {
+				ForEach(filters, id: \.self) { filter in
+					FilterChip(
+						title: filter,
+						isSelected: selectedFilter == filter
+					) {
+						withAnimation(.easeInOut(duration: 0.2)) {
+							selectedFilter = selectedFilter == filter ? nil : filter
+						}
+					}
+				}
+			}
+			.padding(.horizontal)
+		}
+		.padding(.bottom, 15)
+	}
+
+	// MARK: - Workshop List View
+	private var workshopListView: some View {
+		ScrollView(showsIndicators: false) {
+			VStack(spacing: 15) {
+				ForEach(filteredAndSortedWorkshops) { workshop in
+					NavigationLink(destination: WorkshopDetailView(workshop: workshop)) {
+						WorkshopCard(
+							workshop: workshop,
+							favoriteManager: favoriteManager,
+							isDarkMode: isDarkMode
+						)
+					}
+					.buttonStyle(PlainButtonStyle())
+				}
+			}
+			.padding(.horizontal)
+			.padding(.bottom, 100)
+		}
+	}
     
     // MARK: - Filter and Sort Workshops
     var filteredAndSortedWorkshops: [Workshop] {
@@ -203,40 +234,47 @@ struct WorkshopView: View {
     }
     
     // MARK: - Update Workshop Distances
-    func updateWorkshopDistances() {
-        // Prevent multiple simultaneous updates
-        guard locationManager.userLocation != nil else {
-            print("⚠️ User location not available yet")
-            return
-        }
-        
-        print("🔍 Updating distances...")
-        print("📍 User location: \(locationManager.userLocation?.coordinate.latitude ?? 0), \(locationManager.userLocation?.coordinate.longitude ?? 0)")
-        
-        var updatedWorkshops = workshops
-        
-        for index in updatedWorkshops.indices {
-            let distance = locationManager.calculateDistance(to: updatedWorkshops[index].coordinate)
-            let distanceMeters = locationManager.distanceInMeters(to: updatedWorkshops[index].coordinate)
-            
-            updatedWorkshops[index].distance = distance
-            updatedWorkshops[index].distanceInMeters = distanceMeters
-            
-            print("🏪 \(updatedWorkshops[index].name): \(distance)")
-        }
-        
-        // Sort by distance (nearest first)
-        sortedWorkshops = updatedWorkshops.sorted { workshop1, workshop2 in
-            guard let dist1 = workshop1.distanceInMeters,
-                  let dist2 = workshop2.distanceInMeters else {
-                return false
-            }
-            return dist1 < dist2
-        }
-        
-        workshops = updatedWorkshops
-        print("✅ Distance update completed!")
-    }
+	// MARK: - Update Workshop Distances
+	func updateWorkshopDistances() {
+		print("🔍 Calculating distances from Universitas Ciputra...")
+		
+		var updatedWorkshops = workshops
+		
+		for index in updatedWorkshops.indices {
+			let workshop = updatedWorkshops[index]
+			
+			// Create CLLocation for workshop
+			let workshopLocation = CLLocation(
+				latitude: workshop.coordinate.latitude,
+				longitude: workshop.coordinate.longitude
+			)
+			
+			// Calculate distance
+			let distanceInMeters = universityCiputraLocation.distance(from: workshopLocation)
+			
+			// Format distance
+			let distance: String
+			if distanceInMeters < 1000 {
+				distance = String(format: "%.0f m", distanceInMeters)
+			} else {
+				distance = String(format: "%.1f km", distanceInMeters / 1000)
+			}
+			
+			updatedWorkshops[index].distance = distance
+			updatedWorkshops[index].distanceInMeters = distanceInMeters
+			
+			print("🏪 \(workshop.name): \(distance)")
+		}
+		
+		// Sort by distance
+		sortedWorkshops = updatedWorkshops.sorted {
+			($0.distanceInMeters ?? Double.greatestFiniteMagnitude) <
+			($1.distanceInMeters ?? Double.greatestFiniteMagnitude)
+		}
+		
+		workshops = updatedWorkshops
+		print("✅ Distance calculation completed!")
+	}
 }
 
 // MARK: - Filter Chip Component
