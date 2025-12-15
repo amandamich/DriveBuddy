@@ -163,186 +163,184 @@ struct LoginView: View {
                         value: isAnimating
                     )
 
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Title at top
-                        Text("Sign In")
-                            .font(.system(size: 36, weight: .semibold, design: .rounded))
+                // ✅ MAIN CONTENT - NO SCROLLVIEW
+                VStack(spacing: 0) {
+                    // Title at top
+                    Text("Sign In")
+                        .font(.system(size: 36, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white)
+                        .padding(.top, 60)
+                        .padding(.bottom, 20)
+                    
+                    // Email Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Email")
                             .foregroundColor(.white)
-                            .padding(.top, 60)
-                            .padding(.bottom, 30)
-                        
-                        // Email Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Email")
-                                .foregroundColor(.white)
-                                .font(.headline)
-                                .shadow(color: .blue, radius: 5)
-                            TextField("Enter your email", text: $email)
-                                .textFieldStyle(NeonTextFieldStyle())
-                                .keyboardType(.emailAddress)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled(true)
-                                .focused($focusedField, equals: .email)
-                                .submitLabel(.next)
-                                .onSubmit {
-                                    focusedField = .password
-                                }
-                        }
-                        .padding(.horizontal, 30)
-
-                        // Password Field
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Password")
-                                .foregroundColor(.white)
-                                .font(.headline)
-                                .shadow(color: .blue, radius: 5)
-                            SecureField("Enter your password", text: $password)
-                                .textFieldStyle(NeonTextFieldStyle())
-                                .focused($focusedField, equals: .password)
-                                .submitLabel(.go)
-                                .onSubmit {
-                                    if isFormValid {
-                                        authVM.errorMessage = nil
-                                        authVM.email = email
-                                        authVM.password = password
-                                        authVM.login()
-                                    }
-                                }
-                        }
-                        .padding(.horizontal, 30)
-                        .padding(.top, 20)
-
-                        // MARK: - Login Button
-                        Button(action: {
-                            focusedField = nil
-                            authVM.errorMessage = nil
-                            authVM.email = email
-                            authVM.password = password
-                            authVM.login()
-                        }) {
-                            Text("Sign In")
-                                .font(.headline)
-                                .foregroundColor(isFormValid ? .white : .gray)
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(isFormValid ? Color.cyan : Color.gray.opacity(0.5), lineWidth: 2)
-                                        .shadow(color: isFormValid ? .blue : .clear, radius: 8)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.black.opacity(0.5))
-                                        )
-                                )
-                                .shadow(color: isFormValid ? .blue : .clear, radius: 10)
-                        }
-                        .disabled(!isFormValid)
-                        .padding(.horizontal, 30)
-                        .padding(.top, 30)
-
-                        // MARK: - OR Divider
-                        HStack {
-                            Rectangle()
-                                .fill(Color.cyan.opacity(0.3))
-                                .frame(height: 1)
-                            Text("OR")
-                                .foregroundColor(.cyan)
-                                .font(.subheadline)
-                                .padding(.horizontal, 10)
-                            Rectangle()
-                                .fill(Color.cyan.opacity(0.3))
-                                .frame(height: 1)
-                        }
-                        .padding(.horizontal, 30)
-                        .padding(.top, 25)
-
-                        // MARK: - Google Sign-In Button
-                        Button(action: {
-                            focusedField = nil
-                            googleSignInVM.signIn()
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "g.circle.fill")
-                                    .font(.system(size: 22))
-                                    .foregroundColor(.white)
-                                
-                                Text("Sign in with Google")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
+                            .font(.headline)
+                            .shadow(color: .blue, radius: 5)
+                        TextField("Enter your email", text: $email)
+                            .textFieldStyle(NeonTextFieldStyle())
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .focused($focusedField, equals: .email)
+                            .submitLabel(.next)
+                            .onSubmit {
+                                focusedField = .password
                             }
+                    }
+                    .padding(.horizontal, 30)
+
+                    // Password Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Password")
+                            .foregroundColor(.white)
+                            .font(.headline)
+                            .shadow(color: .blue, radius: 5)
+                        SecureField("Enter your password", text: $password)
+                            .textFieldStyle(NeonTextFieldStyle())
+                            .focused($focusedField, equals: .password)
+                            .submitLabel(.go)
+                            .onSubmit {
+                                if isFormValid {
+                                    authVM.errorMessage = nil
+                                    authVM.email = email
+                                    authVM.password = password
+                                    authVM.login()
+                                }
+                            }
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 16)
+
+                    // MARK: - Login Button
+                    Button(action: {
+                        focusedField = nil
+                        authVM.errorMessage = nil
+                        authVM.email = email
+                        authVM.password = password
+                        authVM.login()
+                    }) {
+                        Text("Sign In")
+                            .font(.headline)
+                            .foregroundColor(isFormValid ? .white : .gray)
                             .padding()
                             .frame(maxWidth: .infinity)
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.cyan, lineWidth: 2)
-                                    .shadow(color: .blue, radius: 8)
+                                    .stroke(isFormValid ? Color.cyan : Color.gray.opacity(0.5), lineWidth: 2)
+                                    .shadow(color: isFormValid ? .blue : .clear, radius: 8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color.black.opacity(0.5))
                                     )
                             )
-                            .shadow(color: .blue, radius: 10)
-                        }
-                        .padding(.horizontal, 30)
-                        .padding(.top, 20)
+                            .shadow(color: isFormValid ? .blue : .clear, radius: 10)
+                    }
+                    .disabled(!isFormValid)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 24)
 
-                        // MARK: - Validation Message
-                        if let message = validationMessage {
-                            Text(message)
-                                .foregroundColor(.orange)
-                                .font(.caption)
-                                .padding(.top, 8)
-                                .transition(.opacity)
-                        }
+                    // MARK: - OR Divider
+                    HStack {
+                        Rectangle()
+                            .fill(Color.cyan.opacity(0.3))
+                            .frame(height: 1)
+                        Text("OR")
+                            .foregroundColor(.cyan)
+                            .font(.subheadline)
+                            .padding(.horizontal, 10)
+                        Rectangle()
+                            .fill(Color.cyan.opacity(0.3))
+                            .frame(height: 1)
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 20)
 
-                        // MARK: - Error Message (from auth)
-                        if let error = authVM.errorMessage, !error.isEmpty {
-                            Text(error)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .padding(.top, 8)
-                                .transition(.opacity)
-                                .onAppear {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                        withAnimation {
-                                            authVM.errorMessage = nil
-                                        }
+                    // MARK: - Google Sign-In Button
+                    Button(action: {
+                        focusedField = nil
+                        googleSignInVM.signIn()
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "g.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.white)
+                            
+                            Text("Sign in with Google")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.cyan, lineWidth: 2)
+                                .shadow(color: .blue, radius: 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.black.opacity(0.5))
+                                )
+                        )
+                        .shadow(color: .blue, radius: 10)
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 16)
+
+                    // MARK: - Validation Message
+                    if let message = validationMessage {
+                        Text(message)
+                            .foregroundColor(.orange)
+                            .font(.caption)
+                            .padding(.top, 8)
+                            .transition(.opacity)
+                    }
+
+                    // MARK: - Error Message (from auth)
+                    if let error = authVM.errorMessage, !error.isEmpty {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 8)
+                            .transition(.opacity)
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                    withAnimation {
+                                        authVM.errorMessage = nil
                                     }
                                 }
-                        }
-                        
-                        // MARK: - Google Sign-In Error Message
-                        if !googleSignInVM.errorMessage.isEmpty {
-                            Text(googleSignInVM.errorMessage)
-                                .foregroundColor(.red)
-                                .font(.caption)
-                                .padding(.top, 8)
-                                .transition(.opacity)
-                        }
-
-                        // MARK: - Navigate to Sign Up
-                        NavigationLink("Don't have an account ? Sign Up") {
-                            SignUpView(authVM: authVM)
-                        }
-                        .foregroundColor(.cyan)
-                        .padding(.top, 15)
-                        
-                        Spacer(minLength: 50)
-                        
-                        // MARK: - Mascot Image (always visible, positioned to the right)
-                        HStack {
-                            Spacer()
-                            Image("MascotDriveBuddy")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 280)
-                                .padding(.trailing, -135)
-                                .padding(.bottom, 20)
-                        }
+                            }
                     }
-                    .frame(maxWidth: .infinity)
+                    
+                    // MARK: - Google Sign-In Error Message
+                    if !googleSignInVM.errorMessage.isEmpty {
+                        Text(googleSignInVM.errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                            .padding(.top, 8)
+                            .transition(.opacity)
+                    }
+
+                    // MARK: - Navigate to Sign Up
+                    NavigationLink("Don't have an account ? Sign Up") {
+                        SignUpView(authVM: authVM)
+                    }
+                    .foregroundColor(.cyan)
+                    .padding(.top, 12)
+                    
+                    Spacer()
+                    
+                    // MARK: - Mascot Image (full visible at bottom)
+                    HStack {
+                        Spacer()
+                        Image("MascotDriveBuddy")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 250)
+                            .padding(.trailing, -120)
+                    }
                 }
+                .frame(maxWidth: .infinity)
             }
             .onTapGesture {
                 focusedField = nil
