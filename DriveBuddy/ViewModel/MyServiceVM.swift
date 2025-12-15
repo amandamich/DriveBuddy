@@ -51,7 +51,7 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
         updateServices()
     }
     
-    // ✅ NEW: Public refresh method
+    // ✅ Public refresh method
     func refreshServices() {
         context.refreshAllObjects()
         performFetch()
@@ -67,33 +67,60 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
             return
         }
 
-        // ✅ FIXED: Use current moment for accurate comparison
+        // ✅ FIXED: Use end of today for comparison (so today's services are still "upcoming")
+        let calendar = Calendar.current
         let now = Date()
+        let endOfToday = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: now) ?? now
         
-        // ✅ IMPROVED: Strictly future services only
+        print("\n⏰ Current time: \(now)")
+        print("⏰ End of today: \(endOfToday)")
+        
+        // ✅ FIXED: Future services ONLY (strictly after today)
         upcomingServices = fetchedObjects.filter { service in
             guard let date = service.service_date else { return false }
-            return date > now // Only future services
+            let serviceStartOfDay = calendar.startOfDay(for: date)
+            let todayStartOfDay = calendar.startOfDay(for: now)
+            
+            // ✅ CHANGED: Service is upcoming ONLY if its date is AFTER today (not today)
+            // If service has an odometer value, it means it was completed, so it goes to completed
+            if service.odometer > 0 && serviceStartOfDay <= todayStartOfDay {
+                return false // Has odometer and is today or past = completed
+            }
+            return serviceStartOfDay > todayStartOfDay // Strictly future
         }.sorted {
             ($0.service_date ?? .distantFuture) < ($1.service_date ?? .distantFuture)
         }
 
-        // ✅ IMPROVED: Past and current services
+        // ✅ FIXED: Completed services (today or past, OR has odometer value)
         completedServices = fetchedObjects.filter { service in
             guard let date = service.service_date else { return false }
-            return date <= now // Past or now
+            let serviceStartOfDay = calendar.startOfDay(for: date)
+            let todayStartOfDay = calendar.startOfDay(for: now)
+            
+            // ✅ Service is completed if:
+            // 1. Its date is today or before AND has odometer, OR
+            // 2. Its date is strictly before today
+            if service.odometer > 0 && serviceStartOfDay <= todayStartOfDay {
+                return true // Has odometer and is today or past
+            }
+            return serviceStartOfDay < todayStartOfDay // Strictly past (even without odometer)
         }.sorted {
             ($0.service_date ?? .distantPast) > ($1.service_date ?? .distantPast)
         }
 
-        print("\n🔍 SERVICE CLASSIFICATION (Now: \(now)):")
+        print("\n🔍 SERVICE CLASSIFICATION:")
+        print("   Today: \(calendar.startOfDay(for: now))")
         print("   📅 Upcoming: \(upcomingServices.count)")
         for service in upcomingServices {
-            print("      - \(service.service_name ?? "Unknown") on \(service.service_date?.description ?? "N/A")")
+            if let date = service.service_date {
+                print("      - \(service.service_name ?? "Unknown") on \(date) [\(calendar.startOfDay(for: date))]")
+            }
         }
         print("   ✅ Completed: \(completedServices.count)")
         for service in completedServices {
-            print("      - \(service.service_name ?? "Unknown") on \(service.service_date?.description ?? "N/A")")
+            if let date = service.service_date {
+                print("      - \(service.service_name ?? "Unknown") on \(date) [\(calendar.startOfDay(for: date))]")
+            }
         }
     }
 
@@ -120,7 +147,8 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
     deinit {
         timer?.invalidate()
     }
-    // ✅ NEW: Delete all services with empty names
+    
+    // ✅ Delete all services with empty names
     func deleteUnnamedServices() {
         let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         request.predicate = NSPredicate(
