@@ -328,7 +328,7 @@ class ProfileViewModel: ObservableObject {
         startDate: Date,
         alarmOffsetDays: Int
     ) async throws {
-        if calendarStatus != .authorized {
+        if calendarStatus != .authorized && calendarStatus != .fullAccess {
             let granted = await requestCalendarPermission()
             guard granted else {
                 throw NSError(
@@ -337,6 +337,12 @@ class ProfileViewModel: ObservableObject {
                     userInfo: [NSLocalizedDescriptionKey: "Calendar permission denied"]
                 )
             }
+        }
+        
+        // ✅ Check for duplicates
+        if await eventExists(title: title, startDate: startDate) {
+            print("⚠️ Event already exists: \(title)")
+            return // Skip this event
         }
         
         let calendar = try await getDriveBuddyCalendar()
@@ -500,7 +506,6 @@ class ProfileViewModel: ObservableObject {
     }
     
     // MARK: - 🆕 Sync All Vehicles to Calendar
-    
     func syncAllVehiclesToCalendar() async {
         guard user?.add_to_calendar == true else {
             await MainActor.run {
@@ -509,7 +514,7 @@ class ProfileViewModel: ObservableObject {
             return
         }
 
-        if calendarStatus != .authorized {
+        if calendarStatus != .authorized && calendarStatus != .fullAccess {
             let granted = await requestCalendarPermission()
             guard granted else {
                 await MainActor.run {
@@ -522,6 +527,7 @@ class ProfileViewModel: ObservableObject {
         do {
             guard let userId = user?.user_id else { return }
             var addedCount = 0
+            var skippedCount = 0
 
             await MainActor.run {
                 viewContext.refreshAllObjects()
@@ -537,11 +543,20 @@ class ProfileViewModel: ObservableObject {
                    taxDate > Date(),
                    let vehicleName = vehicle.make_model {
                     
+                    let title = "🚗 Tax Due: \(vehicleName)"
+                    
+                    // Check if already exists
+                    if await eventExists(title: title, startDate: taxDate) {
+                        print("⚠️ Skipping duplicate: \(title)")
+                        skippedCount += 1
+                        continue
+                    }
+                    
                     try await addCalendarEvent(
-                        title: "🚗 Tax Due: \(vehicleName)",
+                        title: title,
                         notes: "Vehicle tax renewal due for \(vehicleName)",
                         startDate: taxDate,
-                        alarmOffsetDays: 7 // Tax reminders are always 7 days
+                        alarmOffsetDays: 7
                     )
                     addedCount += 1
                 }
@@ -566,26 +581,37 @@ class ProfileViewModel: ObservableObject {
                     continue
                 }
 
-                // ✅ USE STORED REMINDER PREFERENCE (default to 7 if not set)
                 let reminderDays = Int(service.reminder_days_before > 0 ? service.reminder_days_before : 7)
+                let title = "🔧 \(serviceName): \(vehicleName)"
                 
                 print("   - \(serviceName) for \(vehicleName)")
                 print("     Date: \(serviceDate)")
                 print("     Reminder: \(reminderDays) days before")
 
+                // Check if already exists
+                if await eventExists(title: title, startDate: serviceDate) {
+                    print("     ⚠️ Already in calendar, skipping")
+                    skippedCount += 1
+                    continue
+                }
+
                 try await addCalendarEvent(
-                    title: "🔧 \(serviceName): \(vehicleName)",
+                    title: title,
                     notes: "Scheduled \(serviceName) for \(vehicleName)\nOdometer: \(Int(service.odometer)) km",
                     startDate: serviceDate,
-                    alarmOffsetDays: reminderDays // ✅ USE USER'S SAVED PREFERENCE
+                    alarmOffsetDays: reminderDays
                 )
                 addedCount += 1
                 print("     ✅ Added to calendar with \(reminderDays) day reminder")
             }
 
             await MainActor.run {
-                if addedCount > 0 {
+                if addedCount > 0 && skippedCount > 0 {
+                    self.successMessage = "✅ Added \(addedCount) new event(s), \(skippedCount) already existed"
+                } else if addedCount > 0 {
                     self.successMessage = "✅ Added \(addedCount) event(s) to calendar"
+                } else if skippedCount > 0 {
+                    self.successMessage = "ℹ️ All \(skippedCount) event(s) already in calendar"
                 } else {
                     self.successMessage = "ℹ️ No upcoming events to add"
                 }
@@ -598,34 +624,7 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-    // Add this to ProfileVM.swift for debugging
-    func debugPrintAllServices() async {
-        guard let userId = user?.user_id else { return }
-        
-        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
-        request.predicate = NSPredicate(format: "vehicle.user.user_id == %@", userId as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: false)]
-        
-        do {
-            let services = try viewContext.fetch(request)
-            print("\n" + String(repeating: "=", count: 60))
-            print("📋 ALL SERVICES IN DATABASE (\(services.count) total):")
-            print(String(repeating: "=", count: 60))
-            
-            for (index, service) in services.enumerated() {
-                let isPast = (service.service_date ?? Date()) < Date()
-                print("\n\(index + 1). \(service.service_name ?? "NO NAME")")
-                print("   Vehicle: \(service.vehicle?.make_model ?? "Unknown")")
-                print("   Date: \(service.service_date?.description ?? "nil")")
-                print("   Status: [\(isPast ? "✅ PAST" : "🔮 FUTURE")]")
-                print("   Odometer: \(service.odometer) km")
-                print("   ID: \(service.history_id?.uuidString ?? "nil")")
-            }
-            print(String(repeating: "=", count: 60) + "\n")
-        } catch {
-            print("❌ Failed to fetch services: \(error)")
-        }
-    }
+
     
     // MARK: - 🆕 Test Notification
     
@@ -671,13 +670,89 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-
-    // MARK: - Toggle Settings
+    // Remove all DriveBuddy events from calendar
+    func removeAllCalendarEvents() async {
+        guard calendarStatus == .authorized || calendarStatus == .fullAccess else {
+            print("⚠️ No calendar access to remove events")
+            return
+        }
+        
+        do {
+            let calendar = try await getDriveBuddyCalendar()
+            
+            // Get all events from DriveBuddy calendar
+            let now = Date()
+            let oneYearFromNow = Calendar.current.date(byAdding: .year, value: 1, to: now)!
+            let oneYearAgo = Calendar.current.date(byAdding: .year, value: -1, to: now)!
+            
+            let predicate = eventStore.predicateForEvents(
+                withStart: oneYearAgo,
+                end: oneYearFromNow,
+                calendars: [calendar]
+            )
+            
+            let events = eventStore.events(matching: predicate)
+            
+            for event in events {
+                try eventStore.remove(event, span: .thisEvent, commit: false)
+            }
+            
+            try eventStore.commit()
+            
+            await MainActor.run {
+                self.successMessage = "✅ Removed \(events.count) event(s) from calendar"
+            }
+            print("✅ Removed \(events.count) calendar events")
+            
+        } catch {
+            print("❌ Failed to remove calendar events: \(error.localizedDescription)")
+            await MainActor.run {
+                self.errorMessage = "Failed to remove some calendar events"
+            }
+        }
+    }
+    // Check if event already exists in calendar (prevent duplicates)
+    private func eventExists(title: String, startDate: Date) async -> Bool {
+        guard calendarStatus == .authorized || calendarStatus == .fullAccess else {
+            return false
+        }
+        
+        do {
+            let calendar = try await getDriveBuddyCalendar()
+            
+            // Search within ±1 day of the target date
+            let dayBefore = Calendar.current.date(byAdding: .day, value: -1, to: startDate)!
+            let dayAfter = Calendar.current.date(byAdding: .day, value: 1, to: startDate)!
+            
+            let predicate = eventStore.predicateForEvents(
+                withStart: dayBefore,
+                end: dayAfter,
+                calendars: [calendar]
+            )
+            
+            let events = eventStore.events(matching: predicate)
+            
+            // Check if event with same title exists
+            return events.contains { $0.title == title }
+            
+        } catch {
+            print("❌ Failed to check for existing event: \(error.localizedDescription)")
+            return false
+        }
+    }
     
+    // MARK: - Toggle Settings
     func toggleAddToCalendar(_ newValue: Bool) {
         addToCalendar = newValue
         user?.add_to_calendar = newValue
         saveContext()
+        
+        // ✅ If turning OFF, remove all calendar events
+        if !newValue {
+            Task {
+                await removeAllCalendarEvents()
+            }
+        }
     }
 
     func toggleDarkMode(_ newValue: Bool) {

@@ -242,24 +242,51 @@ struct NotificationSettingsView: View {
     }
     
     private func handleAddToCalendarToggle(_ newValue: Bool) {
-        if newValue {
-            // ✅ Check calendar permission first
-            if profileVM.calendarStatus == .authorized || profileVM.calendarStatus == .fullAccess {
-                profileVM.toggleAddToCalendar(newValue)
-                
-                // ✅ Auto-sync all vehicles to calendar when enabled
-                Task {
+        Task {
+            if newValue {
+                // Check current permission status
+                if profileVM.calendarStatus == .authorized || profileVM.calendarStatus == .fullAccess {
+                    // ✅ Update the toggle state first
+                    await MainActor.run {
+                        profileVM.toggleAddToCalendar(newValue)
+                    }
+                    
                     await profileVM.syncAllVehiclesToCalendar()
-                    showMessage("Calendar sync enabled. All events added to calendar", type: .success)
+                    showMessage("Calendar sync enabled. Events added to calendar", type: .success)
+                    
+                } else if profileVM.calendarStatus == .notDetermined {
+                    // Request permission if not determined
+                    await profileVM.requestCalendarPermission()
+                    await profileVM.checkPermissionStatuses()
+                    
+                    if profileVM.calendarStatus == .authorized || profileVM.calendarStatus == .fullAccess {
+                        await MainActor.run {
+                            profileVM.toggleAddToCalendar(true)
+                        }
+                        await profileVM.syncAllVehiclesToCalendar()
+                        showMessage("Calendar sync enabled. Events added to calendar", type: .success)
+                    } else {
+                        // Force UI update
+                        await MainActor.run {
+                            profileVM.addToCalendar = false
+                        }
+                        showMessage("Calendar permission denied", type: .error)
+                    }
+                } else {
+                    // Permission denied - force toggle back to off
+                    await MainActor.run {
+                        profileVM.addToCalendar = false
+                    }
+                    showMessage("Please enable calendar access in settings", type: .warning)
                 }
             } else {
-                // Permission not granted
-                profileVM.addToCalendar = false
-                showMessage("Please enable calendar access in settings", type: .warning)
+                // ✅ Turning OFF - remove events
+                await MainActor.run {
+                    profileVM.toggleAddToCalendar(newValue)
+                }
+                // Events will be removed automatically in toggleAddToCalendar
+                showMessage("Calendar sync disabled. Events removed from calendar", type: .success)
             }
-        } else {
-            profileVM.toggleAddToCalendar(newValue)
-            showMessage("Calendar sync disabled", type: .success)
         }
     }
     
@@ -407,12 +434,15 @@ struct NotificationSettingsView: View {
             
             Spacer()
             
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .tint(.cyan)
-                .onChange(of: isOn.wrappedValue) { oldValue, newValue in
+            // ✅ FIXED: Use custom binding instead of onChange
+            Toggle("", isOn: Binding(
+                get: { isOn.wrappedValue },
+                set: { newValue in
                     action(newValue)
                 }
+            ))
+            .labelsHidden()
+            .tint(.cyan)
         }
         .padding()
     }
