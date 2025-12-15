@@ -353,8 +353,15 @@ struct LoginView: View {
             }
             .onChange(of: googleSignInVM.isSignedIn) { oldValue, newValue in
                 if newValue {
-                    // Google Sign-In successful, navigate to HomeView
-                    authVM.isAuthenticated = true
+                    print("🟢 Google Sign-In SUCCESS in LoginView")
+                    print("📧 Email: \(googleSignInVM.userEmail)")
+                    print("👤 Name: \(googleSignInVM.userName)")
+                    
+                    // Call authVM.signInWithGoogle
+                    authVM.signInWithGoogle(
+                        email: googleSignInVM.userEmail,
+                        name: googleSignInVM.userName
+                    )
                 }
             }
             .navigationDestination(isPresented: $authVM.isAuthenticated) {

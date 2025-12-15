@@ -26,7 +26,6 @@ final class AuthenticationViewModel: ObservableObject {
 
     // MARK: - Password Validation
     func validatePassword(_ password: String) -> (isValid: Bool, message: String?) {
-        // Check length (8-20 characters)
         guard password.count >= 8 else {
             return (false, "Password must be at least 8 characters")
         }
@@ -35,21 +34,18 @@ final class AuthenticationViewModel: ObservableObject {
             return (false, "Password must not exceed 20 characters")
         }
         
-        // Check for uppercase letter
         let uppercaseRegex = ".*[A-Z]+.*"
         let uppercasePredicate = NSPredicate(format: "SELF MATCHES %@", uppercaseRegex)
         guard uppercasePredicate.evaluate(with: password) else {
             return (false, "Password must contain at least one uppercase letter")
         }
         
-        // Check for lowercase letter
         let lowercaseRegex = ".*[a-z]+.*"
         let lowercasePredicate = NSPredicate(format: "SELF MATCHES %@", lowercaseRegex)
         guard lowercasePredicate.evaluate(with: password) else {
             return (false, "Password must contain at least one lowercase letter")
         }
         
-        // Check for number
         let numberRegex = ".*[0-9]+.*"
         let numberPredicate = NSPredicate(format: "SELF MATCHES %@", numberRegex)
         guard numberPredicate.evaluate(with: password) else {
@@ -82,7 +78,7 @@ final class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Sign Up (UPDATED)
+    // MARK: - Sign Up
     func signUp(phoneNumber: String = "") {
         errorMessage = nil
 
@@ -117,7 +113,6 @@ final class AuthenticationViewModel: ObservableObject {
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
                 
-                // ✅ NEW: Save phone number
                 if !phoneNumber.isEmpty {
                     newUser.phone_number = phoneNumber
                 }
@@ -137,10 +132,9 @@ final class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Login
-    // MARK: - Login
+    // MARK: - Login (Manual)
     func login() {
-        print("🟢 LOGIN CALLED")
+        print("🟢 LOGIN CALLED (Manual)")
         errorMessage = nil
 
         guard !email.isEmpty, !password.isEmpty else {
@@ -157,26 +151,7 @@ final class AuthenticationViewModel: ObservableObject {
             if let user = users.first {
                 if user.password_hash == hash(password) {
                     print("🟢 Login successful for: \(user.email ?? "unknown")")
-                    
-                    self.currentUser = user
-                    self.currentUserID = user.user_id?.uuidString
-                    self.isAuthenticated = true
-                    self.errorMessage = nil
-                    
-                    // ✅ NEW: Save user ID to UserDefaults
-                    if let userId = user.user_id?.uuidString {
-                        UserDefaults.standard.set(userId, forKey: "currentUserId")
-                        UserDefaults.standard.synchronize()
-                    }
-                    
-                    // ✅ NEW: Post login notification
-                    NotificationCenter.default.post(name: .userDidLogin, object: nil)
-                    
-                    print("🟢 isAuthenticated set to: \(self.isAuthenticated)")
-                    print("🟢 currentUser: \(self.currentUser?.email ?? "nil")")
-                    
-                    self.objectWillChange.send()
-                    
+                    setCurrentUser(user)
                 } else {
                     print("🔴 Password incorrect")
                     errorMessage = "Invalid email or password."
@@ -191,6 +166,97 @@ final class AuthenticationViewModel: ObservableObject {
             print("🔴 Core Data Fetch Error: \(error)")
             errorMessage = "Login failed: An internal error occurred. Please try again later."
             isAuthenticated = false
+        }
+    }
+    
+    // ✅ GOOGLE SIGN-IN METHOD
+    func signInWithGoogle(email: String, name: String) {
+        print("🟢 GOOGLE SIGN-IN CALLED for: \(email)")
+        errorMessage = nil
+        
+        let request: NSFetchRequest<User> = User.fetchRequest()
+        request.predicate = NSPredicate(format: "email == %@", email.lowercased())
+        
+        do {
+            let users = try viewContext.fetch(request)
+            
+            if let existingUser = users.first {
+                // User exists - login
+                print("🟢 Existing Google user found")
+                setCurrentUser(existingUser)
+            } else {
+                // Create new user for Google sign-in
+                print("🟡 Creating new Google user")
+                let newUser = User(context: viewContext)
+                let newUserID = UUID()
+                
+                newUser.user_id = newUserID
+                newUser.email = email.lowercased()
+                newUser.password_hash = "" // No password for Google users
+                newUser.add_to_calendar = false
+                newUser.created_at = Date()
+                
+                try viewContext.save()
+                viewContext.processPendingChanges()
+                
+                print("✅ Google user created successfully")
+                setCurrentUser(newUser)
+            }
+            
+        } catch {
+            print("🔴 Google Sign-In Error: \(error)")
+            errorMessage = "Google sign-in failed: \(error.localizedDescription)"
+            isAuthenticated = false
+        }
+    }
+    
+    // ✅ CENTRALIZED METHOD TO SET CURRENT USER
+    private func setCurrentUser(_ user: User) {
+        self.currentUser = user
+        self.currentUserID = user.user_id?.uuidString
+        self.isAuthenticated = true
+        self.errorMessage = nil
+        
+        // Save to UserDefaults
+        if let userId = user.user_id?.uuidString {
+            UserDefaults.standard.set(userId, forKey: "currentUserId")
+            UserDefaults.standard.set(true, forKey: "isLoggedIn")
+            UserDefaults.standard.synchronize()
+        }
+        
+        // Post login notification
+        NotificationCenter.default.post(name: .userDidLogin, object: nil)
+        
+        print("✅ User authenticated:")
+        print("   - Email: \(user.email ?? "nil")")
+        print("   - User ID: \(self.currentUserID ?? "nil")")
+        print("   - isAuthenticated: \(self.isAuthenticated)")
+        
+        self.objectWillChange.send()
+    }
+    
+    // ✅ RESTORE SESSION FROM USERDEFAULTS
+    func restoreSession() {
+        guard let savedUserId = UserDefaults.standard.string(forKey: "currentUserId"),
+              let uuid = UUID(uuidString: savedUserId) else {
+            print("⚠️ No saved session found")
+            return
+        }
+        
+        let request: NSFetchRequest<User> = User.fetchRequest()
+        request.predicate = NSPredicate(format: "user_id == %@", uuid as CVarArg)
+        
+        do {
+            if let user = try viewContext.fetch(request).first {
+                print("✅ Session restored for: \(user.email ?? "unknown")")
+                setCurrentUser(user)
+            } else {
+                print("⚠️ User not found in database, clearing session")
+                UserDefaults.standard.removeObject(forKey: "currentUserId")
+                UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+            }
+        } catch {
+            print("❌ Failed to restore session: \(error)")
         }
     }
     
@@ -232,7 +298,6 @@ final class AuthenticationViewModel: ObservableObject {
             return false
         }
 
-        // ✅ Validate new password with enhanced rules
         let passwordValidation = validatePassword(newPassword)
         guard passwordValidation.isValid else {
             errorMessage = passwordValidation.message
@@ -252,13 +317,11 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Logout
-    // MARK: - Logout
     func logout() {
         print("🔴 LOGOUT CALLED")
         print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
         print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
         
-        // ✅ NEW: Post logout notification BEFORE clearing data
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
         
         self.isAuthenticated = false
@@ -286,3 +349,4 @@ final class AuthenticationViewModel: ObservableObject {
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }
+
