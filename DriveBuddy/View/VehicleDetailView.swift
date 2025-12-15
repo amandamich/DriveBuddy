@@ -384,14 +384,16 @@ struct VehicleDetailView: View {
     }
 }
 
-// MARK: - Upcoming Services Card
+// MARK: - Upcoming Services Card (Shows Only Nearest Service)
 struct UpcomingServicesCard: View {
     @ObservedObject var viewModel: VehicleDetailViewModel
     
     var body: some View {
         let upcomingServices = viewModel.getUpcomingServices()
+        let sortedServices = upcomingServices.sorted { $0.date < $1.date }
+        let nearestService = sortedServices.first
         
-        VStack(alignment: .leading, spacing: 6) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -403,43 +405,40 @@ struct UpcomingServicesCard: View {
                     .font(.system(size: 14, weight: .semibold))
             }
             
-            if upcomingServices.isEmpty {
+            if let service = nearestService {
+                // Show only the nearest service
+                Text(service.name.trimmingCharacters(in: .whitespaces))
+                    .lineLimit(2)
+                    .foregroundColor(.white.opacity(0.85))
+                    .font(.system(size: 13, weight: .regular))
+                    .padding(.vertical, 4)
+                
+                Spacer()
+                
+                // Date at the bottom
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 10))
+                        Text(formatDateShort(service.date))
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.6))
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.cyan.opacity(0.9))
+                }
+            } else {
+                // No upcoming services
                 Text("No upcoming services")
                     .foregroundColor(.white.opacity(0.6))
                     .font(.system(size: 12))
                     .padding(.vertical, 4)
                 
                 Spacer()
-            } else {
-                let sortedServices = upcomingServices.sorted { $0.date < $1.date }
-                
-                ForEach(Array(sortedServices.prefix(2).enumerated()), id: \.offset) { index, service in
-                    Text(service.name.trimmingCharacters(in: .whitespaces))
-                        .lineLimit(1)
-                        .foregroundColor(.white.opacity(0.85))
-                        .font(.system(size: 13, weight: .regular))
-                        .padding(.vertical, 2)
-                }
-                
-                Spacer()
-                
-                if let nearestService = sortedServices.first {
-                    HStack {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(.system(size: 10))
-                            Text(formatDateShort(nearestService.date))
-                                .font(.system(size: 10, weight: .medium))
-                        }
-                        .foregroundColor(.white.opacity(0.6))
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.cyan.opacity(0.9))
-                    }
-                }
             }
         }
         .padding(.horizontal, 14)
@@ -468,7 +467,6 @@ struct UpcomingServicesCard: View {
         return formatter.string(from: date)
     }
 }
-
 // MARK: - Tax Payment Card
 struct TaxPaymentCard: View {
     let hasTaxDate: Bool
