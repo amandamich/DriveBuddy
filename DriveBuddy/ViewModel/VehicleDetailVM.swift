@@ -198,36 +198,22 @@ class VehicleDetailViewModel: ObservableObject {
 
         activeVehicle.make_model = makeModel
         activeVehicle.plate_number = plateNumber.uppercased()
-        activeVehicle.odometer = Double(odometer) ?? 0
+        activeVehicle.odometer = Double(odometer) ?? activeVehicle.odometer
         activeVehicle.tax_due_date = taxDueDate
         activeVehicle.stnk_due_date = stnkDueDate
         activeVehicle.user = activeUser
-        
-        // ✅ FIXED: Only update the LATEST COMPLETED service history entry
-        let completed = serviceHistories.filter { service in
-            guard let date = service.service_date else { return false }
-            return isDateInPast(date)
-        }.first
-        
-        if let latestService = completed {
-            latestService.service_name = serviceName
-            latestService.service_date = lastServiceDate
-            latestService.odometer = Double(lastOdometer) ?? 0
-            print("✅ Updated existing service history entry")
-        }
 
         do {
             try context.save()
-            print("SUCCESS: Vehicle updated")
-            context.refresh(activeVehicle, mergeChanges: false)
+            context.refresh(activeVehicle, mergeChanges: true)
             loadVehicleData()
             successMessage = "Vehicle updated successfully!"
             isEditing = false
         } catch {
-            print("SAVE FAILED: \(error.localizedDescription)")
             errorMessage = "Failed to save vehicle: \(error.localizedDescription)"
         }
     }
+
 
     // MARK: - Tax Updates
     func updateTaxDueDate() async {
