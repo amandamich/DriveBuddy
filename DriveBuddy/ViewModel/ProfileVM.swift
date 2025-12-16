@@ -104,11 +104,21 @@ class ProfileViewModel: ObservableObject {
         if let data = defaults.data(forKey: DefaultsKey.avatarData) {
             self.avatarData = data
         }
-        if let phoneFromCoreData = user.phone_number, !phoneFromCoreData.isEmpty {
+        
+        // ✅ MODIFIED: Only load from Core Data if UserDefaults is empty
+        // This prevents Google sign-in phone from overriding empty preference
+        let savedPhone = defaults.string(forKey: DefaultsKey.phone)
+        
+        if let savedPhone = savedPhone, !savedPhone.isEmpty {
+            // User has manually saved a phone number
+            self.phoneNumber = savedPhone
+        } else if let phoneFromCoreData = user.phone_number, !phoneFromCoreData.isEmpty {
+            // Only use Core Data phone if it exists AND user hasn't saved anything
             self.phoneNumber = phoneFromCoreData
             defaults.set(phoneFromCoreData, forKey: DefaultsKey.phone)
         } else {
-            self.phoneNumber = defaults.string(forKey: DefaultsKey.phone) ?? ""
+            // No phone number anywhere - keep empty
+            self.phoneNumber = ""
         }
     }
 
@@ -137,6 +147,10 @@ class ProfileViewModel: ObservableObject {
     ) {
         if let user = user {
             user.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // ✅ NEW: Also save phone to Core Data
+            user.phone_number = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+            
             saveContext()
         }
 
@@ -153,6 +167,9 @@ class ProfileViewModel: ObservableObject {
         self.dateOfBirth = dateOfBirth
         self.city        = city.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // ✅ NEW: Post notification to update dashboard
+        NotificationCenter.default.post(name: NSNotification.Name("ProfileUpdated"), object: nil)
+        
         successMessage = "✅ Profile updated successfully!"
     }
 
@@ -168,16 +185,47 @@ class ProfileViewModel: ObservableObject {
         
         await MainActor.run {
             self.notificationStatus = settings.authorizationStatus
-            print("📱 Notification Status: \(settings.authorizationStatus.rawValue)")
+            print("📱 Notification Status: \(settings.authorizationStatus.rawValue) (\(statusName(settings.authorizationStatus)))")
         }
         
-        let calStatus = EKEventStore.authorizationStatus(for: .event)
-        await MainActor.run {
-            self.calendarStatus = calStatus
-            print("📅 Calendar Status: \(calStatus.rawValue)")
+        // ✅ FIX: Use the new iOS 17+ API
+        if #available(iOS 17.0, *) {
+            let calStatus = EKEventStore.authorizationStatus(for: .event)
+            await MainActor.run {
+                self.calendarStatus = calStatus
+                print("📅 Calendar Status: \(calStatus.rawValue) (\(ekStatusName(calStatus)))")
+            }
+        } else {
+            let calStatus = EKEventStore.authorizationStatus(for: .event)
+            await MainActor.run {
+                self.calendarStatus = calStatus
+                print("📅 Calendar Status: \(calStatus.rawValue) (\(ekStatusName(calStatus)))")
+            }
         }
     }
-    
+    // ✅ Helper to get status name
+    private func statusName(_ status: UNAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "Not Determined"
+        case .denied: return "Denied"
+        case .authorized: return "Authorized"
+        case .provisional: return "Provisional"
+        case .ephemeral: return "Ephemeral"
+        @unknown default: return "Unknown"
+        }
+    }
+
+    private func ekStatusName(_ status: EKAuthorizationStatus) -> String {
+        switch status {
+        case .notDetermined: return "Not Determined"
+        case .restricted: return "Restricted"
+        case .denied: return "Denied"
+        case .authorized: return "Authorized (Deprecated)"
+        case .fullAccess: return "Full Access"
+        case .writeOnly: return "Write Only"
+        @unknown default: return "Unknown"
+        }
+    }
     func requestNotificationPermission() async -> Bool {
         let center = UNUserNotificationCenter.current()
         
@@ -204,25 +252,53 @@ class ProfileViewModel: ObservableObject {
     }
     
     func requestCalendarPermission() async -> Bool {
-        do {
-            let granted = try await eventStore.requestAccess(to: .event)
-            await checkPermissionStatuses()
-            
-            if granted {
-                print("✅ Calendar permission granted")
-            } else {
-                print("❌ Calendar permission denied by user")
-                await MainActor.run {
-                    self.errorMessage = "Calendar permission denied"
+        if #available(iOS 17.0, *) {
+            do {
+                // Use the new requestFullAccessToEvents for iOS 17+
+                let granted = try await eventStore.requestFullAccessToEvents()
+                await checkPermissionStatuses()
+                
+                if granted {
+                    print("✅ Calendar FULL ACCESS granted")
+                    await MainActor.run {
+                        self.successMessage = "Calendar access granted"
+                    }
+                } else {
+                    print("❌ Calendar permission denied by user")
+                    await MainActor.run {
+                        self.errorMessage = "Calendar permission denied"
+                    }
                 }
+                return granted
+            } catch {
+                print("❌ Calendar permission error: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.errorMessage = "Failed to request calendar permission: \(error.localizedDescription)"
+                }
+                return false
             }
-            return granted
-        } catch {
-            print("❌ Calendar permission error: \(error.localizedDescription)")
-            await MainActor.run {
-                self.errorMessage = "Failed to request calendar permission"
+        } else {
+            // iOS 16 and below
+            do {
+                let granted = try await eventStore.requestAccess(to: .event)
+                await checkPermissionStatuses()
+                
+                if granted {
+                    print("✅ Calendar permission granted")
+                } else {
+                    print("❌ Calendar permission denied by user")
+                    await MainActor.run {
+                        self.errorMessage = "Calendar permission denied"
+                    }
+                }
+                return granted
+            } catch {
+                print("❌ Calendar permission error: \(error.localizedDescription)")
+                await MainActor.run {
+                    self.errorMessage = "Failed to request calendar permission"
+                }
+                return false
             }
-            return false
         }
     }
     
@@ -297,14 +373,45 @@ class ProfileViewModel: ObservableObject {
     }
     
     // MARK: - 🆕 Calendar Management
-    
     func getDriveBuddyCalendar() async throws -> EKCalendar {
+        // ✅ Check permission first
+        let currentStatus: EKAuthorizationStatus
+        if #available(iOS 17.0, *) {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .fullAccess {
+                print("❌ Calendar access not granted. Status: \(ekStatusName(currentStatus))")
+                throw NSError(
+                    domain: "DriveBuddy",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Calendar access not granted"]
+                )
+            }
+        } else {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .authorized {
+                print("❌ Calendar access not granted. Status: \(ekStatusName(currentStatus))")
+                throw NSError(
+                    domain: "DriveBuddy",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: "Calendar access not granted"]
+                )
+            }
+        }
+        
+        // Check if calendar already exists
         if let existing = eventStore.calendars(for: .event).first(where: { $0.title == "DriveBuddy" }) {
+            print("✅ Found existing DriveBuddy calendar")
             return existing
         }
         
-        guard let source = eventStore.sources.first(where: { $0.sourceType == .local })
-               ?? eventStore.sources.first(where: { $0.sourceType == .calDAV }) else {
+        // ✅ Find a writable source
+        let sources = eventStore.sources
+        print("📋 Available calendar sources: \(sources.map { "\($0.title) (\($0.sourceType.rawValue))" })")
+        
+        guard let source = sources.first(where: { $0.sourceType == .local })
+               ?? sources.first(where: { $0.sourceType == .calDAV })
+               ?? sources.first else {
+            print("❌ No writable calendar source found")
             throw NSError(
                 domain: "DriveBuddy",
                 code: 1,
@@ -312,54 +419,29 @@ class ProfileViewModel: ObservableObject {
             )
         }
         
+        print("📝 Creating calendar with source: \(source.title)")
+        
         let calendar = EKCalendar(for: .event, eventStore: eventStore)
         calendar.title = "DriveBuddy"
         calendar.source = source
-        calendar.cgColor = UIColor.systemCyan.cgColor
         
-        try eventStore.saveCalendar(calendar, commit: true)
-        print("✅ Created DriveBuddy calendar")
-        return calendar
-    }
-    
-    func addCalendarEvent(
-        title: String,
-        notes: String,
-        startDate: Date,
-        alarmOffsetDays: Int
-    ) async throws {
-        if calendarStatus != .authorized && calendarStatus != .fullAccess {
-            let granted = await requestCalendarPermission()
-            guard granted else {
-                throw NSError(
-                    domain: "DriveBuddy",
-                    code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "Calendar permission denied"]
-                )
-            }
+        // ✅ Use valid color values (0.0 to 1.0)
+        if #available(iOS 14.0, *) {
+            calendar.cgColor = UIColor.systemCyan.cgColor
+        } else {
+            calendar.cgColor = UIColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1.0).cgColor
         }
         
-        // ✅ Check for duplicates
-        if await eventExists(title: title, startDate: startDate) {
-            print("⚠️ Event already exists: \(title)")
-            return // Skip this event
+        do {
+            try eventStore.saveCalendar(calendar, commit: true)
+            print("✅ Created DriveBuddy calendar successfully")
+            return calendar
+        } catch {
+            print("❌ Failed to create calendar: \(error.localizedDescription)")
+            throw error
         }
-        
-        let calendar = try await getDriveBuddyCalendar()
-        
-        let event = EKEvent(eventStore: eventStore)
-        event.title = title
-        event.notes = notes
-        event.startDate = startDate
-        event.endDate = startDate.addingTimeInterval(60 * 60)
-        event.calendar = calendar
-        
-        let secondsBefore = TimeInterval(alarmOffsetDays * 24 * 60 * 60) * -1
-        event.alarms = [EKAlarm(relativeOffset: secondsBefore)]
-        
-        try eventStore.save(event, span: .thisEvent)
-        print("✅ Calendar event saved: \(title)")
     }
+
     
     // MARK: - 🆕 Tax Reminder with Calendar (UPDATED)
     
@@ -624,7 +706,68 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-
+    
+    func addCalendarEvent(
+        title: String,
+        notes: String,
+        startDate: Date,
+        alarmOffsetDays: Int
+    ) async throws {
+        // ✅ Check permission with proper iOS 17+ handling
+        let currentStatus: EKAuthorizationStatus
+        if #available(iOS 17.0, *) {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .fullAccess {
+                let granted = await requestCalendarPermission()
+                guard granted else {
+                    throw NSError(
+                        domain: "DriveBuddy",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Calendar permission denied"]
+                    )
+                }
+            }
+        } else {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .authorized {
+                let granted = await requestCalendarPermission()
+                guard granted else {
+                    throw NSError(
+                        domain: "DriveBuddy",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Calendar permission denied"]
+                    )
+                }
+            }
+        }
+        
+        // ✅ Check for duplicates
+        if await eventExists(title: title, startDate: startDate) {
+            print("⚠️ Event already exists: \(title)")
+            return
+        }
+        
+        let calendar = try await getDriveBuddyCalendar()
+        
+        let event = EKEvent(eventStore: eventStore)
+        event.title = title
+        event.notes = notes
+        event.startDate = startDate
+        event.endDate = startDate.addingTimeInterval(60 * 60)
+        event.calendar = calendar
+        
+        // Add alarm
+        let secondsBefore = TimeInterval(alarmOffsetDays * 24 * 60 * 60) * -1
+        event.alarms = [EKAlarm(relativeOffset: secondsBefore)]
+        
+        do {
+            try eventStore.save(event, span: .thisEvent, commit: true)
+            print("✅ Calendar event saved: \(title)")
+        } catch {
+            print("❌ Failed to save event '\(title)': \(error.localizedDescription)")
+            throw error
+        }
+    }
     
     // MARK: - 🆕 Test Notification
     
@@ -711,10 +854,20 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-    // Check if event already exists in calendar (prevent duplicates)
+  
+    // MARK: - Check if event exists (prevent duplicates)
     private func eventExists(title: String, startDate: Date) async -> Bool {
-        guard calendarStatus == .authorized || calendarStatus == .fullAccess else {
-            return false
+        let currentStatus: EKAuthorizationStatus
+        if #available(iOS 17.0, *) {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .fullAccess {
+                return false
+            }
+        } else {
+            currentStatus = EKEventStore.authorizationStatus(for: .event)
+            if currentStatus != .authorized {
+                return false
+            }
         }
         
         do {

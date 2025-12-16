@@ -4,22 +4,19 @@ import Combine
 
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
-    @Binding var selectedTab: Int  // ADDED: For tab switching
+    @Binding var selectedTab: Int
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var profileVM: ProfileViewModel
     @State private var showingAddVehicle = false
     @State private var refreshID = UUID()
     
-    // Add @FetchRequest for automatic updates
     @FetchRequest var vehicles: FetchedResults<Vehicles>
     
     init(authVM: AuthenticationViewModel, selectedTab: Binding<Int>) {
         self.authVM = authVM
-        self._selectedTab = selectedTab  // ADDED: Bind the tab
+        self._selectedTab = selectedTab
         
-        // Safely unwrap user or provide a fallback
         guard let user = authVM.currentUser else {
-            // Create empty view models with nil user (they should handle this)
             _dashboardVM = StateObject(
                 wrappedValue: DashboardViewModel(
                     context: authVM.viewContext,
@@ -34,10 +31,9 @@ struct DashboardView: View {
                 )
             )
             
-            // Create empty fetch request
             _vehicles = FetchRequest<Vehicles>(
                 sortDescriptors: [NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)],
-                predicate: NSPredicate(value: false) // Will return no results
+                predicate: NSPredicate(value: false)
             )
             return
         }
@@ -56,7 +52,6 @@ struct DashboardView: View {
             )
         )
         
-        // Setup FetchRequest for user's vehicles
         let userId = user.user_id ?? UUID()
         let predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
         let sortDescriptors = [NSSortDescriptor(keyPath: \Vehicles.make_model, ascending: true)]
@@ -67,7 +62,18 @@ struct DashboardView: View {
         )
     }
     
-    // MARK: - Computed Property: Check if any vehicle has no tax date
+    // MARK: - ✅ NEW: Get Display Name (prioritizes saved username)
+    private var displayName: String {
+        // First check if user has saved a username in UserDefaults
+        let savedUsername = UserDefaults.standard.string(forKey: "profile.fullName")
+        
+        if let username = savedUsername, !username.isEmpty {
+            return username
+        }
+        
+        // Fallback to extracting from email
+        return dashboardVM.extractUsername(from: authVM.currentUser?.email)
+    }
     var vehiclesWithoutTaxDate: [Vehicles] {
         let filtered = vehicles.filter { $0.tax_due_date == nil }
         print("🔍 [Dashboard Debug] Total vehicles: \(vehicles.count)")
@@ -80,7 +86,6 @@ struct DashboardView: View {
     
     var body: some View {
         ZStack {
-            // MARK: - Background
             Color.black.opacity(0.95).ignoresSafeArea()
             
             VStack(alignment: .leading, spacing: 15) {
@@ -89,14 +94,14 @@ struct DashboardView: View {
                     Image("LogoDriveBuddy")
                         .resizable().scaledToFit().frame(width: 180, height: 40)
                     
-                    Text("Hello, \(dashboardVM.extractUsername(from: authVM.currentUser?.email)) 👋")
+                    // ✅ FIXED: Use displayName computed property
+                    Text("Hello, \(displayName) 👋")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal)
                 .padding(.top, 30)
                 
-                // MARK: - Title
                 Text("Your Vehicles")
                     .font(.headline)
                     .foregroundColor(.white)
@@ -134,9 +139,7 @@ struct DashboardView: View {
                     ZStack(alignment: .bottomTrailing){
                         List {
                             ForEach(vehicles, id: \.vehicles_id) { vehicle in
-                                // CHANGED: Use Button to switch tabs instead of sheet
                                 Button(action: {
-                                    // Switch to Vehicle tab (tag 1)
                                     selectedTab = 1
                                 }) {
                                     VehicleCard(
@@ -173,7 +176,6 @@ struct DashboardView: View {
                 }
             }
         }
-        // MARK: - Add Vehicle Sheet
         .sheet(isPresented: $showingAddVehicle) {
             refreshID = UUID()
         } content: {
@@ -194,9 +196,14 @@ struct DashboardView: View {
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             refreshID = UUID()
         }
+        // ✅ NEW: Refresh display name when profile is updated
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ProfileUpdated"))) { _ in
+            refreshID = UUID()
+        }
     }
 }
-// MARK: - Vehicle Card Component (FIXED)
+
+// MARK: - Vehicle Card Component
 extension DashboardView {
     struct VehicleCard: View {
         @ObservedObject var vehicle: Vehicles
@@ -205,12 +212,10 @@ extension DashboardView {
         
         @Environment(\.managedObjectContext) private var viewContext
         
-        // Check if tax date is missing
         private var isTaxDateMissing: Bool {
             vehicle.tax_due_date == nil
         }
         
-        // ✅ NEW: Check if service date is available
         private var hasServiceDate: Bool {
             nextServiceDate() != nil
         }
@@ -218,7 +223,6 @@ extension DashboardView {
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
                 
-                // MARK: - Header (Vehicle Name + Plate)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(vehicle.make_model ?? "Unknown Vehicle")
                         .font(.system(size: 20, weight: .semibold))
@@ -229,7 +233,6 @@ extension DashboardView {
                         .foregroundColor(.gray)
                 }
                 
-                // MARK: - Tax Warning Banner (if tax date not set)
                 if isTaxDateMissing {
                     HStack(spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -265,13 +268,11 @@ extension DashboardView {
                     )
                 }
                 
-                // MARK: - Divider (always show if tax date is set)
                 if !isTaxDateMissing {
                     Divider()
                         .background(Color.white.opacity(0.15))
                 }
                 
-                // MARK: - Tax Row (only show if tax date is set)
                 if !isTaxDateMissing {
                     HStack(alignment: .center) {
                         Image(systemName: "calendar")
@@ -297,7 +298,6 @@ extension DashboardView {
                     }
                 }
                 
-                // MARK: - Service Row (✅ Show "No service scheduled" if date not available)
                 HStack {
                     Image(systemName: "wrench.and.screwdriver.fill")
                         .font(.system(size: 17))
@@ -356,9 +356,7 @@ extension DashboardView {
             )
         }
         
-        // MARK: - ✅ UPDATED: Return Date? instead of String
         private func nextServiceDate() -> Date? {
-            // First, try to fetch the nearest upcoming service from ServiceHistory
             let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
             request.predicate = NSPredicate(
                 format: "vehicle == %@ AND service_date > %@",
@@ -371,54 +369,45 @@ extension DashboardView {
             do {
                 if let nextService = try viewContext.fetch(request).first,
                    let serviceDate = nextService.service_date {
-                    print("📅 [Dashboard Card] Next service: \(serviceDate.formatted(date: .abbreviated, time: .omitted))")
                     return serviceDate
                 }
             } catch {
                 print("❌ [Dashboard Card] Failed to fetch upcoming service: \(error)")
             }
             
-            // Fallback: Calculate from last service date (if exists)
             if let lastService = vehicle.last_service_date,
                let calculated = Calendar.current.date(byAdding: .month, value: 6, to: lastService) {
-                print("⚠️ [Dashboard Card] Using calculated date: \(calculated.formatted(date: .abbreviated, time: .omitted))")
                 return calculated
             }
             
-            // ✅ Return nil if no service date is available
-            print("⚠️ [Dashboard Card] No service date available for vehicle: \(vehicle.make_model ?? "Unknown")")
             return nil
         }
     }
 }
-        
-        // MARK: - Preview
-        #Preview {
-            let context = PersistenceController.shared.container.viewContext
-            
-            // Mock user
-            let mockUser = User(context: context)
-            mockUser.user_id = UUID()
-            mockUser.email = "preview@drivebuddy.com"
-            mockUser.password_hash = "mockhash"
-            mockUser.created_at = Date()
-            
-            // Mock vehicle
-            let mockVehicle = Vehicles(context: context)
-            mockVehicle.make_model = "Honda Brio"
-            mockVehicle.vehicle_type = "Car"
-            mockVehicle.plate_number = "B 9876 FG"
-            mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-            mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-            mockVehicle.odometer = 25000
-            mockVehicle.user = mockUser
-            
-            let mockAuthVM = AuthenticationViewModel(context: context)
-            mockAuthVM.currentUser = mockUser
-            mockAuthVM.isAuthenticated = true
-            
-            return NavigationStack {
-                DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
-            }
-            
-        }
+
+#Preview {
+    let context = PersistenceController.shared.container.viewContext
+    
+    let mockUser = User(context: context)
+    mockUser.user_id = UUID()
+    mockUser.email = "preview@drivebuddy.com"
+    mockUser.password_hash = "mockhash"
+    mockUser.created_at = Date()
+    
+    let mockVehicle = Vehicles(context: context)
+    mockVehicle.make_model = "Honda Brio"
+    mockVehicle.vehicle_type = "Car"
+    mockVehicle.plate_number = "B 9876 FG"
+    mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
+    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
+    mockVehicle.odometer = 25000
+    mockVehicle.user = mockUser
+    
+    let mockAuthVM = AuthenticationViewModel(context: context)
+    mockAuthVM.currentUser = mockUser
+    mockAuthVM.isAuthenticated = true
+    
+    return NavigationStack {
+        DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
+    }
+}
