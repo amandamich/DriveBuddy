@@ -1,15 +1,8 @@
-//
-//  GoogleSign-InVM.swift
-//  DriveBuddy
-//
-//  Created by student on 04/12/25.
-//
-
 import Foundation
 import GoogleSignIn
 import SwiftUI
 import Combine
-//TESTTTTTTTTTTT
+
 class GoogleSignInViewModel: ObservableObject {
     @Published var isSignedIn = false
     @Published var errorMessage = ""
@@ -27,18 +20,27 @@ class GoogleSignInViewModel: ObservableObject {
             userProfile = currentUser.profile
             userEmail = currentUser.profile?.email ?? ""
             userName = currentUser.profile?.name ?? ""
+            print("✅ Found existing Google session: \(userName)")
         }
     }
     
     func signIn() {
+        print("🔵 GoogleSignInViewModel.signIn() called")
+        
+        // ✅ CRITICAL: Reset state before signing in
+        self.isSignedIn = false
+        self.errorMessage = ""
+        
         guard let presentingViewController = getRootViewController() else {
             errorMessage = "Unable to get root view controller"
+            print("🔴 Error: \(errorMessage)")
             return
         }
         
         // Get client ID from GoogleService-Info.plist
         guard let clientID = getClientID() else {
             errorMessage = "Unable to get client ID from GoogleService-Info.plist"
+            print("🔴 Error: \(errorMessage)")
             return
         }
         
@@ -48,36 +50,50 @@ class GoogleSignInViewModel: ObservableObject {
         GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { [weak self] result, error in
             guard let self = self else { return }
             
-            if let error = error {
-                self.errorMessage = error.localizedDescription
-                print("Google Sign-In Error: \(error.localizedDescription)")
-                return
+            // ✅ Ensure updates happen on main thread
+            DispatchQueue.main.async {
+                if let error = error {
+                    self.errorMessage = error.localizedDescription
+                    self.isSignedIn = false
+                    print("🔴 Google Sign-In Error: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let user = result?.user else {
+                    self.errorMessage = "Unable to get user"
+                    self.isSignedIn = false
+                    print("🔴 Error: No user returned")
+                    return
+                }
+                
+                // ✅ Update all properties
+                self.userProfile = user.profile
+                self.userEmail = user.profile?.email ?? ""
+                self.userName = user.profile?.name ?? ""
+                self.errorMessage = ""
+                
+                print("✅ Successfully signed in as: \(self.userName)")
+                print("📧 Email: \(self.userEmail)")
+                
+                // ✅ CRITICAL: Set isSignedIn LAST to trigger onChange
+                self.isSignedIn = true
+                print("🟢 isSignedIn set to: \(self.isSignedIn)")
             }
-            
-            guard let user = result?.user else {
-                self.errorMessage = "Unable to get user"
-                return
-            }
-            
-            self.isSignedIn = true
-            self.userProfile = user.profile
-            self.userEmail = user.profile?.email ?? ""
-            self.userName = user.profile?.name ?? ""
-            self.errorMessage = ""
-            
-            print("✅ Successfully signed in as: \(self.userName)")
-            print("📧 Email: \(self.userEmail)")
         }
     }
     
     func signOut() {
+        print("🔴 GoogleSignInViewModel.signOut() called")
         GIDSignIn.sharedInstance.signOut()
+        
+        // ✅ Reset all state
         isSignedIn = false
         userProfile = nil
         userEmail = ""
         userName = ""
         errorMessage = ""
-        print("👋 User signed out")
+        
+        print("👋 Google user signed out completely")
     }
     
     private func getRootViewController() -> UIViewController? {

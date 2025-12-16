@@ -8,6 +8,7 @@ import CoreData
 import SwiftUI
 import Combine
 import CryptoKit
+import GoogleSignIn
 
 @MainActor
 final class AuthenticationViewModel: ObservableObject {
@@ -183,6 +184,10 @@ final class AuthenticationViewModel: ObservableObject {
             if let existingUser = users.first {
                 // User exists - login
                 print("🟢 Existing Google user found")
+                
+                // Ensure the object is fresh from the persistent store
+                viewContext.refresh(existingUser, mergeChanges: false)
+                
                 setCurrentUser(existingUser)
             } else {
                 // Create new user for Google sign-in
@@ -197,10 +202,17 @@ final class AuthenticationViewModel: ObservableObject {
                 newUser.created_at = Date()
                 
                 try viewContext.save()
-                viewContext.processPendingChanges()
+                
+                // Obtain permanent ID for the new user
+                try viewContext.obtainPermanentIDs(for: [newUser])
                 
                 print("✅ Google user created successfully")
                 setCurrentUser(newUser)
+            }
+            
+            // Force UI update
+            DispatchQueue.main.async { [weak self] in
+                self?.objectWillChange.send()
             }
             
         } catch {
@@ -209,9 +221,14 @@ final class AuthenticationViewModel: ObservableObject {
             isAuthenticated = false
         }
     }
+
     
     // ✅ CENTRALIZED METHOD TO SET CURRENT USER
     private func setCurrentUser(_ user: User) {
+        // Refresh the object from context to ensure it's not stale
+        viewContext.refresh(user, mergeChanges: true)
+        
+        // Update all state properties
         self.currentUser = user
         self.currentUserID = user.user_id?.uuidString
         self.isAuthenticated = true
@@ -231,8 +248,6 @@ final class AuthenticationViewModel: ObservableObject {
         print("   - Email: \(user.email ?? "nil")")
         print("   - User ID: \(self.currentUserID ?? "nil")")
         print("   - isAuthenticated: \(self.isAuthenticated)")
-        
-        self.objectWillChange.send()
     }
     
     // ✅ RESTORE SESSION FROM USERDEFAULTS
@@ -322,7 +337,8 @@ final class AuthenticationViewModel: ObservableObject {
         print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
         print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
         
-        NotificationCenter.default.post(name: .userDidLogout, object: nil)
+        // Clear all authentication state
+        let userToLogout = self.currentUser
         
         self.isAuthenticated = false
         self.currentUser = nil
@@ -331,17 +347,39 @@ final class AuthenticationViewModel: ObservableObject {
         self.password = ""
         self.errorMessage = nil
         
+        // Clear UserDefaults
         UserDefaults.standard.removeObject(forKey: "isLoggedIn")
         UserDefaults.standard.removeObject(forKey: "currentUserId")
         UserDefaults.standard.synchronize()
+        
+        // If there was a user object, refresh it to clear any cached data
+        if let user = userToLogout {
+            viewContext.refresh(user, mergeChanges: false)
+        }
+        
+        // Post logout notification
+        NotificationCenter.default.post(name: .userDidLogout, object: nil)
         
         print("🔴 After logout - isAuthenticated: \(isAuthenticated)")
         print("🔴 After logout - currentUser: \(currentUser?.email ?? "nil")")
         print("✅ User logged out successfully")
         
-        objectWillChange.send()
+        // Force UI update
+        DispatchQueue.main.async { [weak self] in
+            self?.objectWillChange.send()
+        }
     }
-
+    
+    // MARK: - Check Authentication
+    func checkAuthenticationState() {
+        print("🔍 Current Authentication State:")
+        print("   - isAuthenticated: \(isAuthenticated)")
+        print("   - currentUser: \(currentUser?.email ?? "nil")")
+        print("   - currentUserID: \(currentUserID ?? "nil")")
+        print("   - UserDefaults isLoggedIn: \(UserDefaults.standard.bool(forKey: "isLoggedIn"))")
+        print("   - UserDefaults userId: \(UserDefaults.standard.string(forKey: "currentUserId") ?? "nil")")
+    }
+    
     // MARK: - Hashing
     private func hash(_ input: String) -> String {
         let data = Data(input.utf8)

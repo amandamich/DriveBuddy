@@ -155,7 +155,7 @@ struct SectionBoxService<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .foregroundColor(.cyan) // ✅ CHANGED: blue → cyan
+                    .foregroundColor(.cyan)
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.white)

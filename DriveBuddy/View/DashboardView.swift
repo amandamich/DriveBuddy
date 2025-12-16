@@ -203,12 +203,16 @@ extension DashboardView {
         var taxStatus: VehicleTaxStatus
         var serviceStatus: ServiceReminderStatus
         
-        // ✅ ADD: Access to context for fetching services
         @Environment(\.managedObjectContext) private var viewContext
         
         // Check if tax date is missing
         private var isTaxDateMissing: Bool {
             vehicle.tax_due_date == nil
+        }
+        
+        // ✅ NEW: Check if service date is available
+        private var hasServiceDate: Bool {
+            nextServiceDate() != nil
         }
         
         var body: some View {
@@ -261,9 +265,11 @@ extension DashboardView {
                     )
                 }
                 
-                // MARK: - Divider
-                Divider()
-                    .background(Color.white.opacity(0.15))
+                // MARK: - Divider (always show if tax date is set)
+                if !isTaxDateMissing {
+                    Divider()
+                        .background(Color.white.opacity(0.15))
+                }
                 
                 // MARK: - Tax Row (only show if tax date is set)
                 if !isTaxDateMissing {
@@ -291,27 +297,35 @@ extension DashboardView {
                     }
                 }
                 
-                // MARK: - Service Row
+                // MARK: - Service Row (✅ Show "No service scheduled" if date not available)
                 HStack {
                     Image(systemName: "wrench.and.screwdriver.fill")
                         .font(.system(size: 17))
                         .foregroundColor(.gray)
                     
-                    Text("Next Service:")
-                        .foregroundColor(.gray)
-                        .font(.system(size: 15))
-                    
-                    Text(nextServiceDateText())
-                        .foregroundColor(.white)
-                        .font(.system(size: 15))
-                    Spacer()
-                    Text(serviceStatus.label)
-                        .font(.system(size: 13, weight: .semibold))
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(serviceStatus.color.opacity(0.9))
-                        .cornerRadius(8)
-                        .foregroundColor(.white)
+                    if hasServiceDate, let serviceDate = nextServiceDate() {
+                        Text("Next Service:")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 15))
+                        
+                        Text(serviceDate.formatted(date: .abbreviated, time: .omitted))
+                            .foregroundColor(.white)
+                            .font(.system(size: 15))
+                        Spacer()
+                        Text(serviceStatus.label)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(serviceStatus.color.opacity(0.9))
+                            .cornerRadius(8)
+                            .foregroundColor(.white)
+                    } else {
+                        Text("No service scheduled")
+                            .foregroundColor(.gray)
+                            .font(.system(size: 15))
+                            .italic()
+                        Spacer()
+                    }
                 }
             }
             .padding(20)
@@ -342,9 +356,9 @@ extension DashboardView {
             )
         }
         
-        // MARK: - ✅ FIXED: Service Date Helper (fetches from ServiceHistory)
-        private func nextServiceDateText() -> String {
-            // Fetch the nearest upcoming service from ServiceHistory
+        // MARK: - ✅ UPDATED: Return Date? instead of String
+        private func nextServiceDate() -> Date? {
+            // First, try to fetch the nearest upcoming service from ServiceHistory
             let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
             request.predicate = NSPredicate(
                 format: "vehicle == %@ AND service_date > %@",
@@ -358,20 +372,22 @@ extension DashboardView {
                 if let nextService = try viewContext.fetch(request).first,
                    let serviceDate = nextService.service_date {
                     print("📅 [Dashboard Card] Next service: \(serviceDate.formatted(date: .abbreviated, time: .omitted))")
-                    return serviceDate.formatted(date: .abbreviated, time: .omitted)
+                    return serviceDate
                 }
             } catch {
                 print("❌ [Dashboard Card] Failed to fetch upcoming service: \(error)")
             }
             
-            // Fallback: Calculate from last service date
+            // Fallback: Calculate from last service date (if exists)
             if let lastService = vehicle.last_service_date,
                let calculated = Calendar.current.date(byAdding: .month, value: 6, to: lastService) {
                 print("⚠️ [Dashboard Card] Using calculated date: \(calculated.formatted(date: .abbreviated, time: .omitted))")
-                return calculated.formatted(date: .abbreviated, time: .omitted)
+                return calculated
             }
             
-            return "N/A"
+            // ✅ Return nil if no service date is available
+            print("⚠️ [Dashboard Card] No service date available for vehicle: \(vehicle.make_model ?? "Unknown")")
+            return nil
         }
     }
 }

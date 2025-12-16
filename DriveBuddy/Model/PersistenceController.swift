@@ -30,15 +30,15 @@ struct PersistenceController {
 
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "DriveBuddyModel")
-        if inMemory {
-                            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-                        } else {
-                            // ✅ ADD THIS: Delete old store before loading
-                            if let storeURL = container.persistentStoreDescriptions.first?.url {
-                                try? FileManager.default.removeItem(at: storeURL)
-                                print("🗑️ Old database deleted")
-                            }
-                        }
+//        if inMemory {
+//                            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
+//                        } else {
+//                            // ✅ ADD THIS: Delete old store before loading
+//                            if let storeURL = container.persistentStoreDescriptions.first?.url {
+//                                try? FileManager.default.removeItem(at: storeURL)
+//                                print("🗑️ Old database deleted")
+//                            }
+//                        }
         // Enable automatic lightweight migration
         if let description = container.persistentStoreDescriptions.first {
             description.shouldMigrateStoreAutomatically = true
