@@ -1,4 +1,4 @@
-// DashboardView.swift
+// DashboardView.swift - WITH DELETE CONFIRMATION
 
 import SwiftUI
 import CoreData
@@ -11,6 +11,10 @@ struct DashboardView: View {
     @StateObject private var profileVM: ProfileViewModel
     @State private var showingAddVehicle = false
     @State private var refreshID = UUID()
+    
+    // ✅ NEW: State for delete confirmation
+    @State private var vehicleToDelete: Vehicles? = nil
+    @State private var showDeleteAlert = false
     
     @FetchRequest var vehicles: FetchedResults<Vehicles>
     
@@ -64,7 +68,7 @@ struct DashboardView: View {
         )
     }
     
-    // MARK: - ✅ NEW: Get Display Name (prioritizes saved username)
+    // MARK: - ✅ Get Display Name (prioritizes saved username)
     private var displayName: String {
         // First check if user has saved a username in UserDefaults
         let savedUsername = UserDefaults.standard.string(forKey: "profile.fullName")
@@ -76,6 +80,7 @@ struct DashboardView: View {
         // Fallback to extracting from email
         return dashboardVM.extractUsername(from: authVM.currentUser?.email)
     }
+    
     var vehiclesWithoutTaxDate: [Vehicles] {
         let filtered = vehicles.filter { $0.tax_due_date == nil }
         print("🔍 [Dashboard Debug] Total vehicles: \(vehicles.count)")
@@ -96,7 +101,6 @@ struct DashboardView: View {
                     Image("LogoDriveBuddy")
                         .resizable().scaledToFit().frame(width: 180, height: 40)
                     
-                    // ✅ FIXED: Use displayName computed property
                     Text("Hello, \(displayName) 👋")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.gray)
@@ -152,10 +156,16 @@ struct DashboardView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .listRowBackground(Color.black.opacity(0.8))
-                            }
-                            .onDelete { offsets in
-                                dashboardVM.deleteVehicles(at: offsets, from: Array(vehicles))
-                                refreshID = UUID()
+                                // ✅ MODIFIED: Swipe actions with confirmation
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button {
+                                        vehicleToDelete = vehicle
+                                        showDeleteAlert = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                    .tint(.red)
+                                }
                             }
                         }
                         .listStyle(.plain)
@@ -195,13 +205,37 @@ struct DashboardView: View {
                     }
             }
         }
+        // ✅ NEW: Delete confirmation alert
+        .alert("Delete Vehicle", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { vehicle in
+            Button("Cancel", role: .cancel) {
+                vehicleToDelete = nil
+            }
+            Button("Yes", role: .destructive) {
+                deleteVehicle(vehicle)
+            }
+        } message: { vehicle in
+            Text("Are you sure you want to delete \(vehicle.make_model ?? "this vehicle")?\n\nThis action cannot be undone.")
+        }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: authVM.viewContext)) { _ in
             refreshID = UUID()
         }
-        // ✅ NEW: Refresh display name when profile is updated
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ProfileUpdated"))) { _ in
             refreshID = UUID()
         }
+    }
+    
+    // ✅ NEW: Separate delete function with proper error handling
+    private func deleteVehicle(_ vehicle: Vehicles) {
+        withAnimation {
+            // Delete the vehicle using DashboardViewModel
+            if let index = vehicles.firstIndex(where: { $0.vehicles_id == vehicle.vehicles_id }) {
+                dashboardVM.deleteVehicles(at: IndexSet(integer: index), from: Array(vehicles))
+            }
+            
+            refreshID = UUID()
+        }
+        
+        vehicleToDelete = nil
     }
 }
 

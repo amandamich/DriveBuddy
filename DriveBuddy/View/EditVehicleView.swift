@@ -142,7 +142,7 @@ struct EditVehicleView: View {
                 dismiss()
             }
         } message: {
-            Text("This action cannot be undone. All service history for this vehicle will also be deleted.")
+            Text("This action cannot be undone. All history for this vehicle will also be deleted.")
         }
         .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
             Button("OK") {
