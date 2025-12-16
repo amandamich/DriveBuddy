@@ -16,7 +16,12 @@ class VehicleDetailViewModel: ObservableObject {
     private let eventStore = EKEventStore()
     
     // MARK: - Core Model
-    @Published var activeVehicle: Vehicles
+    @Published var activeVehicle: Vehicles {
+        didSet {
+            // ✅ NEW: Auto-reload data when vehicle changes
+            loadVehicleData()
+        }
+    }
     let activeUser: User
     
     // MARK: - Form Bindings
@@ -52,6 +57,11 @@ class VehicleDetailViewModel: ObservableObject {
     @Published var upcomingServiceDate: Date? = nil
     @Published var latestServiceOdometer: Double? = nil
 
+    // ✅ NEW: Check if vehicle is still valid
+    func isVehicleValid() -> Bool {
+        return !activeVehicle.isDeleted && activeVehicle.managedObjectContext != nil
+    }
+
     // ✅ FIXED: Compare actual date/time, not just day
     private func isDateInPast(_ date: Date) -> Bool {
         return date < Date()
@@ -63,6 +73,14 @@ class VehicleDetailViewModel: ObservableObject {
 
     // ✅ FIXED: Fetch and immediately update published properties
     func fetchServiceHistory() {
+        // ✅ NEW: Skip if vehicle is deleted
+        guard isVehicleValid() else {
+            print("⚠️ Vehicle is deleted, skipping service history fetch")
+            serviceHistories = []
+            updateComputedProperties()
+            return
+        }
+        
         let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
         request.predicate = NSPredicate(format: "vehicle == %@", activeVehicle)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: false)]
@@ -160,6 +178,15 @@ class VehicleDetailViewModel: ObservableObject {
     func loadVehicleData() {
         print("\n🔄 Loading vehicle data...")
         
+        // ✅ NEW: Check if vehicle is still valid
+        guard isVehicleValid() else {
+            print("⚠️ Vehicle is deleted or invalid, cannot load data")
+            makeModel = ""
+            plateNumber = ""
+            odometer = "0"
+            return
+        }
+        
         // ✅ Force refresh from persistent store
         context.refreshAllObjects()
         context.refresh(activeVehicle, mergeChanges: true)
@@ -180,7 +207,7 @@ class VehicleDetailViewModel: ObservableObject {
         
         hasTaxDate = activeVehicle.tax_due_date != nil
         
-        print("✅ Vehicle data loaded")
+        print("✅ Vehicle data loaded: \(makeModel)")
     }
 
     // MARK: - Start Editing
