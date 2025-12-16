@@ -15,7 +15,7 @@ struct AddTaxView: View {
     
     @State private var taxAmount = ""
     @State private var paymentDate = Date()
-    @State private var validUntil = Calendar.current.date(byAdding: .year, value: 2, to: Date()) ?? Date()
+    @State private var validUntil = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
     @State private var location = ""
     @State private var notes = ""
     
