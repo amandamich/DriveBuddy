@@ -8,6 +8,7 @@ struct AddVehicleView: View {
     @StateObject private var profileVM: ProfileViewModel
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
 
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(initialValue: authVM)
@@ -49,6 +50,12 @@ struct AddVehicleView: View {
     }
 
     let vehicleTypes = ["Car", "Motorbike"]
+    
+    // Generate year range (from 1900 to current year)
+    var yearRange: [Int] {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return Array((1900...currentYear).reversed())
+    }
 
     // MARK: - SCROLL CONTENT
     var contentView: some View {
@@ -92,7 +99,6 @@ struct AddVehicleView: View {
             } else {
                 // Normal content when user is logged in
                 VStack(alignment: .leading, spacing: 24) {
-                    // ✅ CHANGED: Removed headerView, added simple title like AddServiceView
                     Text("Add Vehicle")
                         .font(.system(size: 28, weight: .bold))
                         .foregroundColor(.white)
@@ -139,13 +145,41 @@ struct AddVehicleView: View {
                                     .textInputAutocapitalization(.characters)
                             }
 
+                            // ✅ CHANGED: Year Picker instead of TextField
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("Year of Manufacture")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("2019", text: $addVehicleVM.yearManufacture)
-                                    .keyboardType(.numberPad)
-                                    .textFieldStyle(CustomTextFieldStyle())
+                                
+                                Menu {
+                                    Picker("Select Year", selection: $selectedYear) {
+                                        ForEach(yearRange, id: \.self) { year in
+                                            Text(String(year)).tag(year)
+                                        }
+                                    }
+                                } label: {
+                                    HStack {
+                                        Text(String(selectedYear))
+                                            .foregroundColor(.black)
+                                        Spacer()
+                                        Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
+                                    }
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                }
+                                .onChange(of: selectedYear) { oldValue, newValue in
+                                    addVehicleVM.yearManufacture = String(newValue)
+                                }
+                                .onAppear {
+                                    // Set initial value if yearManufacture is already set
+                                    if let year = Int(addVehicleVM.yearManufacture), !addVehicleVM.yearManufacture.isEmpty {
+                                        selectedYear = year
+                                    } else {
+                                        addVehicleVM.yearManufacture = String(selectedYear)
+                                    }
+                                }
                             }
 
                             VStack(alignment: .leading, spacing: 6) {
@@ -287,7 +321,7 @@ struct SectionBox<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: icon)
-                    .foregroundColor(.cyan) // ✅ CHANGED: blue → cyan
+                    .foregroundColor(.cyan)
                 Text(title)
                     .font(.headline)
                     .foregroundColor(.white)
