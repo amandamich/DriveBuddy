@@ -9,6 +9,7 @@ import CoreData
 struct ProfileView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @StateObject private var profileVM: ProfileViewModel
+    @State private var showLogoutAlert = false
 
     init(authVM: AuthenticationViewModel) {
         self._authVM = ObservedObject(wrappedValue: authVM)
@@ -78,14 +79,7 @@ struct ProfileView: View {
 
                         // MARK: Logout Button - ✅ FIXED WITH DEBUG
                         Button(action: {
-                            print("🔴 LOGOUT BUTTON TAPPED")
-                            print("🔴 BEFORE - isAuthenticated: \(authVM.isAuthenticated)")
-                            print("🔴 BEFORE - currentUser: \(authVM.currentUser?.email ?? "nil")")
-                            
-                            authVM.logout()
-                            
-                            print("🔴 AFTER - isAuthenticated: \(authVM.isAuthenticated)")
-                            print("🔴 AFTER - currentUser: \(authVM.currentUser?.email ?? "nil")")
+                            showLogoutAlert = true
                         }) {
                             Text("Log Out")
                                 .font(.headline)
@@ -101,6 +95,21 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 20)
+                        .alert("Log Out", isPresented: $showLogoutAlert) {
+                            Button("Cancel", role: .cancel) { }
+                            Button("Log Out", role: .destructive) {
+                                print("🔴 LOGOUT BUTTON TAPPED")
+                                print("🔴 BEFORE - isAuthenticated: \(authVM.isAuthenticated)")
+                                print("🔴 BEFORE - currentUser: \(authVM.currentUser?.email ?? "nil")")
+                                
+                                authVM.logout()
+                                
+                                print("🔴 AFTER - isAuthenticated: \(authVM.isAuthenticated)")
+                                print("🔴 AFTER - currentUser: \(authVM.currentUser?.email ?? "nil")")
+                            }
+                        } message: {
+                            Text("Are you sure you want to log out?")
+                        }
                     }
                     .padding(.bottom, 80)
                 }
