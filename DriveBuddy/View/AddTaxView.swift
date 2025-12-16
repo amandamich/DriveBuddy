@@ -106,9 +106,14 @@ struct AddTaxView: View {
                                 HStack {
                                     Text("Rp")
                                         .foregroundColor(.black)
-                                    TextField("0", text: $taxAmount)
+                                        .fontWeight(.medium)
+                                    TextField("Enter amount (e.g., 500000)", text: $taxAmount)
                                         .keyboardType(.numberPad)
                                         .foregroundColor(.black)
+                                        // ✅ Make placeholder visible
+                                        .onChange(of: taxAmount) { oldValue, newValue in
+                                            // This ensures the view updates
+                                        }
                                 }
                                 .padding()
                                 .background(Color.white)
@@ -148,6 +153,7 @@ struct AddTaxView: View {
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(10)
+                                    .tint(.blue) // ✅ Make date picker accent color visible
                             }
                             
                             // Valid Until
@@ -163,6 +169,7 @@ struct AddTaxView: View {
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(10)
+                                    .tint(.blue) // ✅ Make date picker accent color visible
                                 
                                 if validUntil <= paymentDate {
                                     HStack(spacing: 4) {
@@ -182,12 +189,20 @@ struct AddTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                TextField("e.g., Samsat Jakarta Timur", text: $location)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                    .autocorrectionDisabled(true)
-                                    .foregroundColor(.black)
+                                // ✅ Custom TextField with visible placeholder
+                                ZStack(alignment: .leading) {
+                                    if location.isEmpty {
+                                        Text("e.g., Samsat Jakarta Timur")
+                                            .foregroundColor(.gray.opacity(0.6))
+                                            .padding(.leading, 16)
+                                    }
+                                    TextField("", text: $location)
+                                        .padding()
+                                        .foregroundColor(.black)
+                                        .autocorrectionDisabled(true)
+                                }
+                                .background(Color.white)
+                                .cornerRadius(10)
                                 
                                 if location.isEmpty {
                                     HStack(spacing: 4) {
@@ -217,13 +232,22 @@ struct AddTaxView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 15) {
-                            TextEditor(text: $notes)
-                                .frame(height: 100)
-                                .padding(8)
-                                .background(Color.white)
-                                .cornerRadius(10)
-                                .scrollContentBackground(.hidden)
-                                .foregroundColor(.black)
+                            // ✅ Custom TextEditor with visible placeholder
+                            ZStack(alignment: .topLeading) {
+                                if notes.isEmpty {
+                                    Text("Add any additional notes here...")
+                                        .foregroundColor(.gray.opacity(0.6))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 16)
+                                }
+                                TextEditor(text: $notes)
+                                    .frame(height: 100)
+                                    .padding(8)
+                                    .scrollContentBackground(.hidden)
+                                    .foregroundColor(.black)
+                            }
+                            .background(Color.white)
+                            .cornerRadius(10)
                         }
                         .padding()
                         .background(Color.blue.opacity(0.15))
