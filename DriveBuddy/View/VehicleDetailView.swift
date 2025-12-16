@@ -1,5 +1,5 @@
 //
-//  VehicleDetailView.swift - COMPLETE VERSION WITH TAX SYNC
+//  VehicleDetailView.swift - COMPLETE VERSION WITH TAX SYNC + DELETE VALIDATION
 //  DriveBuddy
 //
 
@@ -265,7 +265,9 @@ struct VehicleDetailView: View {
             }
         }
         .onAppear {
-            viewModel.loadVehicleData()
+            // ✅ NEW: Validate vehicle exists before loading
+            validateAndLoadVehicle()
+            
             // ✅ Sync latest tax from TaxHistoryVM when view appears
             if let plateNumber = viewModel.activeVehicle.plate_number {
                 TaxHistoryVM.shared.syncLatestTaxToVehicle(licensePlate: plateNumber, context: viewContext)
@@ -276,7 +278,8 @@ struct VehicleDetailView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
             Task { @MainActor in
-                viewModel.loadVehicleData()
+                // ✅ NEW: Validate vehicle still exists after context save
+                validateAndLoadVehicle()
                 refreshTrigger = UUID()
             }
         }
@@ -372,6 +375,28 @@ struct VehicleDetailView: View {
         }
         
         .navigationBarBackButtonHidden(false)
+    }
+    
+    // ✅ NEW: Validate that activeVehicle still exists, switch to another if deleted
+    private func validateAndLoadVehicle() {
+        // Check if current vehicle has been deleted
+        if viewModel.activeVehicle.isDeleted || viewModel.activeVehicle.managedObjectContext == nil {
+            print("⚠️ Current vehicle was deleted, switching to first available vehicle")
+            
+            // Find first available vehicle for this user
+            if let firstVehicle = allVehicles.first(where: { $0.user == viewModel.activeUser }) {
+                viewModel.activeVehicle = firstVehicle
+                viewModel.loadVehicleData()
+                refreshTrigger = UUID()
+            } else {
+                // No vehicles left, dismiss the view
+                print("⚠️ No vehicles left for user, dismissing view")
+                dismiss()
+            }
+        } else {
+            // Vehicle still exists, just refresh the data
+            viewModel.loadVehicleData()
+        }
     }
     
     // Helper function to extract year from vehicle
