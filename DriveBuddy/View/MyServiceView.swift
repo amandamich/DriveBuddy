@@ -179,7 +179,7 @@ struct MyServiceView: View {
                                     showCompleteService = false
                                 } label: {
                                     Image(systemName: "xmark")
-                                        .foregroundColor(.white)
+                                .foregroundColor(.white)
                                 }
                             }
                         }

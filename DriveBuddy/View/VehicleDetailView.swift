@@ -246,7 +246,7 @@ struct VehicleDetailView: View {
                                             .foregroundColor(.cyan)
                                         Image(systemName: "chevron.right")
                                             .font(.caption)
-                                            .foregroundColor(.cyan)
+                                            .foregroundColor(.cyan.opacity(0.9))
                                     }
                                     .frame(maxWidth: .infinity, alignment: .center)
                                     .padding(.top, 8)
@@ -297,7 +297,7 @@ struct VehicleDetailView: View {
                         Button(action: { showMyService = false }) {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -326,7 +326,7 @@ struct VehicleDetailView: View {
                         Button(action: { showMyTax = false }) {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -349,7 +349,7 @@ struct VehicleDetailView: View {
                         Button(action: { showAddService = false }) {
                             Image(systemName: "chevron.left")
                                 .font(.headline)
-                                .foregroundColor(.blue)
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -367,7 +367,7 @@ struct VehicleDetailView: View {
                             Button(action: { viewModel.isEditing = false }) {
                                 Image(systemName: "chevron.left")
                                     .font(.headline)
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.white)
                             }
                         }
                     }

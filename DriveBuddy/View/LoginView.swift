@@ -96,6 +96,7 @@ struct LoginView: View {
                             .foregroundColor(.white)
                             .font(.headline)
                             .shadow(color: .blue, radius: 5)
+                        
                         SecureField("Enter your password", text: $password, prompt: Text("Enter your password").foregroundColor(.gray))
                             .textFieldStyle(NeonTextFieldStyle())
                             .focused($focusedField, equals: .password)
@@ -108,10 +109,25 @@ struct LoginView: View {
                                     authVM.login()
                                 }
                             }
+                            .onChange(of: password){ _ in authVM.errorMessage = nil
+                            }
+                    // ✅ VALIDATION MESSAGE DIRECTLY UNDER PASSWORD
+                        if let message = validationMessage,
+                           message.lowercased().contains("password") {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+
+                                Text(message)
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                            }
+                            .padding(.top, 4)
+                        }
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 16)
-
                     // MARK: - Login Button
                     Button(action: {
                         focusedField = nil
@@ -187,14 +203,14 @@ struct LoginView: View {
                     .padding(.horizontal, 30)
                     .padding(.top, 16)
 
-                    // MARK: - Validation Message
-                    if let message = validationMessage {
-                        Text(message)
-                            .foregroundColor(.orange)
-                            .font(.caption)
-                            .padding(.top, 8)
-                            .transition(.opacity)
-                    }
+//                    // MARK: - Validation Message
+//                    if let message = validationMessage {
+//                        Text(message)
+//                            .foregroundColor(.orange)
+//                            .font(.caption)
+//                            .padding(.top, 8)
+//                            .transition(.opacity)
+//                    }
 
                     // MARK: - Error Message (from auth)
                     if let error = authVM.errorMessage, !error.isEmpty {

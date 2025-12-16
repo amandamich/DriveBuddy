@@ -187,9 +187,9 @@ class VehicleDetailViewModel: ObservableObject {
             return
         }
         
-        // ✅ Force refresh from persistent store
-        context.refreshAllObjects()
-        context.refresh(activeVehicle, mergeChanges: true)
+//        // ✅ Force refresh from persistent store
+//        context.refreshAllObjects()
+//        context.refresh(activeVehicle, mergeChanges: true)
         
         // ✅ Fetch service history AFTER refreshing context
         fetchServiceHistory()
@@ -197,8 +197,6 @@ class VehicleDetailViewModel: ObservableObject {
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
         odometer = String(format: "%.0f", activeVehicle.odometer)
-        taxDueDate = activeVehicle.tax_due_date ?? Date()
-        stnkDueDate = activeVehicle.stnk_due_date ?? Date()
         
         // ✅ Load from latest completed service for editing
         serviceName = latestService?.service_name ?? ""
