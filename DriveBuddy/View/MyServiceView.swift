@@ -13,7 +13,8 @@ struct MyServiceView: View {
     @StateObject private var viewModel: MyServiceViewModel
     @State private var selectedService: ServiceHistory?
     @State private var showCompleteService = false
-    
+    @State private var showDeleteAlert = false
+    @State private var serviceToDelete: ServiceHistory?
     var activeUser: User?
 
     init(vehicle: Vehicles, context: NSManagedObjectContext, activeUser: User?) {
@@ -24,10 +25,10 @@ struct MyServiceView: View {
     var body: some View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
-
+            
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-
+                    
                     // MARK: - Header
                     VStack(spacing: 8) {
                         Text("Service History")
@@ -37,7 +38,7 @@ struct MyServiceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
-
+                    
                     // MARK: - Upcoming Services
                     if !viewModel.upcomingServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -50,25 +51,41 @@ struct MyServiceView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
                             }
-
-                            ForEach(viewModel.upcomingServices, id: \.objectID) { service in
-                                Button(action: {
-                                    selectedService = service
-                                    showCompleteService = true
-                                }) {
-                                    ServiceCard(
-                                        title: service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service",
-                                        date: formatted(service.service_date),
-                                        detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Tap to complete",
-                                        type: .upcoming
-                                    )
+                            
+                            List {
+                                ForEach(viewModel.upcomingServices, id: \.objectID) { service in
+                                    Button {
+                                        selectedService = service
+                                        showCompleteService = true
+                                    } label: {
+                                        ServiceCard(
+                                            title: service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service",
+                                            date: formatted(service.service_date),
+                                            detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Tap to complete",
+                                            type: .upcoming
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            serviceToDelete = service
+                                            showDeleteAlert = true
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                        .tint(.red)
+                                    }
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
+                            .listStyle(.plain)
+                            .frame(height: CGFloat(viewModel.upcomingServices.count * 120))
                         }
                         .padding(.horizontal)
                     }
-
+                    
                     // MARK: - Completed Services
                     if !viewModel.completedServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
@@ -81,26 +98,46 @@ struct MyServiceView: View {
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
                             }
-
-                            ForEach(viewModel.completedServices, id: \.objectID) { service in
-                                ServiceCard(
-                                    title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
-                                    date: formatted(service.service_date),
-                                    detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
-                                    type: .completed
-                                )
+                            List {
+                                ForEach(viewModel.completedServices, id: \.objectID) { service in
+                                    Button {
+                                        selectedService = service
+                                        showCompleteService = true   // ✅ edit completed service
+                                    } label: {
+                                        ServiceCard(
+                                            title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
+                                            date: formatted(service.service_date),
+                                            detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
+                                            type: .completed
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
+                                    .listRowSeparator(.hidden)
+                                    .listRowBackground(Color.clear)
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            serviceToDelete = service
+                                            showDeleteAlert = true
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                        .tint(.red)
+                                    }
+                                }
                             }
+                            .listStyle(.plain)
+                            .frame(height: CGFloat(viewModel.completedServices.count * 120))
                         }
                         .padding(.horizontal)
                     }
-
+                    
                     // MARK: - Empty State
                     if viewModel.completedServices.isEmpty && viewModel.upcomingServices.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "wrench.and.screwdriver")
                                 .font(.system(size: 60))
                                 .foregroundColor(.gray.opacity(0.5))
-                                .padding(.bottom, 8)
                             
                             Text("No service history yet")
                                 .foregroundColor(.gray)
@@ -112,7 +149,7 @@ struct MyServiceView: View {
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
                         }
-                        .frame(maxWidth: .infinity, alignment: .center)
+                        .frame(maxWidth: .infinity)
                         .padding(.top, 80)
                     }
                 }
@@ -121,7 +158,6 @@ struct MyServiceView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(.white)
         .preferredColorScheme(.dark)
         .onAppear {
             viewModel.refreshServices()
@@ -139,9 +175,10 @@ struct MyServiceView: View {
                     CompleteServiceView(service: service)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarLeading) {
-                                Button(action: { showCompleteService = false }) {
+                                Button {
+                                    showCompleteService = false
+                                } label: {
                                     Image(systemName: "xmark")
-                                        .font(.headline)
                                         .foregroundColor(.white)
                                 }
                             }
@@ -149,15 +186,30 @@ struct MyServiceView: View {
                 }
             }
         }
-    }
+        .alert("Delete Service",
+               isPresented: $showDeleteAlert,
+               presenting: serviceToDelete) { service in
+            Button("Delete", role: .destructive) {
+                viewModel.deleteService(service)
+                serviceToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                serviceToDelete = nil
+            }
+        } message: { service in
+            Text("Are you sure you want to delete \"\(service.service_name ?? "this service")\"?")
+        }
 
-    private func formatted(_ date: Date?) -> String {
+    
+    }
+        private func formatted(_ date: Date?) -> String {
         guard let date else { return "Unknown Date" }
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM yyyy"
         return formatter.string(from: date)
     }
 }
+
 
 // MARK: - Enum & Card Components
 enum ServiceType {
@@ -191,6 +243,7 @@ struct ServiceCard: View {
     var date: String
     var detail: String
     var type: ServiceType
+    var showEditIcon: Bool = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -226,16 +279,22 @@ struct ServiceCard: View {
             }
             
             Spacer()
-            
-            // Right side - Badge
-            Text(type.title)
-                .font(.caption)
-                .fontWeight(.semibold)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 12)
-                .background(type.color.opacity(0.9))
-                .foregroundColor(.white)
-                .cornerRadius(8)
+            HStack(spacing: 8) {
+                if showEditIcon {
+                    Image(systemName: "pencil")
+                        .foregroundColor(.white.opacity(0.8))
+                        .font(.system(size: 14, weight: .semibold))
+                }
+
+                Text(type.title)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(type.color.opacity(0.9))
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
         }
         .padding(16)
         .background(
