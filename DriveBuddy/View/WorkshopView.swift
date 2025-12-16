@@ -228,7 +228,7 @@ struct WorkshopView: View {
         // Filter by selected service
         if !selectedFilters.isEmpty {
             result = result.filter { workshop in
-                selectedFilters.allSatisfy { filter in
+                selectedFilters.contains { filter in
                     workshop.services.contains { service in
                         service.localizedCaseInsensitiveContains(filter)
                     }
