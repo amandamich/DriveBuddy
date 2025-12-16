@@ -1,4 +1,3 @@
-//
 //  EditVehicleView.swift
 //  DriveBuddy
 //
@@ -36,7 +35,7 @@ struct EditVehicleView: View {
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 
-                                TextField("e.g., Toyota Avanza", text: $viewModel.makeModel)
+                                TextField("", text: $viewModel.makeModel, prompt: Text("e.g., Toyota Avanza").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textFieldStyle(CustomTextFieldStyleEdit())
                             }
                             
@@ -46,7 +45,7 @@ struct EditVehicleView: View {
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 
-                                TextField("e.g., B 1234 XYZ", text: $viewModel.plateNumber)
+                                TextField("", text: $viewModel.plateNumber, prompt: Text("e.g., B 1234 XYZ").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textInputAutocapitalization(.characters)
                                     .textFieldStyle(CustomTextFieldStyleEdit())
                             }
@@ -57,7 +56,7 @@ struct EditVehicleView: View {
                                     .font(.headline)
                                     .foregroundColor(.white)
                                 
-                                TextField("e.g., 50000", text: $viewModel.odometer)
+                                TextField("", text: $viewModel.odometer, prompt: Text("e.g., 50000").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .keyboardType(.numberPad)
                                     .textFieldStyle(CustomTextFieldStyleEdit())
                             }
@@ -189,5 +188,6 @@ struct CustomTextFieldStyleEdit: TextFieldStyle {
             .padding()
             .background(Color.white)
             .cornerRadius(10)
+            .foregroundColor(.black)
     }
 }
