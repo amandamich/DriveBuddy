@@ -11,6 +11,11 @@ struct SignUpView: View {
     @State private var goToLogin = false
     @State private var showPassword = false
     @State private var showConfirmPassword = false
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case email, phone, password, confirmPassword
+    }
     
     // ✅ Enhanced form validation with password requirements
     private var isFormValid: Bool {
@@ -22,8 +27,6 @@ struct SignUpView: View {
         authVM.validateEmail(email) &&
         authVM.validatePassword(password).isValid
     }
-    
-
 
     var body: some View {
         NavigationStack {
@@ -59,11 +62,26 @@ struct SignUpView: View {
                                         .foregroundColor(.white)
                                         .font(.headline)
                                         .shadow(color: .blue, radius: 5)
-                                    TextField("Enter your email", text: $email)
-                                        .textFieldStyle(NeonTextFieldStyle())
+                                    
+                                    TextField("", text: $email, prompt: Text("Enter your email").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
+                                        .foregroundColor(.black)
+                                        .padding()
+                                        .background(Color.white)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(Color.cyan, lineWidth: 2)
+                                                .shadow(color: .blue, radius: 8)
+                                        )
+                                        .cornerRadius(12)
+                                        .shadow(color: .blue.opacity(0.3), radius: 10)
                                         .keyboardType(.emailAddress)
                                         .textInputAutocapitalization(.never)
                                         .autocorrectionDisabled(true)
+                                        .focused($focusedField, equals: .email)
+                                        .submitLabel(.next)
+                                        .onSubmit {
+                                            focusedField = .phone
+                                        }
                                 }
 
                                 // Phone Number
@@ -85,14 +103,24 @@ struct SignUpView: View {
                                             .frame(width: 1)
                                             .padding(.vertical, 10)
                                         
-                                        TextField("812-3456-7890", text: $phoneNumber)
-                                            .foregroundColor(.black)
-                                            .keyboardType(.phonePad)
-                                            .padding(.leading, 16)
-                                            .padding(.trailing, 16)
-                                            .onChange(of: phoneNumber) { newValue in
-                                                phoneNumber = formatPhoneNumber(newValue)
+                                        ZStack(alignment: .leading) {
+                                            // ✅ Fixed: Dark placeholder that works in all modes
+                                            if phoneNumber.isEmpty && focusedField != .phone {
+                                                Text("812-3456-7890")
+                                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                                                    .padding(.leading, 16)
+                                                    .allowsHitTesting(false)
                                             }
+                                            TextField("", text: $phoneNumber)
+                                                .foregroundColor(.black)
+                                                .keyboardType(.phonePad)
+                                                .padding(.leading, 16)
+                                                .padding(.trailing, 16)
+                                                .focused($focusedField, equals: .phone)
+                                                .onChange(of: phoneNumber) { newValue in
+                                                    phoneNumber = formatPhoneNumber(newValue)
+                                                }
+                                        }
                                     }
                                     .frame(height: 56)
                                     .background(
@@ -110,20 +138,34 @@ struct SignUpView: View {
                                         .shadow(color: .blue, radius: 5)
                                     
                                     HStack {
-                                        if showPassword {
-                                            TextField("Enter your password", text: $password)
-                                                .foregroundColor(.black)
-                                        } else {
-                                            SecureField("Enter your password", text: $password)
-                                                .foregroundColor(.black)
+                                        ZStack(alignment: .leading) {
+                                            // ✅ Fixed: Dark placeholder that works in all modes
+                                            if password.isEmpty && focusedField != .password {
+                                                Text("Enter your password")
+                                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                                                    .padding(.leading, 16)
+                                                    .allowsHitTesting(false)
+                                            }
+                                            if showPassword {
+                                                TextField("", text: $password)
+                                                    .foregroundColor(.black)
+                                                    .padding(.leading, 16)
+                                                    .focused($focusedField, equals: .password)
+                                            } else {
+                                                SecureField("", text: $password)
+                                                    .foregroundColor(.black)
+                                                    .padding(.leading, 16)
+                                                    .focused($focusedField, equals: .password)
+                                            }
                                         }
                                         
                                         Button(action: { showPassword.toggle() }) {
                                             Image(systemName: showPassword ? "eye.slash.fill" : "eye.fill")
                                                 .foregroundColor(.gray)
+                                                .padding(.trailing, 16)
                                         }
                                     }
-                                    .padding()
+                                    .frame(height: 56)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color.white)
@@ -166,20 +208,34 @@ struct SignUpView: View {
                                         .shadow(color: .blue, radius: 5)
                                     
                                     HStack {
-                                        if showConfirmPassword {
-                                            TextField("Confirm your password", text: $confirmpassword)
-                                                .foregroundColor(.black)
-                                        } else {
-                                            SecureField("Confirm your password", text: $confirmpassword)
-                                                .foregroundColor(.black)
+                                        ZStack(alignment: .leading) {
+                                            // ✅ Fixed: Dark placeholder that works in all modes
+                                            if confirmpassword.isEmpty && focusedField != .confirmPassword {
+                                                Text("Confirm your password")
+                                                    .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
+                                                    .padding(.leading, 16)
+                                                    .allowsHitTesting(false)
+                                            }
+                                            if showConfirmPassword {
+                                                TextField("", text: $confirmpassword)
+                                                    .foregroundColor(.black)
+                                                    .padding(.leading, 16)
+                                                    .focused($focusedField, equals: .confirmPassword)
+                                            } else {
+                                                SecureField("", text: $confirmpassword)
+                                                    .foregroundColor(.black)
+                                                    .padding(.leading, 16)
+                                                    .focused($focusedField, equals: .confirmPassword)
+                                            }
                                         }
                                         
                                         Button(action: { showConfirmPassword.toggle() }) {
                                             Image(systemName: showConfirmPassword ? "eye.slash.fill" : "eye.fill")
                                                 .foregroundColor(.gray)
+                                                .padding(.trailing, 16)
                                         }
                                     }
-                                    .padding()
+                                    .frame(height: 56)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
                                             .fill(Color.white)
@@ -206,6 +262,7 @@ struct SignUpView: View {
 
                                 // MARK: - Sign Up Button
                                 Button(action: {
+                                    focusedField = nil
                                     authVM.errorMessage = nil
                                     
                                     authVM.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -260,6 +317,9 @@ struct SignUpView: View {
                     }
                     .padding(.horizontal, 40)
                 }
+            }
+            .onTapGesture {
+                focusedField = nil
             }
             .onAppear {
                 withAnimation { isAnimating = true }
