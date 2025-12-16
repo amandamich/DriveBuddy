@@ -66,7 +66,7 @@ struct TaxHistoryView: View {
                     NavigationLink(destination: AddTaxView(vehicle: vehicle)) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(.cyan)
+                            .foregroundColor(.blue)
                     }
                 }
                 .padding(.horizontal, 20)

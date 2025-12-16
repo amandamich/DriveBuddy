@@ -41,8 +41,8 @@ struct ChangePasswordView: View {
                     // SECTION HEADER - Matching Add Service style exactly
                     HStack(spacing: 10) {
                         Image(systemName: "lock.shield.fill")
-                            .foregroundColor(.blue)
-                            .font(.system(size: 18))
+                            .foregroundColor(.cyan)
+                            .font(.system(size: 20))
                         Text("Security Settings")
                             .foregroundColor(.white)
                             .font(.system(size: 17, weight: .semibold))
