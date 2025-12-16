@@ -362,6 +362,17 @@ struct AddTaxView: View {
         )
         
         taxManager.addTaxHistory(newTax, context: viewContext)
+        if let profileVM = try? viewContext.fetch(User.fetchRequest()).first,
+           profileVM.add_to_calendar {
+
+            Task {
+                let profileVM = ProfileViewModel(
+                    context: viewContext,
+                    user: profileVM
+                )
+                await profileVM.syncAllVehiclesToCalendar()
+            }
+        }
         
         alertMessage = "Tax record saved successfully! Reminders have been set."
         showAlert = true
