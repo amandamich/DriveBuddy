@@ -75,6 +75,10 @@ class GoogleSignInViewModel: ObservableObject {
                 print("✅ Successfully signed in as: \(self.userName)")
                 print("📧 Email: \(self.userEmail)")
                 
+                // ✅ NEW: Clear phone number for Google sign-in users
+                UserDefaults.standard.removeObject(forKey: "profile.phoneNumber")
+                print("📱 Phone number cleared for Google user")
+                
                 // ✅ CRITICAL: Set isSignedIn LAST to trigger onChange
                 self.isSignedIn = true
                 print("🟢 isSignedIn set to: \(self.isSignedIn)")

@@ -1,7 +1,8 @@
 //
-//  MyServiceView.swift - UPDATED
+//  MyServiceView.swift
 //  DriveBuddy
 //
+
 import CoreData
 import SwiftUI
 
@@ -27,13 +28,15 @@ struct MyServiceView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
-                    Text("Service History")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 10)
-
-                    Spacer(minLength: 5)
+                    // MARK: - Header
+                    VStack(spacing: 8) {
+                        Text("Service History")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .blue, radius: 10)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
 
                     // MARK: - Upcoming Services
                     if !viewModel.upcomingServices.isEmpty {
@@ -49,7 +52,6 @@ struct MyServiceView: View {
                             }
 
                             ForEach(viewModel.upcomingServices, id: \.objectID) { service in
-                                // ✅ Make card tappable
                                 Button(action: {
                                     selectedService = service
                                     showCompleteService = true
@@ -114,22 +116,22 @@ struct MyServiceView: View {
                         .padding(.top, 80)
                     }
                 }
-                .padding(.bottom, 80)
+                .padding(.bottom, 100)
             }
         }
-        .navigationBarBackButtonHidden(true)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.white)
+        .preferredColorScheme(.dark)
         .onAppear {
             viewModel.refreshServices()
         }
-        // ✅ FIXED: Listen to Core Data changes
         .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 viewModel.refreshServices()
             }
         }
-        // ✅ FIXED: Refresh when sheet dismisses
         .sheet(isPresented: $showCompleteService, onDismiss: {
-            // Refresh services when sheet is dismissed
             viewModel.refreshServices()
         }) {
             if let service = selectedService {
@@ -252,17 +254,14 @@ struct ServiceCard: View {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     
-    // 1. Buat User
     let user = User(context: context)
     user.user_id = UUID()
     user.email = "test@user.com"
 
-    // 2. Buat Vehicle
     let sampleVehicle = Vehicles(context: context)
     sampleVehicle.make_model = "Honda Brio"
     sampleVehicle.user = user
     
-    // 3. Buat Sample Services
     let pastService = ServiceHistory(context: context)
     pastService.history_id = UUID()
     pastService.service_name = "Oil Change"

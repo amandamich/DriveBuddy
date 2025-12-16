@@ -30,15 +30,20 @@ struct AddServiceView: View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
 
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Header
-                    Text("Add Service")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.top, 8)
                     
-                    // Service Info Section
+                    // MARK: - Header
+                    VStack(spacing: 8) {
+                        Text("Add Service")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .blue, radius: 10)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    
+                    // MARK: - Service Info Section
                     SectionBoxService(title: "Service Info", icon: "wrench.fill") {
                         VStack(alignment: .leading, spacing: 15) {
                             VStack(alignment: .leading, spacing: 6) {
@@ -75,6 +80,7 @@ struct AddServiceView: View {
                         }
                     }
 
+                    // MARK: - Reminder Settings Section
                     SectionBoxService(title: "Reminder Settings", icon: "bell.badge.fill") {
                         VStack(alignment: .leading, spacing: 15) {
                             VStack(alignment: .leading, spacing: 6) {
@@ -102,7 +108,7 @@ struct AddServiceView: View {
                         }
                     }
 
-                    // MARK: Add Button
+                    // MARK: - Add Button
                     Button(action: {
                         viewModel.addService()
                         if viewModel.successMessage != nil {
@@ -138,10 +144,13 @@ struct AddServiceView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 30)
+                .padding(.bottom, 100)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.blue)
+        .preferredColorScheme(.dark)
     }
 }
 
