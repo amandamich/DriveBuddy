@@ -14,14 +14,18 @@ struct EditVehicleView: View {
         ZStack {
             Color.black.opacity(0.95).ignoresSafeArea()
             
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
                     
-                    // Header
-                    Text("Edit Vehicle")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.top, 8)
+                    // MARK: - Header
+                    VStack(spacing: 8) {
+                        Text("Edit Vehicle")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundColor(.white)
+                            .shadow(color: .blue, radius: 10)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
                     
                     // MARK: - Vehicle Information Section
                     SectionBoxEdit(title: "Vehicle Information", icon: "car.fill") {
@@ -59,9 +63,17 @@ struct EditVehicleView: View {
                             }
                         }
                     }
+                    
                     // MARK: - Save Button
                     Button(action: {
                         viewModel.updateVehicle()
+                        
+                        // Notify dashboard to refresh
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("VehicleUpdated"),
+                            object: nil
+                        )
+                        
                         if viewModel.errorMessage == nil {
                             dismiss()
                         }
@@ -105,10 +117,13 @@ struct EditVehicleView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 30)
+                .padding(.bottom, 100)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.blue)
+        .preferredColorScheme(.dark)
         .alert("Error", isPresented: Binding(
             get: { viewModel.errorMessage != nil },
             set: { if !$0 { viewModel.errorMessage = nil } }
