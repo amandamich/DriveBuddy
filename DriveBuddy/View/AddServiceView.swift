@@ -50,7 +50,7 @@ struct AddServiceView: View {
                                 Text("Service Name")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("Oil Service", text: $viewModel.serviceName)
+                                TextField("", text: $viewModel.serviceName, prompt: Text("Oil Service").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textFieldStyle(CustomTextFieldStyleService())
                             }
 
@@ -73,7 +73,7 @@ struct AddServiceView: View {
                                 Text("Current Odometer (km)")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("47901", text: $viewModel.odometer)
+                                TextField("", text: $viewModel.odometer, prompt: Text("47901").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .keyboardType(.numberPad)
                                     .textFieldStyle(CustomTextFieldStyleService())
                             }
@@ -186,6 +186,7 @@ struct CustomTextFieldStyleService: TextFieldStyle {
             .padding()
             .background(Color.white)
             .cornerRadius(10)
+            .foregroundColor(.black)
     }
 }
 
