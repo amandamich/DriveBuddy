@@ -56,6 +56,27 @@ class AddServiceViewModel: ObservableObject {
             print("[AddServiceVM] validation failed: invalid odometer '\(odometer)'")
             return
         }
+        
+        // ✅ SMART VALIDATION: Check if service is in past or future
+        let calendar = Calendar.current
+        let todayStart = calendar.startOfDay(for: Date())
+        let selectedStart = calendar.startOfDay(for: selectedDate)
+        let isInPast = selectedStart < todayStart
+        
+        let vehicleCurrentOdometer = vehicle.odometer
+        
+        if isInPast {
+            // Past service (last service) - odometer can be higher and will update vehicle odometer
+            // No validation needed - this represents the actual service that was done
+            print("[AddServiceVM] Past service - odometer \(odometerValue) will be recorded")
+        } else {
+            // Future/today service (upcoming) - odometer should not exceed current odometer
+            if odometerValue > vehicleCurrentOdometer && vehicleCurrentOdometer > 0 {
+                errorMessage = "For upcoming services, odometer (\(Int(odometerValue)) km) should not exceed vehicle's current odometer (\(Int(vehicleCurrentOdometer)) km)."
+                print("[AddServiceVM] validation failed: future service odometer (\(odometerValue)) > vehicle odometer (\(vehicleCurrentOdometer))")
+                return
+            }
+        }
 
         // Create history object
         let history = ServiceHistory(context: viewContext)
@@ -72,10 +93,27 @@ class AddServiceViewModel: ObservableObject {
         // Relate to vehicle
         history.vehicle = vehicle
 
-        // Update vehicle summary fields
-        vehicle.last_service_date = selectedDate
-        vehicle.last_odometer = odometerValue
-        vehicle.service_name = trimmedName
+        // ✅ SMART: Update vehicle summary fields based on service type
+        if isInPast {
+            // Past service = Last completed service
+            // Update vehicle's last service info AND current odometer (if higher)
+            vehicle.last_service_date = selectedDate
+            vehicle.service_name = trimmedName
+            
+            // Update vehicle odometer if service odometer is higher (represents current state)
+            if odometerValue > vehicle.odometer {
+                vehicle.odometer = odometerValue
+                print("[AddServiceVM] Updated vehicle odometer to \(odometerValue) km (from last service)")
+            }
+            vehicle.last_odometer = odometerValue
+            
+        } else {
+            // Future service = Upcoming service
+            // Only update if this is the most recent info we have
+            vehicle.last_service_date = selectedDate
+            vehicle.last_odometer = odometerValue
+            vehicle.service_name = trimmedName
+        }
 
         // Save context
         do {
