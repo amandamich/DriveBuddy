@@ -147,6 +147,7 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Login (Manual)
+    // ✅ 4. ENSURE YOUR LOGIN METHOD CALLS setCurrentUser()
     func login() {
         print("🟢 LOGIN CALLED (Manual)")
         errorMessage = nil
@@ -166,11 +167,12 @@ final class AuthenticationViewModel: ObservableObject {
                 if user.password_hash == hash(password) {
                     print("🟢 Login successful for: \(user.email ?? "unknown")")
                     
-                    // ✅ MODIFIED: Mark as email user with user-specific key
+                    // Mark as email user
                     if let userId = user.user_id?.uuidString {
-                        UserDefaults.standard.set(false, forKey: userKey("profile.isGoogleUser", userId: userId))
+                        UserDefaults.standard.set(false, forKey: "\(userId).profile.isGoogleUser")
                     }
                     
+                    // ✅ CRITICAL: This saves the session
                     setCurrentUser(user)
                 } else {
                     print("🔴 Password incorrect")
@@ -184,12 +186,11 @@ final class AuthenticationViewModel: ObservableObject {
             }
         } catch {
             print("🔴 Core Data Fetch Error: \(error)")
-            errorMessage = "Login failed: An internal error occurred. Please try again later."
+            errorMessage = "Login failed: An internal error occurred."
             isAuthenticated = false
         }
     }
-    
-    // ✅ GOOGLE SIGN-IN METHOD
+    // ✅ 5. ENSURE YOUR GOOGLE SIGN-IN METHOD CALLS setCurrentUser()
     func signInWithGoogle(email: String, name: String) {
         print("🟢 GOOGLE SIGN-IN CALLED for: \(email)")
         errorMessage = nil
@@ -201,47 +202,38 @@ final class AuthenticationViewModel: ObservableObject {
             let users = try viewContext.fetch(request)
             
             if let existingUser = users.first {
-                // User exists - login
                 print("🟢 Existing Google user found")
-                
-                // Ensure the object is fresh from the persistent store
                 viewContext.refresh(existingUser, mergeChanges: false)
                 
-                // ✅ MODIFIED: Mark as Google user and clear name/phone with user-specific keys
+                // Mark as Google user
                 if let userId = existingUser.user_id?.uuidString {
-                    UserDefaults.standard.set(true, forKey: userKey("profile.isGoogleUser", userId: userId))
-                    UserDefaults.standard.removeObject(forKey: userKey("profile.fullName", userId: userId))
-                    UserDefaults.standard.removeObject(forKey: userKey("profile.phoneNumber", userId: userId))
-                    print("📱 Cleared name and phone for existing Google user: \(userId)")
+                    UserDefaults.standard.set(true, forKey: "\(userId).profile.isGoogleUser")
                 }
                 
+                // ✅ CRITICAL: This saves the session
                 setCurrentUser(existingUser)
             } else {
-                // Create new user for Google sign-in
                 print("🟡 Creating new Google user")
                 let newUser = User(context: viewContext)
                 let newUserID = UUID()
                 
                 newUser.user_id = newUserID
                 newUser.email = email.lowercased()
-                newUser.password_hash = "" // No password for Google users
+                newUser.password_hash = ""
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
                 
                 try viewContext.save()
-                
-                // Obtain permanent ID for the new user
                 try viewContext.obtainPermanentIDs(for: [newUser])
                 
-                // ✅ MODIFIED: Mark as Google user with user-specific key
+                // Mark as Google user
                 let userIdString = newUserID.uuidString
-                UserDefaults.standard.set(true, forKey: userKey("profile.isGoogleUser", userId: userIdString))
-                print("✅ Google user created successfully: \(userIdString)")
+                UserDefaults.standard.set(true, forKey: "\(userIdString).profile.isGoogleUser")
                 
+                // ✅ CRITICAL: This saves the session
                 setCurrentUser(newUser)
             }
             
-            // Force UI update
             DispatchQueue.main.async { [weak self] in
                 self?.objectWillChange.send()
             }
@@ -254,7 +246,7 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     
-    // ✅ CENTRALIZED METHOD TO SET CURRENT USER
+    // ✅ 1. CENTRALIZED METHOD TO SET CURRENT USER (should already exist)
     private func setCurrentUser(_ user: User) {
         // Refresh the object from context to ensure it's not stale
         viewContext.refresh(user, mergeChanges: true)
@@ -265,11 +257,14 @@ final class AuthenticationViewModel: ObservableObject {
         self.isAuthenticated = true
         self.errorMessage = nil
         
-        // Save to UserDefaults
+        // ✅ CRITICAL: Save to UserDefaults for session persistence
         if let userId = user.user_id?.uuidString {
             UserDefaults.standard.set(userId, forKey: "currentUserId")
             UserDefaults.standard.set(true, forKey: "isLoggedIn")
             UserDefaults.standard.synchronize()
+            print("💾 Session saved to UserDefaults:")
+            print("   - currentUserId: \(userId)")
+            print("   - isLoggedIn: true")
         }
         
         // Post login notification
@@ -279,21 +274,27 @@ final class AuthenticationViewModel: ObservableObject {
         print("   - Email: \(user.email ?? "nil")")
         print("   - User ID: \(self.currentUserID ?? "nil")")
         print("   - isAuthenticated: \(self.isAuthenticated)")
-        
-        if let userId = user.user_id?.uuidString {
-            let isGoogle = UserDefaults.standard.bool(forKey: userKey("profile.isGoogleUser", userId: userId))
-            print("   - isGoogleUser: \(isGoogle)")
-        }
     }
-    
-    // ✅ RESTORE SESSION FROM USERDEFAULTS
+    // ✅ 2. RESTORE SESSION FROM USERDEFAULTS
     func restoreSession() {
-        guard let savedUserId = UserDefaults.standard.string(forKey: "currentUserId"),
-              let uuid = UUID(uuidString: savedUserId) else {
-            print("⚠️ No saved session found")
+        print("🔍 Attempting to restore session...")
+        
+        // Check if there's a saved user ID
+        guard let savedUserId = UserDefaults.standard.string(forKey: "currentUserId") else {
+            print("⚠️ No saved session found (no currentUserId)")
+            self.isAuthenticated = false
             return
         }
         
+        print("📱 Found saved userId: \(savedUserId)")
+        
+        guard let uuid = UUID(uuidString: savedUserId) else {
+            print("❌ Invalid UUID format")
+            self.isAuthenticated = false
+            return
+        }
+        
+        // Fetch user from Core Data
         let request: NSFetchRequest<User> = User.fetchRequest()
         request.predicate = NSPredicate(format: "user_id == %@", uuid as CVarArg)
         
@@ -301,11 +302,11 @@ final class AuthenticationViewModel: ObservableObject {
             if let user = try viewContext.fetch(request).first {
                 print("✅ Session restored for: \(user.email ?? "unknown")")
                 
-                // ✅ MODIFIED: Check if user has password (email user) or not (Google user) with user-specific key
+                // Check if user has password (email user) or not (Google user)
                 let isGoogleUser = user.password_hash?.isEmpty ?? true
                 if let userId = user.user_id?.uuidString {
-                    UserDefaults.standard.set(isGoogleUser, forKey: userKey("profile.isGoogleUser", userId: userId))
-                    print("📱 Restored session - isGoogleUser: \(isGoogleUser) for user: \(userId)")
+                    UserDefaults.standard.set(isGoogleUser, forKey: "\(userId).profile.isGoogleUser")
+                    print("📱 Restored session - isGoogleUser: \(isGoogleUser)")
                 }
                 
                 setCurrentUser(user)
@@ -313,9 +314,11 @@ final class AuthenticationViewModel: ObservableObject {
                 print("⚠️ User not found in database, clearing session")
                 UserDefaults.standard.removeObject(forKey: "currentUserId")
                 UserDefaults.standard.removeObject(forKey: "isLoggedIn")
+                self.isAuthenticated = false
             }
         } catch {
             print("❌ Failed to restore session: \(error)")
+            self.isAuthenticated = false
         }
     }
     
@@ -376,14 +379,14 @@ final class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Logout
+    // ✅ 3. LOGOUT METHOD (update to clear session)
     func logout() {
         print("🔴 LOGOUT CALLED")
         print("🔴 Before logout - isAuthenticated: \(isAuthenticated)")
-        print("🔴 Before logout - currentUser: \(currentUser?.email ?? "nil")")
         
-        // Clear all authentication state
         let userToLogout = self.currentUser
         
+        // Clear all authentication state
         self.isAuthenticated = false
         self.currentUser = nil
         self.currentUserID = nil
@@ -391,12 +394,14 @@ final class AuthenticationViewModel: ObservableObject {
         self.password = ""
         self.errorMessage = nil
         
-        // ✅ Clear only session data (keep user-specific profile data intact)
+        // ✅ CRITICAL: Clear UserDefaults session data
         UserDefaults.standard.removeObject(forKey: "isLoggedIn")
         UserDefaults.standard.removeObject(forKey: "currentUserId")
         UserDefaults.standard.synchronize()
         
-        // If there was a user object, refresh it to clear any cached data
+        print("💾 Session cleared from UserDefaults")
+        
+        // Refresh Core Data object
         if let user = userToLogout {
             viewContext.refresh(user, mergeChanges: false)
         }
@@ -404,8 +409,6 @@ final class AuthenticationViewModel: ObservableObject {
         // Post logout notification
         NotificationCenter.default.post(name: .userDidLogout, object: nil)
         
-        print("🔴 After logout - isAuthenticated: \(isAuthenticated)")
-        print("🔴 After logout - currentUser: \(currentUser?.email ?? "nil")")
         print("✅ User logged out successfully")
         
         // Force UI update

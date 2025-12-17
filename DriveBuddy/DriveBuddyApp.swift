@@ -12,8 +12,8 @@ struct DriveBuddyApp: App {
     let persistenceController = PersistenceController.shared
     
     @StateObject private var authVM = AuthenticationViewModel(
-            context: PersistenceController.shared.container.viewContext
-        )
+        context: PersistenceController.shared.container.viewContext
+    )
     
     init() {
         // Set up notification delegate

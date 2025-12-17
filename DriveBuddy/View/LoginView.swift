@@ -27,14 +27,19 @@ struct LoginView: View {
         !email.isEmpty && !password.isEmpty && isValidEmail(email)
     }
     
-    private var validationMessage: String? {
-        if email.isEmpty && password.isEmpty {
-            return "Please enter your email and password"
-        } else if email.isEmpty {
+    // ✅ NEW: Separate validation message for email field
+    private var emailValidationMessage: String? {
+        if email.isEmpty {
             return "Please enter your email"
-        } else if !email.isEmpty && !isValidEmail(email) {
+        } else if !isValidEmail(email) {
             return "Please enter a valid email address"
-        } else if password.isEmpty {
+        }
+        return nil
+    }
+    
+    // ✅ NEW: Separate validation message for password field
+    private var passwordValidationMessage: String? {
+        if password.isEmpty {
             return "Please enter your password"
         }
         return nil
@@ -87,6 +92,24 @@ struct LoginView: View {
                             .onSubmit {
                                 focusedField = .password
                             }
+                            .onChange(of: email) { _ in
+                                authVM.errorMessage = nil
+                            }
+                        
+                        // ✅ NEW: Email validation message
+                        if let message = emailValidationMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+
+                                Text(message)
+                                    .foregroundColor(.orange)
+                                    .font(.caption)
+                            }
+                            .padding(.top, 4)
+                            .transition(.opacity)
+                        }
                     }
                     .padding(.horizontal, 30)
 
@@ -109,11 +132,12 @@ struct LoginView: View {
                                     authVM.login()
                                 }
                             }
-                            .onChange(of: password){ _ in authVM.errorMessage = nil
+                            .onChange(of: password) { _ in
+                                authVM.errorMessage = nil
                             }
-                    // ✅ VALIDATION MESSAGE DIRECTLY UNDER PASSWORD
-                        if let message = validationMessage,
-                           message.lowercased().contains("password") {
+                        
+                        // ✅ NEW: Password validation message
+                        if let message = passwordValidationMessage {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .foregroundColor(.orange)
@@ -124,10 +148,27 @@ struct LoginView: View {
                                     .font(.caption)
                             }
                             .padding(.top, 4)
+                            .transition(.opacity)
+                        }
+                        
+                        // ✅ NEW: Authentication error message (Invalid credentials)
+                        if let error = authVM.errorMessage, !error.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+
+                                Text(error)
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                            }
+                            .padding(.top, 4)
+                            .transition(.opacity)
                         }
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 16)
+                    
                     // MARK: - Login Button
                     Button(action: {
                         focusedField = nil
@@ -202,39 +243,21 @@ struct LoginView: View {
                     }
                     .padding(.horizontal, 30)
                     .padding(.top, 16)
-
-//                    // MARK: - Validation Message
-//                    if let message = validationMessage {
-//                        Text(message)
-//                            .foregroundColor(.orange)
-//                            .font(.caption)
-//                            .padding(.top, 8)
-//                            .transition(.opacity)
-//                    }
-
-                    // MARK: - Error Message (from auth)
-                    if let error = authVM.errorMessage, !error.isEmpty {
-                        Text(error)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .padding(.top, 8)
-                            .transition(.opacity)
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                    withAnimation {
-                                        authVM.errorMessage = nil
-                                    }
-                                }
-                            }
-                    }
                     
                     // MARK: - Google Sign-In Error Message
                     if !googleSignInVM.errorMessage.isEmpty {
-                        Text(googleSignInVM.errorMessage)
-                            .foregroundColor(.red)
-                            .font(.caption)
-                            .padding(.top, 8)
-                            .transition(.opacity)
+                        HStack(spacing: 6) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.red)
+                                .font(.caption)
+
+                            Text(googleSignInVM.errorMessage)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.top, 8)
+                        .transition(.opacity)
                     }
 
                     // MARK: - Navigate to Sign Up

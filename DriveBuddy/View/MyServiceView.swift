@@ -66,10 +66,10 @@ struct MyServiceView: View {
                                         )
                                     }
                                     .buttonStyle(.plain)
-                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
-									.padding(.bottom)
+                                    .padding(.bottom)
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             serviceToDelete = service
@@ -87,7 +87,7 @@ struct MyServiceView: View {
                         .padding(.horizontal)
                     }
                     
-                    // MARK: - Completed Services
+                    // MARK: - Completed Services (✅ UNCLICKABLE)
                     if !viewModel.completedServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
@@ -101,22 +101,17 @@ struct MyServiceView: View {
                             }
                             List {
                                 ForEach(viewModel.completedServices, id: \.objectID) { service in
-                                    Button {
-                                        selectedService = service
-                                        showCompleteService = true   // ✅ edit completed service
-                                    } label: {
-                                        ServiceCard(
-                                            title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
-                                            date: formatted(service.service_date),
-                                            detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
-                                            type: .completed
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
+                                    // ✅ CHANGED: Removed Button wrapper - now just displays card
+                                    ServiceCard(
+                                        title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
+                                        date: formatted(service.service_date),
+                                        detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
+                                        type: .completed
+                                    )
+                                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
-									.padding(.bottom)
+                                    .padding(.bottom)
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             serviceToDelete = service
