@@ -1,5 +1,5 @@
 //
-//  HomeView.swift
+//  HomeView.swift - FIXED VERSION
 //  DriveBuddy
 //
 
@@ -10,6 +10,11 @@ import Combine
 // MARK: - AppState Class
 class AppState: ObservableObject {
     @Published var currentUserID: String = ""
+}
+
+// MARK: - Selected Vehicle Manager (Observable)
+class SelectedVehicleManager: ObservableObject {
+    @Published var selectedVehicle: Vehicles?
 }
 
 // MARK: - 1. HOME VIEW (WRAPPER)
@@ -130,6 +135,7 @@ struct EmptyVehicleView: View {
 struct MainContentView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @State private var selectedTab: Int = 0
+    @StateObject private var vehicleManager = SelectedVehicleManager() // ✅ Manage selected vehicle
     @Environment(\.managedObjectContext) private var viewContext
     
     @FetchRequest var userVehicles: FetchedResults<Vehicles>
@@ -157,28 +163,35 @@ struct MainContentView: View {
     
     var body: some View {
         let activeUser = userResult.first
-        let activeVehicle = userVehicles.first
+        
+        // ✅ NEW: Use selectedVehicle if set, otherwise fallback to first vehicle
+        let vehicleToShow = vehicleManager.selectedVehicle ?? userVehicles.first
         
         TabView(selection: $selectedTab) {
             
             // TAB 1: Dashboard
             NavigationStack {
-                DashboardView(authVM: authVM, selectedTab: $selectedTab)
+                DashboardView(
+                    authVM: authVM,
+                    selectedTab: $selectedTab,
+                    vehicleManager: vehicleManager // ✅ NEW: Pass vehicle manager
+                )
             }
             .tabItem { Label("Home", systemImage: "house") }
             .tag(0)
             
             // TAB 2: Vehicles
             NavigationStack {
-                if let vehicle = activeVehicle, let user = activeUser {
+                if let vehicle = vehicleToShow, let user = activeUser {
                     let profileVM = ProfileViewModel(context: viewContext, user: user)
                     VehicleDetailView(
-                        initialVehicle: vehicle,
+                        initialVehicle: vehicle, // ✅ FIXED: Now uses selected vehicle
                         allVehicles: userVehicles,
                         context: viewContext,
                         activeUser: user,
                         profileVM: profileVM
                     )
+                    .id(vehicle.vehicles_id) // ✅ FORCE RE-CREATION when vehicle changes
                 } else {
                     EmptyVehicleView(selectedTab: $selectedTab, activeUser: activeUser)
                 }
@@ -201,11 +214,13 @@ struct MainContentView: View {
         .tint(.blue)
         .onAppear {
             print("📱 MainContentView appeared")
-            selectedTab = 0
+            // ✅ NEW: Initialize selectedVehicle if not set
+            if vehicleManager.selectedVehicle == nil {
+                vehicleManager.selectedVehicle = userVehicles.first
+            }
         }
         .onDisappear {
             print("📱 MainContentView disappeared")
         }
     }
 }
-

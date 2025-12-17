@@ -6,6 +6,7 @@ import Combine
 
 struct DashboardView: View {
     @ObservedObject var authVM: AuthenticationViewModel
+    @ObservedObject var vehicleManager: SelectedVehicleManager
     @Binding var selectedTab: Int
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var profileVM: ProfileViewModel
@@ -17,9 +18,10 @@ struct DashboardView: View {
     
     @FetchRequest var vehicles: FetchedResults<Vehicles>
     
-    init(authVM: AuthenticationViewModel, selectedTab: Binding<Int>) {
+    init(authVM: AuthenticationViewModel, selectedTab: Binding<Int>, vehicleManager: SelectedVehicleManager) {
         self.authVM = authVM
         self._selectedTab = selectedTab
+        self.vehicleManager = vehicleManager
         
         guard let user = authVM.currentUser else {
             _dashboardVM = StateObject(
@@ -159,7 +161,8 @@ struct DashboardView: View {
                         List {
                             ForEach(vehicles, id: \.vehicles_id) { vehicle in
                                 Button(action: {
-                                    selectedTab = 1
+                                    vehicleManager.selectedVehicle = vehicle  // ✅ SET THE SELECTED VEHICLE
+                                    selectedTab = 1  // Then switch to Vehicle tab
                                 }) {
                                     VehicleCard(
                                         vehicle: vehicle,
@@ -427,32 +430,5 @@ extension DashboardView {
             
             return nil
         }
-    }
-}
-
-#Preview {
-    let context = PersistenceController.shared.container.viewContext
-    
-    let mockUser = User(context: context)
-    mockUser.user_id = UUID()
-    mockUser.email = "preview@drivebuddy.com"
-    mockUser.password_hash = "mockhash"
-    mockUser.created_at = Date()
-    
-    let mockVehicle = Vehicles(context: context)
-    mockVehicle.make_model = "Honda Brio"
-    mockVehicle.vehicle_type = "Car"
-    mockVehicle.plate_number = "B 9876 FG"
-    mockVehicle.tax_due_date = Calendar.current.date(byAdding: .day, value: 10, to: Date())
-    mockVehicle.last_service_date = Calendar.current.date(byAdding: .day, value: 3, to: Date())
-    mockVehicle.odometer = 25000
-    mockVehicle.user = mockUser
-    
-    let mockAuthVM = AuthenticationViewModel(context: context)
-    mockAuthVM.currentUser = mockUser
-    mockAuthVM.isAuthenticated = true
-    
-    return NavigationStack {
-        DashboardView(authVM: mockAuthVM, selectedTab: .constant(0))
     }
 }

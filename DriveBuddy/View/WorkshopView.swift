@@ -139,11 +139,6 @@ struct WorkshopView: View {
             }
             .padding(.horizontal)
             .padding(.top, 10)
-            
-            Text("Welcome, Jonny")
-                .font(.subheadline)
-                .foregroundColor(.white.opacity(0.8))
-                .padding(.horizontal)
         }
         .padding(.bottom, 15)
     }
@@ -155,7 +150,7 @@ struct WorkshopView: View {
                 .foregroundColor(.gray)
             
             TextField("find a workshop for your next service", text: $searchText)
-                .foregroundColor(.white)
+                .environment(\.colorScheme, .light)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(true)
         }
@@ -333,6 +328,28 @@ struct WorkshopCard: View {
     // Get real schedule based on workshop name from Google Maps
     private var weeklySchedule: [DailySchedule] {
         switch workshop.name {
+        case "Autoentic - Auto Detailing":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 12:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
+        case "Autoentic - Auto Detailing (West Workshop)":
+            return [
+                DailySchedule(day: "Monday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Tuesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Wednesday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Thursday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Friday", hours: "08:00 AM - 05:00 PM", isOpen: true),
+                DailySchedule(day: "Saturday", hours: "08:00 AM - 01:00 PM", isOpen: true),
+                DailySchedule(day: "Sunday", hours: "Closed", isOpen: false)
+            ]
+            
         case "Bengkel Harris Mobil Surabaya":
             return [
                 DailySchedule(day: "Monday", hours: "08:30 AM - 05:00 PM", isOpen: true),
