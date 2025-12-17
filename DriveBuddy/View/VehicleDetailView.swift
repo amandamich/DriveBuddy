@@ -160,8 +160,8 @@ struct VehicleDetailView: View {
                         // TAX PAYMENT
                         Button(action: { showMyTax = true }) {
                             TaxPaymentCard(
-                                hasTaxDate: viewModel.hasTaxDate,
-                                taxDate: viewModel.taxDueDate,
+                                hasTaxDate: viewModel.currentHasTaxDate,  // ✅ CHANGED
+                                taxDate: viewModel.currentTaxDueDate,     // ✅ CHANGED
                                 formatDate: viewModel.formatDate
                             )
                         }
@@ -276,11 +276,20 @@ struct VehicleDetailView: View {
         .onDisappear {
             onDismiss?()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
-            Task { @MainActor in
-                // ✅ NEW: Validate vehicle still exists after context save
-                validateAndLoadVehicle()
-                refreshTrigger = UUID()
+        .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { notification in
+            // ✅ Only refresh if the notification is relevant to our vehicle
+            guard let context = notification.object as? NSManagedObjectContext else { return }
+            
+            // Check if our vehicle was updated
+            if context.updatedObjects.contains(where: { $0 == viewModel.activeVehicle }) ||
+               context.insertedObjects.contains(where: { ($0 as? ServiceHistory)?.vehicle == viewModel.activeVehicle }) ||
+               context.deletedObjects.contains(where: { ($0 as? ServiceHistory)?.vehicle == viewModel.activeVehicle }) {
+                
+                Task { @MainActor in
+                    print("🔄 Context saved - refreshing vehicle data")
+                    validateAndLoadVehicle()
+                    refreshTrigger = UUID()
+                }
             }
         }
         
@@ -492,7 +501,7 @@ struct UpcomingServicesCard: View {
         return formatter.string(from: date)
     }
 }
-// MARK: - Tax Payment Card
+// MARK: - Tax Payment Card (Enhanced Version)
 struct TaxPaymentCard: View {
     let hasTaxDate: Bool
     let taxDate: Date
@@ -528,54 +537,206 @@ struct TaxPaymentCard: View {
                 }
                 .padding(.vertical, 4)
             } else {
-                Text("Next Due")
-                    .foregroundColor(.white.opacity(0.85))
-                    .font(.system(size: 13, weight: .regular))
-                
-                Spacer()
-                
-                HStack {
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 10, weight: .medium))
-                        Text(formatDate(taxDate))
-                            .font(.system(size: 10, weight: .medium))
-                            .lineLimit(1)
-                    }
-                    .foregroundColor(.white.opacity(0.6))
+                // Show status based on days remaining
+                VStack(alignment: .leading, spacing: 6) {
+                    statusView
                     
                     Spacer()
                     
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.cyan.opacity(0.9))
+                    // Date display at bottom
+                    HStack {
+                        HStack(spacing: 4) {
+                            Image(systemName: "calendar")
+                                .font(.system(size: 10, weight: .medium))
+                            Text(formatDate(taxDate))
+                                .font(.system(size: 10, weight: .medium))
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(.white.opacity(0.6))
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.cyan.opacity(0.9))
+                    }
                 }
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(
-            LinearGradient(
-                colors: hasTaxDate ? [
-                    Color.black.opacity(0.3),
-                    Color.blue.opacity(0.25)
-                ] : [
+        .background(cardGradient)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(borderColor, lineWidth: 1)
+        )
+        .cornerRadius(16)
+    }
+    
+    // MARK: - Status View
+    @ViewBuilder
+    private var statusView: some View {
+        let daysRemaining = daysUntilExpiry
+        
+        if daysRemaining < 0 {
+            // Expired
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.red)
+                    Text("Expired")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.red)
+                }
+                Text("\(abs(daysRemaining)) day\(abs(daysRemaining) == 1 ? "" : "s") ago")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        } else if daysRemaining == 0 {
+            // Due today
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                    Text("Due Today")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+                Text("Pay today to avoid penalties")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        } else if daysRemaining <= 7 {
+            // Expiring soon (1-7 days)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.orange)
+                    Text("Expiring Soon")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+                Text("\(daysRemaining) day\(daysRemaining == 1 ? "" : "s") remaining")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        } else if daysRemaining <= 30 {
+            // Due soon (8-30 days)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.yellow)
+                    Text("Due Soon")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.yellow)
+                }
+                Text("\(daysRemaining) days remaining")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        } else {
+            // Valid (more than 30 days)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.green)
+                    Text("Valid")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.green)
+                }
+                Text("\(daysRemaining) days remaining")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+        }
+    }
+    
+    // MARK: - Computed Properties
+    private var daysUntilExpiry: Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let end = calendar.startOfDay(for: taxDate)
+        let components = calendar.dateComponents([.day], from: start, to: end)
+        return components.day ?? 0
+    }
+    
+    private var cardGradient: LinearGradient {
+        let days = daysUntilExpiry
+        
+        if !hasTaxDate {
+            return LinearGradient(
+                colors: [
                     Color.black.opacity(0.3),
                     Color.orange.opacity(0.15)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(hasTaxDate ? Color.cyan.opacity(0.5) : Color.orange.opacity(0.6), lineWidth: 1)
-        )
-        .cornerRadius(16)
+        } else if days < 0 {
+            // Expired - Red gradient
+            return LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.red.opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if days <= 7 {
+            // Expiring soon - Orange gradient
+            return LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.orange.opacity(0.2)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else if days <= 30 {
+            // Due soon - Yellow gradient
+            return LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.yellow.opacity(0.15)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            // Valid - Blue/Cyan gradient
+            return LinearGradient(
+                colors: [
+                    Color.black.opacity(0.3),
+                    Color.blue.opacity(0.25)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    private var borderColor: Color {
+        let days = daysUntilExpiry
+        
+        if !hasTaxDate {
+            return Color.orange.opacity(0.6)
+        } else if days < 0 {
+            return Color.red.opacity(0.6)
+        } else if days <= 7 {
+            return Color.orange.opacity(0.6)
+        } else if days <= 30 {
+            return Color.yellow.opacity(0.5)
+        } else {
+            return Color.cyan.opacity(0.5)
+        }
     }
 }
-
 // MARK: - Button Styles
 struct CardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

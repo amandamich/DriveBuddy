@@ -16,12 +16,7 @@ class VehicleDetailViewModel: ObservableObject {
     private let eventStore = EKEventStore()
     
     // MARK: - Core Model
-    @Published var activeVehicle: Vehicles {
-        didSet {
-            // ✅ NEW: Auto-reload data when vehicle changes
-            loadVehicleData()
-        }
-    }
+    @Published var activeVehicle: Vehicles
     let activeUser: User
     
     // MARK: - Form Bindings
@@ -178,7 +173,6 @@ class VehicleDetailViewModel: ObservableObject {
     func loadVehicleData() {
         print("\n🔄 Loading vehicle data...")
         
-        // ✅ NEW: Check if vehicle is still valid
         guard isVehicleValid() else {
             print("⚠️ Vehicle is deleted or invalid, cannot load data")
             makeModel = ""
@@ -187,25 +181,32 @@ class VehicleDetailViewModel: ObservableObject {
             return
         }
         
-//        // ✅ Force refresh from persistent store
-//        context.refreshAllObjects()
-//        context.refresh(activeVehicle, mergeChanges: true)
+        // ✅ Sync latest tax from TaxHistoryVM BEFORE fetching
+        if let plateNumber = activeVehicle.plate_number {
+            TaxHistoryVM.shared.syncLatestTaxToVehicle(licensePlate: plateNumber, context: context)
+            // Refresh again after sync
+            context.refresh(activeVehicle, mergeChanges: true)
+        }
         
-        // ✅ Fetch service history AFTER refreshing context
         fetchServiceHistory()
         
         makeModel = activeVehicle.make_model ?? ""
         plateNumber = activeVehicle.plate_number ?? ""
         odometer = String(format: "%.0f", activeVehicle.odometer)
         
-        // ✅ Load from latest completed service for editing
         serviceName = latestService?.service_name ?? ""
         lastServiceDate = latestService?.service_date ?? Date()
         lastOdometer = String(format: "%.0f", latestService?.odometer ?? activeVehicle.odometer)
         
+        // ✅ Update published tax properties
         hasTaxDate = activeVehicle.tax_due_date != nil
+        if let taxDate = activeVehicle.tax_due_date {
+            taxDueDate = taxDate
+            tempTaxDate = taxDate
+        }
         
         print("✅ Vehicle data loaded: \(makeModel)")
+        print("   Tax due date: \(activeVehicle.tax_due_date?.description ?? "Not set")")
     }
 
     // MARK: - Start Editing
@@ -517,4 +518,39 @@ class VehicleDetailViewModel: ObservableObject {
         }
     }
 
+}
+// MARK: - Tax Date Computed Properties
+extension VehicleDetailViewModel {
+    
+    var currentHasTaxDate: Bool {
+        // ✅ REMOVED: context.refresh() to prevent infinite loop
+        
+        if let taxDate = activeVehicle.tax_due_date {
+            return true
+        }
+        
+        // Fallback: Check TaxHistoryVM
+        if let plateNumber = activeVehicle.plate_number {
+            let latestTax = TaxHistoryVM.shared.getLatestPaidTax(for: plateNumber)
+            return latestTax != nil
+        }
+        
+        return false
+    }
+    
+    var currentTaxDueDate: Date {
+        // ✅ REMOVED: context.refresh() to prevent infinite loop
+        
+        if let taxDate = activeVehicle.tax_due_date {
+            return taxDate
+        }
+        
+        // Fallback: Get from TaxHistoryVM
+        if let plateNumber = activeVehicle.plate_number,
+           let latestTax = TaxHistoryVM.shared.getLatestPaidTax(for: plateNumber) {
+            return latestTax.validUntil
+        }
+        
+        return Date()
+    }
 }

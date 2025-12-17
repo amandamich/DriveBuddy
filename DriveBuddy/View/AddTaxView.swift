@@ -430,27 +430,34 @@ struct AddTaxView: View {
             location: location,
             notes: notes,
             receiptImagePath: nil,
-            isPaid: isHistoryRecord,  // ✅ If history, mark as paid
-            actualPaymentDate: isHistoryRecord ? actualPaymentDate : nil,  // ✅ Save actual payment date
-            isHistoryRecord: isHistoryRecord  // ✅ Mark as history record
+            isPaid: isHistoryRecord,
+            actualPaymentDate: isHistoryRecord ? actualPaymentDate : nil,
+            isHistoryRecord: isHistoryRecord
         )
         
+        // ✅ Add with context to trigger sync
         taxManager.addTaxHistory(newTax, context: viewContext)
         
+        // ✅ Force save Core Data
+        do {
+            try viewContext.save()
+            print("✅ Core Data saved after adding tax")
+        } catch {
+            print("❌ Failed to save Core Data: \(error)")
+        }
+        
+        // Calendar sync if needed
         if let profileVM = try? viewContext.fetch(User.fetchRequest()).first,
            profileVM.add_to_calendar {
             Task {
-                let profileVM = ProfileViewModel(
-                    context: viewContext,
-                    user: profileVM
-                )
+                let profileVM = ProfileViewModel(context: viewContext, user: profileVM)
                 await profileVM.syncAllVehiclesToCalendar()
             }
         }
         
         alertMessage = isHistoryRecord
-            ? "Tax history record saved successfully!"
-            : "Tax record saved successfully! Reminders have been set."
+        ? "Tax history record saved successfully!"
+        : "Tax record saved successfully! Reminders have been set."
         showAlert = true
     }
 }

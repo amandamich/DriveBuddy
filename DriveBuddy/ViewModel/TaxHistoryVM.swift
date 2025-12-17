@@ -129,17 +129,23 @@ class TaxHistoryVM: ObservableObject {
     }
     
     // MARK: - SYNC TAX DATE TO CORE DATA VEHICLE
-    private func syncTaxDateToVehicle(licensePlate: String, validUntil: Date, context: NSManagedObjectContext) {
+    func syncTaxDateToVehicle(licensePlate: String, validUntil: Date, context: NSManagedObjectContext) {
         let fetchRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "plate_number == %@", licensePlate)
         
         do {
             let vehicles = try context.fetch(fetchRequest)
             if let vehicle = vehicles.first {
-                vehicle.tax_due_date = validUntil
-                try context.save()
-                print("✅ Tax date synced to Core Data vehicle: \(licensePlate)")
-                NotificationCenter.default.post(name: .NSManagedObjectContextDidSave, object: context)
+                // ✅ Only save if the date actually changed
+                if vehicle.tax_due_date != validUntil {
+                    vehicle.tax_due_date = validUntil
+                    try context.save()
+                    print("✅ Tax date synced to Core Data vehicle: \(licensePlate) -> \(validUntil)")
+                } else {
+                    print("ℹ️ Tax date already up to date for: \(licensePlate)")
+                }
+            } else {
+                print("⚠️ Vehicle not found for plate: \(licensePlate)")
             }
         } catch {
             print("❌ Failed to sync tax date: \(error.localizedDescription)")
