@@ -69,6 +69,7 @@ struct MyServiceView: View {
                                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
+									.padding(.bottom)
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             serviceToDelete = service
@@ -115,6 +116,7 @@ struct MyServiceView: View {
                                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0)) // ✅ REMOVE padding
                                     .listRowSeparator(.hidden)
                                     .listRowBackground(Color.clear)
+									.padding(.bottom)
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             serviceToDelete = service
