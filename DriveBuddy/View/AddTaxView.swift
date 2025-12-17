@@ -19,6 +19,10 @@ struct AddTaxView: View {
     @State private var location = ""
     @State private var notes = ""
     
+    // ✅ NEW: History tracking
+    @State private var isHistoryRecord = false
+    @State private var actualPaymentDate = Date()
+    
     @State private var showAlert = false
     @State private var alertMessage = ""
     
@@ -60,7 +64,6 @@ struct AddTaxView: View {
                                         .font(.system(size: 14))
                                         .foregroundColor(.gray)
                                     
-                                    // Display year and type
                                     HStack(spacing: 4) {
                                         Text(vehicle.vehicleType)
                                             .font(.system(size: 13))
@@ -79,6 +82,72 @@ struct AddTaxView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(Color.white.opacity(0.1))
                                 .cornerRadius(10)
+                            }
+                        }
+                        .padding()
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(15)
+                    }
+                    
+                    // ✅ NEW: History Checkbox Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .foregroundColor(.cyan)
+                            Text("Record Type")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 15) {
+                            Toggle(isOn: $isHistoryRecord) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Add Payment Date (History)")
+                                        .foregroundColor(.white)
+                                        .font(.subheadline)
+                                        .fontWeight(.medium)
+                                    Text("Enable this to add a past tax payment record")
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                }
+                            }
+                            .tint(.cyan)
+                            .padding()
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(10)
+                            
+                            // ✅ Show actual payment date picker if history is enabled
+                            if isHistoryRecord {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Actual Payment Date")
+                                        .foregroundColor(.white)
+                                        .font(.headline)
+                                    
+                                    Text("Select when you actually paid this tax")
+                                        .foregroundColor(.gray)
+                                        .font(.caption)
+                                    
+                                    DatePicker(
+                                        "",
+                                        selection: $actualPaymentDate,
+                                        in: ...Date(),  // ✅ Only allow past dates and today
+                                        displayedComponents: .date
+                                    )
+                                    .labelsHidden()
+                                    .datePickerStyle(.compact)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .colorScheme(.light)
+                                    .padding()
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                }
+                                .padding()
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(10)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                                )
                             }
                         }
                         .padding()
@@ -136,19 +205,22 @@ struct AddTaxView: View {
                                 }
                             }
                             
-                            // Payment Date
+                            // Payment Due Date (when tax was due)
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Payment Date")
+                                Text("Tax Due Date")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                // ✅ Custom DatePicker with black text
+                                Text("When the tax was originally due")
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
+                                
                                 ZStack {
                                     DatePicker("", selection: $paymentDate, displayedComponents: .date)
                                         .labelsHidden()
                                         .datePickerStyle(.compact)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .colorScheme(.light) // Force light mode for black text
+                                        .colorScheme(.light)
                                 }
                                 .padding()
                                 .background(Color.white)
@@ -161,13 +233,16 @@ struct AddTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                // ✅ Custom DatePicker with black text
+                                Text("When this tax expires")
+                                    .foregroundColor(.gray)
+                                    .font(.caption)
+                                
                                 ZStack {
                                     DatePicker("", selection: $validUntil, displayedComponents: .date)
                                         .labelsHidden()
                                         .datePickerStyle(.compact)
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                        .colorScheme(.light) // Force light mode for black text
+                                        .colorScheme(.light)
                                 }
                                 .padding()
                                 .background(Color.white)
@@ -178,7 +253,7 @@ struct AddTaxView: View {
                                         Image(systemName: "exclamationmark.circle.fill")
                                             .foregroundColor(.red)
                                             .font(.system(size: 12))
-                                        Text("Valid until must be after payment date")
+                                        Text("Valid until must be after due date")
                                             .foregroundColor(.red)
                                             .font(.system(size: 12))
                                     }
@@ -226,7 +301,6 @@ struct AddTaxView: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 15) {
-                            // ✅ Custom TextEditor with visible placeholder
                             ZStack(alignment: .topLeading) {
                                 if notes.isEmpty {
                                     Text("Add any additional notes here...")
@@ -249,41 +323,43 @@ struct AddTaxView: View {
                     }
                     
                     // Reminder Info
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "bell.badge.fill")
-                                .foregroundColor(.cyan)
-                            Text("Reminder Settings")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("You'll be notified:")
-                                .foregroundColor(.white)
-                                .font(.subheadline)
-                            Text("• 30 days before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
-                            Text("• 7 days before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
-                            Text("• 1 day before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
+                    if !isHistoryRecord {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundColor(.cyan)
+                                Text("Reminder Settings")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("You'll be notified:")
+                                    .foregroundColor(.white)
+                                    .font(.subheadline)
+                                Text("• 30 days before expiry")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
+                                Text("• 7 days before expiry")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
+                                Text("• 1 day before expiry")
+                                    .foregroundColor(.gray)
+                                    .font(.subheadline)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.white.opacity(0.1))
+                            .cornerRadius(10)
                         }
                         .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(10)
+                        .background(Color.blue.opacity(0.15))
+                        .cornerRadius(15)
                     }
-                    .padding()
-                    .background(Color.blue.opacity(0.15))
-                    .cornerRadius(15)
                     
                     // Add Button
                     Button(action: saveTaxHistory) {
-                        Text("Add Tax Record")
+                        Text(isHistoryRecord ? "Add History Record" : "Add Tax Record")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding()
@@ -352,13 +428,17 @@ struct AddTaxView: View {
             paymentDate: paymentDate,
             validUntil: validUntil,
             location: location,
-            notes: notes
+            notes: notes,
+            receiptImagePath: nil,
+            isPaid: isHistoryRecord,  // ✅ If history, mark as paid
+            actualPaymentDate: isHistoryRecord ? actualPaymentDate : nil,  // ✅ Save actual payment date
+            isHistoryRecord: isHistoryRecord  // ✅ Mark as history record
         )
         
         taxManager.addTaxHistory(newTax, context: viewContext)
+        
         if let profileVM = try? viewContext.fetch(User.fetchRequest()).first,
            profileVM.add_to_calendar {
-
             Task {
                 let profileVM = ProfileViewModel(
                     context: viewContext,
@@ -368,7 +448,9 @@ struct AddTaxView: View {
             }
         }
         
-        alertMessage = "Tax record saved successfully! Reminders have been set."
+        alertMessage = isHistoryRecord
+            ? "Tax history record saved successfully!"
+            : "Tax record saved successfully! Reminders have been set."
         showAlert = true
     }
 }

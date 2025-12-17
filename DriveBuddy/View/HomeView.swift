@@ -18,10 +18,8 @@ struct HomeView: View {
     @EnvironmentObject var appState: AppState
     
     var body: some View {
-        // Get current user ID
         let currentID = authVM.currentUserID ?? ""
         
-        // Show main content with user ID
         MainContentView(authVM: authVM, userIDString: currentID)
             .id(currentID)
             .onAppear {
@@ -33,7 +31,7 @@ struct HomeView: View {
     }
 }
 
-// MARK: - Empty Vehicle View (English)
+// MARK: - Empty Vehicle View
 struct EmptyVehicleView: View {
     @Binding var selectedTab: Int
     let activeUser: User?
@@ -81,7 +79,6 @@ struct EmptyVehicleView: View {
                                         .font(.subheadline)
                                 }
                                 
-                                // Add Vehicle Button
                                 Button(action: {
                                     selectedTab = 0
                                 }) {
@@ -128,7 +125,8 @@ struct EmptyVehicleView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
-// MARK: - 2. MAIN CONTENT VIEW (LOGIC UTAMA)
+
+// MARK: - 2. MAIN CONTENT VIEW
 struct MainContentView: View {
     @ObservedObject var authVM: AuthenticationViewModel
     @State private var selectedTab: Int = 0
@@ -163,7 +161,7 @@ struct MainContentView: View {
         
         TabView(selection: $selectedTab) {
             
-            // TAB 1: Dashboard - Pass selectedTab binding
+            // TAB 1: Dashboard
             NavigationStack {
                 DashboardView(authVM: authVM, selectedTab: $selectedTab)
             }
@@ -203,7 +201,6 @@ struct MainContentView: View {
         .tint(.blue)
         .onAppear {
             print("📱 MainContentView appeared")
-            // Reset to home tab when appearing
             selectedTab = 0
         }
         .onDisappear {
@@ -211,3 +208,4 @@ struct MainContentView: View {
         }
     }
 }
+
