@@ -1,3 +1,5 @@
+// AddServiceViewModel - FIXED: Don't auto-create next service for past dates
+
 import Foundation
 import CoreData
 import Combine
@@ -88,8 +90,25 @@ class AddServiceViewModel: ObservableObject {
                 }
             }
 
-            // ✅ ALWAYS auto-create next service if enabled
-            if autoCreateNext {
+            // ✅ SMART LOGIC FOR PAST SERVICES:
+            // If user adds a service with past date, treat it as "last service" (completed)
+            // and ALWAYS create the next service
+            let calendar = Calendar.current
+            let todayStart = calendar.startOfDay(for: Date())
+            let selectedStart = calendar.startOfDay(for: selectedDate)
+            let isInPast = selectedStart < todayStart
+            
+            if isInPast {
+                // Past service = Last service (completed)
+                // ALWAYS create next service
+                print("ℹ️ Service is in the past - treating as completed last service")
+                print("ℹ️ Will auto-create next service for tracking")
+                
+                createNextService(serviceName: trimmedName, fromDate: selectedDate, fromOdometer: odometerValue)
+                
+            } else if autoCreateNext {
+                // Future/today service with auto-create enabled
+                print("✅ Auto-creating next service (current service is today/future)")
                 createNextService(serviceName: trimmedName, fromDate: selectedDate, fromOdometer: odometerValue)
             }
 

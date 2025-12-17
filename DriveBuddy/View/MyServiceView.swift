@@ -1,5 +1,5 @@
 //
-//  MyServiceView.swift
+//  MyServiceView.swift - WITH OVERDUE INDICATORS
 //  DriveBuddy
 //
 
@@ -39,7 +39,7 @@ struct MyServiceView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
                     
-                    // MARK: - Upcoming Services
+                    // MARK: - Upcoming Services (INCLUDING OVERDUE)
                     if !viewModel.upcomingServices.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
@@ -50,6 +50,19 @@ struct MyServiceView: View {
                                     .font(.title3)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
+                                
+                                // ✅ NEW: Show overdue count if any
+                                if viewModel.upcomingServices.contains(where: { viewModel.isServiceOverdue($0) }) {
+                                    let overdueCount = viewModel.upcomingServices.filter { viewModel.isServiceOverdue($0) }.count
+                                    Text("\(overdueCount)")
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.red)
+                                        .clipShape(Capsule())
+                                }
                             }
                             
                             List {
@@ -58,11 +71,14 @@ struct MyServiceView: View {
                                         selectedService = service
                                         showCompleteService = true
                                     } label: {
+                                        // ✅ MODIFIED: Pass isOverdue flag to ServiceCard
                                         ServiceCard(
                                             title: service.service_name?.isEmpty == false ? service.service_name! : "Scheduled Service",
                                             date: formatted(service.service_date),
                                             detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Tap to complete",
-                                            type: .upcoming
+                                            type: .upcoming,
+                                            isOverdue: viewModel.isServiceOverdue(service),
+                                            daysOverdue: viewModel.daysOverdue(for: service)
                                         )
                                     }
                                     .buttonStyle(.plain)
@@ -82,7 +98,7 @@ struct MyServiceView: View {
                                 }
                             }
                             .listStyle(.plain)
-                            .frame(height: CGFloat(viewModel.upcomingServices.count * 120))
+                            .frame(height: CGFloat(viewModel.upcomingServices.count * 140)) // ✅ Increased height for overdue badge
                         }
                         .padding(.horizontal)
                     }
@@ -101,12 +117,13 @@ struct MyServiceView: View {
                             }
                             List {
                                 ForEach(viewModel.completedServices, id: \.objectID) { service in
-                                    // ✅ CHANGED: Removed Button wrapper - now just displays card
                                     ServiceCard(
                                         title: service.service_name?.isEmpty == false ? service.service_name! : "Service Record",
                                         date: formatted(service.service_date),
                                         detail: service.odometer > 0 ? "\(Int(service.odometer)) km" : "Completed",
-                                        type: .completed
+                                        type: .completed,
+                                        isOverdue: false,
+                                        daysOverdue: 0
                                     )
                                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                                     .listRowSeparator(.hidden)
@@ -199,7 +216,8 @@ struct MyServiceView: View {
 
     
     }
-        private func formatted(_ date: Date?) -> String {
+    
+    private func formatted(_ date: Date?) -> String {
         guard let date else { return "Unknown Date" }
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMMM yyyy"
@@ -241,56 +259,91 @@ struct ServiceCard: View {
     var detail: String
     var type: ServiceType
     var showEditIcon: Bool = false
+    
+    // ✅ NEW: Overdue parameters
+    var isOverdue: Bool = false
+    var daysOverdue: Int = 0
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Left side - Icon
-            Image(systemName: type.icon)
-                .font(.system(size: 28))
-                .foregroundColor(type.color)
-                .frame(width: 40, height: 40)
-            
-            // Middle - Content
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 16) {
+                // Left side - Icon
+                Image(systemName: type.icon)
+                    .font(.system(size: 28))
+                    .foregroundColor(isOverdue ? .red : type.color)
+                    .frame(width: 40, height: 40)
                 
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text(date)
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
+                // Middle - Content
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(date)
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    HStack(spacing: 4) {
+                        Image(systemName: "gauge.with.dots.needle.67percent")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Text(detail)
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                 }
                 
-                HStack(spacing: 4) {
-                    Image(systemName: "gauge.with.dots.needle.67percent")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.8))
+                Spacer()
+                
+                // Right side - Status badge
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 8) {
+                        if showEditIcon {
+                            Image(systemName: "pencil")
+                                .foregroundColor(.white.opacity(0.8))
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+
+                        Text(isOverdue ? "Overdue" : type.title)
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .background((isOverdue ? Color.red : type.color).opacity(0.9))
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                    }
+                    
+                    // ✅ NEW: Show days overdue
+                    if isOverdue && daysOverdue > 0 {
+                        Text("\(daysOverdue) days ago")
+                            .font(.caption2)
+                            .foregroundColor(.red.opacity(0.8))
+                            .padding(.top, 2)
+                    }
                 }
             }
             
-            Spacer()
-            HStack(spacing: 8) {
-                if showEditIcon {
-                    Image(systemName: "pencil")
-                        .foregroundColor(.white.opacity(0.8))
-                        .font(.system(size: 14, weight: .semibold))
+            // ✅ NEW: Overdue warning banner
+            if isOverdue {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    Text("This service is overdue. Tap to complete it now.")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.9))
                 }
-
-                Text(type.title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 12)
-                    .background(type.color.opacity(0.9))
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.red.opacity(0.2))
+                .cornerRadius(8)
             }
         }
         .padding(16)
@@ -300,9 +353,9 @@ struct ServiceCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(type.color.opacity(0.3), lineWidth: 1)
+                .stroke((isOverdue ? Color.red : type.color).opacity(0.3), lineWidth: 1)
         )
-        .shadow(color: type.color.opacity(0.2), radius: 8, x: 0, y: 4)
+        .shadow(color: (isOverdue ? Color.red : type.color).opacity(0.2), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -318,19 +371,32 @@ struct ServiceCard: View {
     sampleVehicle.make_model = "Honda Brio"
     sampleVehicle.user = user
     
-    let pastService = ServiceHistory(context: context)
-    pastService.history_id = UUID()
-    pastService.service_name = "Oil Change"
-    pastService.service_date = Calendar.current.date(byAdding: .day, value: -30, to: Date())
-    pastService.odometer = 45000
-    pastService.vehicle = sampleVehicle
+    // Overdue service (10 months ago)
+    let overdueService = ServiceHistory(context: context)
+    overdueService.history_id = UUID()
+    overdueService.service_name = "Oil Change"
+    overdueService.service_date = Calendar.current.date(byAdding: .month, value: -10, to: Date())
+    overdueService.odometer = 40000
+    overdueService.created_at = Calendar.current.date(byAdding: .month, value: -10, to: Date())
+    overdueService.vehicle = sampleVehicle
     
+    // Upcoming service
     let futureService = ServiceHistory(context: context)
     futureService.history_id = UUID()
     futureService.service_name = "Tire Rotation"
     futureService.service_date = Calendar.current.date(byAdding: .day, value: 30, to: Date())
     futureService.odometer = 50000
+    futureService.created_at = Date()
     futureService.vehicle = sampleVehicle
+    
+    // Completed service
+    let completedService = ServiceHistory(context: context)
+    completedService.history_id = UUID()
+    completedService.service_name = "Brake Check"
+    completedService.service_date = Calendar.current.date(byAdding: .day, value: -5, to: Date())
+    completedService.odometer = 45000
+    completedService.created_at = Date()
+    completedService.vehicle = sampleVehicle
 
     return NavigationView {
         MyServiceView(
