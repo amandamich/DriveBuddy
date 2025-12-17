@@ -131,10 +131,12 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
             }
             
             let hasNewerService = !newerServices.isEmpty
+            let hasOdometer = service.odometer > 0
             
             print("\n🔍 Analyzing: '\(service.service_name ?? "NO NAME")'")
             print("   Service Date: \(serviceDateStartOfDay)")
             print("   Odometer: \(service.odometer) km")
+            print("   Has Odometer: \(hasOdometer)")
             print("   Created: \(service.created_at?.description ?? "nil")")
             print("   Related services: \(relatedServices.count)")
             print("   Newer services: \(newerServices.count)")
@@ -145,9 +147,18 @@ class MyServiceViewModel: NSObject, ObservableObject, NSFetchedResultsController
             }
             print("   Is Past: \(isInPast), Is Future: \(isInFuture), Is Today: \(isToday)")
             
+            // ✅ CRITICAL FIX: If service has newer service with same name, it's ALWAYS completed
+            // regardless of date (this handles the case where user marks service as done today)
+            if hasNewerService && hasOdometer {
+                completed.append(service)
+                let daysAgo = calendar.dateComponents([.day], from: serviceDateStartOfDay, to: todayStartOfDay).day ?? 0
+                print("   ✅ → COMPLETED (\(daysAgo) days ago) [has newer service + has odometer]")
+                continue
+            }
+            
             // ✅ DECISION LOGIC:
             if isInFuture || isToday {
-                // Future or today services are always UPCOMING
+                // Future or today services are always UPCOMING (if no newer service)
                 upcoming.append(service)
                 
                 if isToday {
