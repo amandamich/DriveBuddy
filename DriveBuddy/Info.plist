@@ -18,5 +18,9 @@
 	</array>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>riveBuddy needs notification permission to remind you about vehicle tax and service dates</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>DriveBuddy needs full access to read and write service reminders</string>
+	<key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+	<string>DriveBuddy needs to add service dates to your calendar</string>
 </dict>
 </plist>
