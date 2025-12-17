@@ -88,6 +88,7 @@ struct CompleteServiceView: View {
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(10)
+									.environment(\.colorScheme, .light)
                             }
                             
                             // Actual Odometer
@@ -116,6 +117,7 @@ struct CompleteServiceView: View {
                                         RoundedRectangle(cornerRadius: 10)
                                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                     )
+									.environment(\.colorScheme, .light)
                             }
                         }
                     }
