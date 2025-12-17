@@ -57,25 +57,94 @@ class AddServiceViewModel: ObservableObject {
             return
         }
         
-        // ✅ SMART VALIDATION: Check if service is in past or future
+        // ✅ SMART VALIDATION: Check if service is in past/today or future
         let calendar = Calendar.current
         let todayStart = calendar.startOfDay(for: Date())
         let selectedStart = calendar.startOfDay(for: selectedDate)
         let isInPast = selectedStart < todayStart
+        let isToday = selectedStart == todayStart
+        let isInPastOrToday = selectedStart <= todayStart  // ✅ Combined check
+        let isInFuture = selectedStart > todayStart
         
         let vehicleCurrentOdometer = vehicle.odometer
         
-        if isInPast {
-            // Past service (last service) - odometer can be higher and will update vehicle odometer
-            // No validation needed - this represents the actual service that was done
-            print("[AddServiceVM] Past service - odometer \(odometerValue) will be recorded")
-        } else {
-            // Future/today service (upcoming) - odometer should not exceed current odometer
+        if isInPast || isToday {
+            // ✅ CHANGED: Past OR Today service = Historical fact (already happened or happening now)
+            // Odometer can be higher and will update vehicle odometer
+            // Show info message if jump is extreme (might be intentional data correction)
+            if odometerValue > vehicleCurrentOdometer * 2 && vehicleCurrentOdometer > 0 {
+                // Extreme jump detected - log warning but allow
+                let difference = Int(odometerValue - vehicleCurrentOdometer)
+                print("[AddServiceVM] ⚠️ WARNING: Large odometer jump detected")
+                print("   Service: \(Int(odometerValue)) km")
+                print("   Vehicle: \(Int(vehicleCurrentOdometer)) km")
+                print("   Difference: \(difference) km")
+                print("   Vehicle odometer will be updated to \(Int(odometerValue)) km")
+                
+                // Note: We allow this because:
+                // 1. Past/today service = historical fact (already happened)
+                // 2. User might be correcting initial vehicle odometer
+                // 3. Vehicle might have traveled far since purchase
+                // 4. Better to allow and update than block valid data
+            } else {
+                print("[AddServiceVM] Past/today service - odometer \(odometerValue) will be recorded as fact")
+            }
+        } else if isInFuture {
+            // Future/today service (upcoming) - odometer should be reasonable
+            
+            // Check 1: Odometer should not exceed current odometer
             if odometerValue > vehicleCurrentOdometer && vehicleCurrentOdometer > 0 {
                 errorMessage = "For upcoming services, odometer (\(Int(odometerValue)) km) should not exceed vehicle's current odometer (\(Int(vehicleCurrentOdometer)) km)."
                 print("[AddServiceVM] validation failed: future service odometer (\(odometerValue)) > vehicle odometer (\(vehicleCurrentOdometer))")
                 return
             }
+            
+            // ✅ NEW Check 2: Odometer should not be significantly lower than current odometer
+            // (Allows small differences for estimation, but blocks obvious mistakes)
+            if vehicleCurrentOdometer > 0 && odometerValue < vehicleCurrentOdometer * 0.5 {
+                let difference = Int(vehicleCurrentOdometer - odometerValue)
+                errorMessage = "Odometer value seems too low.\n\nService odometer: \(Int(odometerValue)) km\nVehicle current odometer: \(Int(vehicleCurrentOdometer)) km\nDifference: \(difference) km\n\nFor upcoming services, odometer should be close to current vehicle odometer. Did you mean \(Int(vehicleCurrentOdometer)) km?"
+                print("[AddServiceVM] validation failed: future service odometer too low - service: \(odometerValue), vehicle: \(vehicleCurrentOdometer)")
+                return
+            }
+            
+            print("[AddServiceVM] Future/today service - odometer \(odometerValue) validated")
+        }
+        
+        // ✅ NEW: Check odometer sequence for services with same name
+        let request: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "vehicle == %@ AND service_name ==[c] %@",
+            vehicle,
+            trimmedName as CVarArg
+        )
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \ServiceHistory.service_date, ascending: true)]
+        
+        do {
+            let existingServices = try viewContext.fetch(request)
+            
+            // Check if new odometer makes sense in the timeline
+            for existing in existingServices {
+                guard let existingDate = existing.service_date else { continue }
+                let existingDateStart = calendar.startOfDay(for: existingDate)
+                
+                // If new service is AFTER existing service, odometer should be >= existing odometer
+                if selectedStart > existingDateStart && odometerValue < existing.odometer && existing.odometer > 0 {
+                    errorMessage = "Odometer (\(Int(odometerValue)) km) is lower than previous \"\(trimmedName)\" service on \(formatDate(existingDate)) (\(Int(existing.odometer)) km). Please check the odometer reading."
+                    print("[AddServiceVM] validation failed: odometer sequence issue")
+                    return
+                }
+                
+                // If new service is BEFORE existing service, odometer should be <= existing odometer
+                if selectedStart < existingDateStart && odometerValue > existing.odometer && existing.odometer > 0 {
+                    errorMessage = "Odometer (\(Int(odometerValue)) km) is higher than later \"\(trimmedName)\" service on \(formatDate(existingDate)) (\(Int(existing.odometer)) km). Please check the odometer reading."
+                    print("[AddServiceVM] validation failed: odometer sequence issue")
+                    return
+                }
+            }
+        } catch {
+            print("[AddServiceVM] Warning: Could not validate odometer sequence: \(error)")
+            // Continue anyway - don't block save if validation fails
         }
 
         // Create history object
@@ -94,8 +163,8 @@ class AddServiceViewModel: ObservableObject {
         history.vehicle = vehicle
 
         // ✅ SMART: Update vehicle summary fields based on service type
-        if isInPast {
-            // Past service = Last completed service
+        if isInPastOrToday {
+            // ✅ CHANGED: Past OR Today service = Last completed service
             // Update vehicle's last service info AND current odometer (if higher)
             vehicle.last_service_date = selectedDate
             vehicle.service_name = trimmedName
@@ -103,7 +172,7 @@ class AddServiceViewModel: ObservableObject {
             // Update vehicle odometer if service odometer is higher (represents current state)
             if odometerValue > vehicle.odometer {
                 vehicle.odometer = odometerValue
-                print("[AddServiceVM] Updated vehicle odometer to \(odometerValue) km (from last service)")
+                print("[AddServiceVM] Updated vehicle odometer to \(odometerValue) km (from last/today service)")
             }
             vehicle.last_odometer = odometerValue
             
@@ -128,25 +197,21 @@ class AddServiceViewModel: ObservableObject {
                 }
             }
 
-            // ✅ SMART LOGIC FOR PAST SERVICES:
-            // If user adds a service with past date, treat it as "last service" (completed)
+            // ✅ SMART LOGIC FOR PAST/TODAY SERVICES:
+            // If user adds a service with past/today date, treat it as "last service" (completed)
             // and ALWAYS create the next service
-            let calendar = Calendar.current
-            let todayStart = calendar.startOfDay(for: Date())
-            let selectedStart = calendar.startOfDay(for: selectedDate)
-            let isInPast = selectedStart < todayStart
             
-            if isInPast {
-                // Past service = Last service (completed)
+            if isInPastOrToday {
+                // Past/today service = Last service (completed/just completed)
                 // ALWAYS create next service
-                print("ℹ️ Service is in the past - treating as completed last service")
+                print("ℹ️ Service is in the past or today - treating as completed service")
                 print("ℹ️ Will auto-create next service for tracking")
                 
                 createNextService(serviceName: trimmedName, fromDate: selectedDate, fromOdometer: odometerValue)
                 
             } else if autoCreateNext {
-                // Future/today service with auto-create enabled
-                print("✅ Auto-creating next service (current service is today/future)")
+                // Future service with auto-create enabled
+                print("✅ Auto-creating next service (current service is future)")
                 createNextService(serviceName: trimmedName, fromDate: selectedDate, fromOdometer: odometerValue)
             }
 
@@ -276,6 +341,12 @@ class AddServiceViewModel: ObservableObject {
         case "One month before": return 30
         default: return 7
         }
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM yyyy"
+        return formatter.string(from: date)
     }
 
     private func clearFields() {
