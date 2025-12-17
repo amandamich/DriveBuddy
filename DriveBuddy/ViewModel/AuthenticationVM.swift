@@ -24,6 +24,11 @@ final class AuthenticationViewModel: ObservableObject {
     init(context: NSManagedObjectContext) {
         self.viewContext = context
     }
+    
+    // ✅ NEW: Helper to get user-specific key
+    private func userKey(_ baseKey: String, userId: String) -> String {
+        return "\(userId).\(baseKey)"
+    }
 
     // MARK: - Password Validation
     func validatePassword(_ password: String) -> (isValid: Bool, message: String?) {
@@ -114,9 +119,17 @@ final class AuthenticationViewModel: ObservableObject {
                 newUser.add_to_calendar = false
                 newUser.created_at = Date()
                 
+                // ✅ MODIFIED: Store phone number with user-specific key
                 if !phoneNumber.isEmpty {
                     newUser.phone_number = phoneNumber
+                    let userIdString = newUserID.uuidString
+                    UserDefaults.standard.set(phoneNumber, forKey: userKey("profile.phoneNumber", userId: userIdString))
                 }
+                
+                // ✅ MODIFIED: Mark as email sign-up user with user-specific key
+                let userIdString = newUserID.uuidString
+                UserDefaults.standard.set(false, forKey: userKey("profile.isGoogleUser", userId: userIdString))
+                print("📧 Email sign-up user created with phone: \(phoneNumber) for user: \(userIdString)")
 
                 try viewContext.save()
 
@@ -152,6 +165,12 @@ final class AuthenticationViewModel: ObservableObject {
             if let user = users.first {
                 if user.password_hash == hash(password) {
                     print("🟢 Login successful for: \(user.email ?? "unknown")")
+                    
+                    // ✅ MODIFIED: Mark as email user with user-specific key
+                    if let userId = user.user_id?.uuidString {
+                        UserDefaults.standard.set(false, forKey: userKey("profile.isGoogleUser", userId: userId))
+                    }
+                    
                     setCurrentUser(user)
                 } else {
                     print("🔴 Password incorrect")
@@ -188,6 +207,14 @@ final class AuthenticationViewModel: ObservableObject {
                 // Ensure the object is fresh from the persistent store
                 viewContext.refresh(existingUser, mergeChanges: false)
                 
+                // ✅ MODIFIED: Mark as Google user and clear name/phone with user-specific keys
+                if let userId = existingUser.user_id?.uuidString {
+                    UserDefaults.standard.set(true, forKey: userKey("profile.isGoogleUser", userId: userId))
+                    UserDefaults.standard.removeObject(forKey: userKey("profile.fullName", userId: userId))
+                    UserDefaults.standard.removeObject(forKey: userKey("profile.phoneNumber", userId: userId))
+                    print("📱 Cleared name and phone for existing Google user: \(userId)")
+                }
+                
                 setCurrentUser(existingUser)
             } else {
                 // Create new user for Google sign-in
@@ -206,7 +233,11 @@ final class AuthenticationViewModel: ObservableObject {
                 // Obtain permanent ID for the new user
                 try viewContext.obtainPermanentIDs(for: [newUser])
                 
-                print("✅ Google user created successfully")
+                // ✅ MODIFIED: Mark as Google user with user-specific key
+                let userIdString = newUserID.uuidString
+                UserDefaults.standard.set(true, forKey: userKey("profile.isGoogleUser", userId: userIdString))
+                print("✅ Google user created successfully: \(userIdString)")
+                
                 setCurrentUser(newUser)
             }
             
@@ -248,6 +279,11 @@ final class AuthenticationViewModel: ObservableObject {
         print("   - Email: \(user.email ?? "nil")")
         print("   - User ID: \(self.currentUserID ?? "nil")")
         print("   - isAuthenticated: \(self.isAuthenticated)")
+        
+        if let userId = user.user_id?.uuidString {
+            let isGoogle = UserDefaults.standard.bool(forKey: userKey("profile.isGoogleUser", userId: userId))
+            print("   - isGoogleUser: \(isGoogle)")
+        }
     }
     
     // ✅ RESTORE SESSION FROM USERDEFAULTS
@@ -264,6 +300,14 @@ final class AuthenticationViewModel: ObservableObject {
         do {
             if let user = try viewContext.fetch(request).first {
                 print("✅ Session restored for: \(user.email ?? "unknown")")
+                
+                // ✅ MODIFIED: Check if user has password (email user) or not (Google user) with user-specific key
+                let isGoogleUser = user.password_hash?.isEmpty ?? true
+                if let userId = user.user_id?.uuidString {
+                    UserDefaults.standard.set(isGoogleUser, forKey: userKey("profile.isGoogleUser", userId: userId))
+                    print("📱 Restored session - isGoogleUser: \(isGoogleUser) for user: \(userId)")
+                }
+                
                 setCurrentUser(user)
             } else {
                 print("⚠️ User not found in database, clearing session")
@@ -347,7 +391,7 @@ final class AuthenticationViewModel: ObservableObject {
         self.password = ""
         self.errorMessage = nil
         
-        // Clear UserDefaults
+        // ✅ Clear only session data (keep user-specific profile data intact)
         UserDefaults.standard.removeObject(forKey: "isLoggedIn")
         UserDefaults.standard.removeObject(forKey: "currentUserId")
         UserDefaults.standard.synchronize()
@@ -378,6 +422,11 @@ final class AuthenticationViewModel: ObservableObject {
         print("   - currentUserID: \(currentUserID ?? "nil")")
         print("   - UserDefaults isLoggedIn: \(UserDefaults.standard.bool(forKey: "isLoggedIn"))")
         print("   - UserDefaults userId: \(UserDefaults.standard.string(forKey: "currentUserId") ?? "nil")")
+        
+        if let userId = currentUserID {
+            let isGoogle = UserDefaults.standard.bool(forKey: userKey("profile.isGoogleUser", userId: userId))
+            print("   - isGoogleUser: \(isGoogle)")
+        }
     }
     
     // MARK: - Hashing
@@ -387,4 +436,3 @@ final class AuthenticationViewModel: ObservableObject {
         return hashed.map { String(format: "%02x", $0) }.joined()
     }
 }
-

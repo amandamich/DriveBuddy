@@ -1,4 +1,4 @@
-// DashboardView.swift - WITH DELETE CONFIRMATION
+// DashboardView.swift - WITH DELETE CONFIRMATION AND SMART DISPLAY NAME
 
 import SwiftUI
 import CoreData
@@ -12,7 +12,6 @@ struct DashboardView: View {
     @State private var showingAddVehicle = false
     @State private var refreshID = UUID()
     
-    // ✅ NEW: State for delete confirmation
     @State private var vehicleToDelete: Vehicles? = nil
     @State private var showDeleteAlert = false
     
@@ -68,17 +67,31 @@ struct DashboardView: View {
         )
     }
     
-    // MARK: - ✅ Get Display Name (prioritizes saved username)
+    // MARK: - ✅ MODIFIED: Smart Display Name Logic
     private var displayName: String {
-        // First check if user has saved a username in UserDefaults
-        let savedUsername = UserDefaults.standard.string(forKey: "profile.fullName")
+        // Get user-specific key
+        guard let userId = authVM.currentUser?.user_id?.uuidString else {
+            return "User"
+        }
         
+        let userSpecificKey = "\(userId).profile.fullName"
+        let savedUsername = UserDefaults.standard.string(forKey: userSpecificKey)
+        
+        // If user has saved their name, use it
         if let username = savedUsername, !username.isEmpty {
+            print("✅ [Dashboard] Using saved name: \(username)")
             return username
         }
         
-        // Fallback to extracting from email
-        return dashboardVM.extractUsername(from: authVM.currentUser?.email)
+        // ✅ NEW: If no saved name, extract part before @ from email
+        if let userEmail = authVM.currentUser?.email, !userEmail.isEmpty {
+            let emailPrefix = userEmail.components(separatedBy: "@").first ?? userEmail
+            print("✅ [Dashboard] Using email prefix: \(emailPrefix)")
+            return emailPrefix
+        }
+        
+        // Final fallback
+        return "User"
     }
     
     var vehiclesWithoutTaxDate: [Vehicles] {
@@ -156,7 +169,6 @@ struct DashboardView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .listRowBackground(Color.black.opacity(0.8))
-                                // ✅ MODIFIED: Swipe actions with confirmation
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button {
                                         vehicleToDelete = vehicle
@@ -205,7 +217,6 @@ struct DashboardView: View {
                     }
             }
         }
-        // ✅ NEW: Delete confirmation alert
         .alert("Delete Vehicle", isPresented: $showDeleteAlert, presenting: vehicleToDelete) { vehicle in
             Button("Cancel", role: .cancel) {
                 vehicleToDelete = nil
@@ -224,10 +235,8 @@ struct DashboardView: View {
         }
     }
     
-    // ✅ NEW: Separate delete function with proper error handling
     private func deleteVehicle(_ vehicle: Vehicles) {
         withAnimation {
-            // Delete the vehicle using DashboardViewModel
             if let index = vehicles.firstIndex(where: { $0.vehicles_id == vehicle.vehicles_id }) {
                 dashboardVM.deleteVehicles(at: IndexSet(integer: index), from: Array(vehicles))
             }

@@ -20,6 +20,10 @@ class GoogleSignInViewModel: ObservableObject {
             userProfile = currentUser.profile
             userEmail = currentUser.profile?.email ?? ""
             userName = currentUser.profile?.name ?? ""
+            
+            // ✅ NEW: Mark as Google user when session exists
+            UserDefaults.standard.set(true, forKey: "profile.isGoogleUser")
+            
             print("✅ Found existing Google session: \(userName)")
         }
     }
@@ -27,7 +31,7 @@ class GoogleSignInViewModel: ObservableObject {
     func signIn() {
         print("🔵 GoogleSignInViewModel.signIn() called")
         
-        // ✅ CRITICAL: Reset state before signing in
+        // Reset state before signing in
         self.isSignedIn = false
         self.errorMessage = ""
         
@@ -37,7 +41,6 @@ class GoogleSignInViewModel: ObservableObject {
             return
         }
         
-        // Get client ID from GoogleService-Info.plist
         guard let clientID = getClientID() else {
             errorMessage = "Unable to get client ID from GoogleService-Info.plist"
             print("🔴 Error: \(errorMessage)")
@@ -50,7 +53,6 @@ class GoogleSignInViewModel: ObservableObject {
         GIDSignIn.sharedInstance.signIn(withPresenting: presentingViewController) { [weak self] result, error in
             guard let self = self else { return }
             
-            // ✅ Ensure updates happen on main thread
             DispatchQueue.main.async {
                 if let error = error {
                     self.errorMessage = error.localizedDescription
@@ -66,7 +68,7 @@ class GoogleSignInViewModel: ObservableObject {
                     return
                 }
                 
-                // ✅ Update all properties
+                // Update all properties
                 self.userProfile = user.profile
                 self.userEmail = user.profile?.email ?? ""
                 self.userName = user.profile?.name ?? ""
@@ -75,11 +77,13 @@ class GoogleSignInViewModel: ObservableObject {
                 print("✅ Successfully signed in as: \(self.userName)")
                 print("📧 Email: \(self.userEmail)")
                 
-                // ✅ NEW: Clear phone number for Google sign-in users
+                // ✅ MODIFIED: Clear both name and phone for Google users
+                UserDefaults.standard.removeObject(forKey: "profile.fullName")
                 UserDefaults.standard.removeObject(forKey: "profile.phoneNumber")
-                print("📱 Phone number cleared for Google user")
+                UserDefaults.standard.set(true, forKey: "profile.isGoogleUser")
+                print("📱 Name and phone cleared for Google user")
                 
-                // ✅ CRITICAL: Set isSignedIn LAST to trigger onChange
+                // Set isSignedIn LAST to trigger onChange
                 self.isSignedIn = true
                 print("🟢 isSignedIn set to: \(self.isSignedIn)")
             }
@@ -90,12 +94,15 @@ class GoogleSignInViewModel: ObservableObject {
         print("🔴 GoogleSignInViewModel.signOut() called")
         GIDSignIn.sharedInstance.signOut()
         
-        // ✅ Reset all state
+        // Reset all state
         isSignedIn = false
         userProfile = nil
         userEmail = ""
         userName = ""
         errorMessage = ""
+        
+        // ✅ NEW: Clear Google user flag
+        UserDefaults.standard.removeObject(forKey: "profile.isGoogleUser")
         
         print("👋 Google user signed out completely")
     }

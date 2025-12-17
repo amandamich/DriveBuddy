@@ -50,7 +50,14 @@ class ProfileViewModel: ObservableObject {
     private let eventStore = EKEventStore()
 
     // MARK: - Keys untuk UserDefaults
+    private var currentUserId: String {
+        return user?.user_id?.uuidString ?? "default"
+    }
     private let defaults = UserDefaults.standard
+    // Helper function to get user-specific keys
+    private func key(_ baseKey: String) -> String {
+        return "\(currentUserId).\(baseKey)"
+    }
     private enum DefaultsKey {
         static let fullName   = "profile.fullName"
         static let phone      = "profile.phoneNumber"
@@ -60,6 +67,7 @@ class ProfileViewModel: ObservableObject {
         static let avatarData = "profile.avatarData"
         static let taxReminder = "profile.taxReminderEnabled"
         static let serviceReminder = "profile.serviceReminderEnabled"
+        static let isGoogleUser = "profile.isGoogleUser"
     }
 
     // MARK: - Init
@@ -90,36 +98,39 @@ class ProfileViewModel: ObservableObject {
         self.addToCalendar = user.add_to_calendar
         self.email         = user.email ?? ""
 
-        self.username    = defaults.string(forKey: DefaultsKey.fullName) ?? ""
-        self.gender      = defaults.string(forKey: DefaultsKey.gender) ?? ""
-        self.city        = defaults.string(forKey: DefaultsKey.city) ?? ""
-        
-        self.taxReminderEnabled = defaults.bool(forKey: DefaultsKey.taxReminder)
-        self.serviceReminderEnabled = defaults.bool(forKey: DefaultsKey.serviceReminder)
-        
-        if let dob = defaults.object(forKey: DefaultsKey.dob) as? Date {
+        // ✅ MODIFIED: Load username from UserDefaults (never from Core Data)
+        self.username = defaults.string(forKey: key(DefaultsKey.fullName)) ?? ""
+        self.gender = defaults.string(forKey: key(DefaultsKey.gender)) ?? ""
+        self.city = defaults.string(forKey: key(DefaultsKey.city)) ?? ""
+        self.taxReminderEnabled = defaults.bool(forKey: key(DefaultsKey.taxReminder))
+        self.serviceReminderEnabled = defaults.bool(forKey: key(DefaultsKey.serviceReminder))
+
+        if let dob = defaults.object(forKey: key(DefaultsKey.dob)) as? Date {
             self.dateOfBirth = dob
         }
-
-        if let data = defaults.data(forKey: DefaultsKey.avatarData) {
+        if let data = defaults.data(forKey: key(DefaultsKey.avatarData)) {
             self.avatarData = data
         }
-        
-        // ✅ MODIFIED: Only load from Core Data if UserDefaults is empty
-        // This prevents Google sign-in phone from overriding empty preference
-        let savedPhone = defaults.string(forKey: DefaultsKey.phone)
-        
-        if let savedPhone = savedPhone, !savedPhone.isEmpty {
-            // User has manually saved a phone number
-            self.phoneNumber = savedPhone
-        } else if let phoneFromCoreData = user.phone_number, !phoneFromCoreData.isEmpty {
-            // Only use Core Data phone if it exists AND user hasn't saved anything
-            self.phoneNumber = phoneFromCoreData
-            defaults.set(phoneFromCoreData, forKey: DefaultsKey.phone)
+        let isGoogleUser = defaults.bool(forKey: key(DefaultsKey.isGoogleUser))
+        let savedPhone = defaults.string(forKey: key(DefaultsKey.phone))
+        if isGoogleUser {
+            // Google users: Always start with empty phone unless they saved one
+            self.phoneNumber = savedPhone ?? ""
         } else {
-            // No phone number anywhere - keep empty
-            self.phoneNumber = ""
+            // Email sign-up users: Use saved phone or fallback to Core Data
+            if let savedPhone = savedPhone, !savedPhone.isEmpty {
+                self.phoneNumber = savedPhone
+            } else if let phoneFromCoreData = user.phone_number, !phoneFromCoreData.isEmpty {
+                self.phoneNumber = phoneFromCoreData
+                defaults.set(phoneFromCoreData, forKey: DefaultsKey.phone)
+            } else {
+                self.phoneNumber = ""
+            }
         }
+                print("📱 Loaded profile for user: \(currentUserId)")
+                print("   - Name: \(username)")
+                print("   - Phone: \(phoneNumber)")
+                print("   - isGoogleUser: \(isGoogleUser)")
     }
 
     // MARK: - Avatar Helper
@@ -133,7 +144,7 @@ class ProfileViewModel: ObservableObject {
 
     func updateAvatar(with data: Data) {
         avatarData = data
-        defaults.set(data, forKey: DefaultsKey.avatarData)
+        defaults.set(data, forKey: key(DefaultsKey.avatarData))
     }
 
     // MARK: - Update Profile Fields
@@ -147,18 +158,15 @@ class ProfileViewModel: ObservableObject {
     ) {
         if let user = user {
             user.email = email.trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            // ✅ NEW: Also save phone to Core Data
             user.phone_number = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-            
             saveContext()
         }
 
-        defaults.set(name.trimmingCharacters(in: .whitespacesAndNewlines), forKey: DefaultsKey.fullName)
-        defaults.set(phone.trimmingCharacters(in: .whitespacesAndNewlines), forKey: DefaultsKey.phone)
-        defaults.set(gender, forKey: DefaultsKey.gender)
-        defaults.set(city.trimmingCharacters(in: .whitespacesAndNewlines), forKey: DefaultsKey.city)
-        defaults.set(dateOfBirth, forKey: DefaultsKey.dob)
+        defaults.set(name.trimmingCharacters(in: .whitespacesAndNewlines), forKey: key(DefaultsKey.fullName))
+        defaults.set(phone.trimmingCharacters(in: .whitespacesAndNewlines), forKey: key(DefaultsKey.phone))
+        defaults.set(gender, forKey: key(DefaultsKey.gender))
+        defaults.set(city.trimmingCharacters(in: .whitespacesAndNewlines), forKey: key(DefaultsKey.city))
+        defaults.set(dateOfBirth, forKey: key(DefaultsKey.dob))
 
         self.username    = name.trimmingCharacters(in: .whitespacesAndNewlines)
         self.phoneNumber = phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -167,15 +175,29 @@ class ProfileViewModel: ObservableObject {
         self.dateOfBirth = dateOfBirth
         self.city        = city.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // ✅ NEW: Post notification to update dashboard
         NotificationCenter.default.post(name: NSNotification.Name("ProfileUpdated"), object: nil)
         
         successMessage = "✅ Profile updated successfully!"
+        print("💾 Saved profile for user: \(currentUserId)")
+        print("   - Name: \(name)")
+    }
+    
+    // ✅ NEW: Mark user as Google sign-in user
+    func markAsGoogleUser() {
+        defaults.set(true, forKey: key(DefaultsKey.isGoogleUser))
+        defaults.removeObject(forKey: key(DefaultsKey.phone))
+        self.phoneNumber = ""
+        print("📱 Marked as Google user - phone cleared")
+    }
+    
+    // ✅ NEW: Mark user as email sign-up user
+    func markAsEmailUser() {
+        defaults.set(false, forKey: key(DefaultsKey.isGoogleUser))
+        print("📧 Marked as email sign-up user")
     }
 
     // MARK: - 🆕 Permission Management
     
-    // Check current authorization statuses
     func checkPermissionStatuses() async {
         successMessage = nil
         errorMessage = nil
@@ -188,7 +210,6 @@ class ProfileViewModel: ObservableObject {
             print("📱 Notification Status: \(settings.authorizationStatus.rawValue) (\(statusName(settings.authorizationStatus)))")
         }
         
-        // ✅ FIX: Use the new iOS 17+ API
         if #available(iOS 17.0, *) {
             let calStatus = EKEventStore.authorizationStatus(for: .event)
             await MainActor.run {
@@ -203,7 +224,7 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-    // ✅ Helper to get status name
+    
     private func statusName(_ status: UNAuthorizationStatus) -> String {
         switch status {
         case .notDetermined: return "Not Determined"
@@ -226,6 +247,7 @@ class ProfileViewModel: ObservableObject {
         @unknown default: return "Unknown"
         }
     }
+    
     func requestNotificationPermission() async -> Bool {
         let center = UNUserNotificationCenter.current()
         
@@ -254,7 +276,6 @@ class ProfileViewModel: ObservableObject {
     func requestCalendarPermission() async -> Bool {
         if #available(iOS 17.0, *) {
             do {
-                // Use the new requestFullAccessToEvents for iOS 17+
                 let granted = try await eventStore.requestFullAccessToEvents()
                 await checkPermissionStatuses()
                 
@@ -278,7 +299,6 @@ class ProfileViewModel: ObservableObject {
                 return false
             }
         } else {
-            // iOS 16 and below
             do {
                 let granted = try await eventStore.requestAccess(to: .event)
                 await checkPermissionStatuses()
@@ -308,14 +328,13 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 🆕 Notification Settings Toggle (UPDATED)
+    // MARK: - 🆕 Notification Settings Toggle
     
     func toggleTaxReminder(_ enabled: Bool) async {
         successMessage = nil
         errorMessage = nil
         
         if enabled {
-            // Check notification permission
             if notificationStatus != .authorized {
                 let granted = await requestNotificationPermission()
                 if !granted {
@@ -327,7 +346,6 @@ class ProfileViewModel: ObservableObject {
                 }
             }
             
-            // Check calendar permission if user wants calendar events
             if user?.add_to_calendar == true && calendarStatus != .authorized {
                 let granted = await requestCalendarPermission()
                 if !granted {
@@ -340,7 +358,7 @@ class ProfileViewModel: ObservableObject {
         
         await MainActor.run {
             self.taxReminderEnabled = enabled
-            self.defaults.set(enabled, forKey: DefaultsKey.taxReminder)
+            self.defaults.set(enabled, forKey: key(DefaultsKey.taxReminder))
         }
         
         if enabled {
@@ -367,14 +385,13 @@ class ProfileViewModel: ObservableObject {
         
         await MainActor.run {
             self.serviceReminderEnabled = enabled
-            self.defaults.set(enabled, forKey: DefaultsKey.serviceReminder)
+            self.defaults.set(enabled, forKey: key(DefaultsKey.serviceReminder))
             self.successMessage = enabled ? "Service reminders enabled" : "Service reminders disabled"
         }
     }
     
     // MARK: - 🆕 Calendar Management
     func getDriveBuddyCalendar() async throws -> EKCalendar {
-        // ✅ Check permission first
         let currentStatus: EKAuthorizationStatus
         if #available(iOS 17.0, *) {
             currentStatus = EKEventStore.authorizationStatus(for: .event)
@@ -398,13 +415,11 @@ class ProfileViewModel: ObservableObject {
             }
         }
         
-        // Check if calendar already exists
         if let existing = eventStore.calendars(for: .event).first(where: { $0.title == "DriveBuddy" }) {
             print("✅ Found existing DriveBuddy calendar")
             return existing
         }
         
-        // ✅ Find a writable source
         let sources = eventStore.sources
         print("📋 Available calendar sources: \(sources.map { "\($0.title) (\($0.sourceType.rawValue))" })")
         
@@ -425,7 +440,6 @@ class ProfileViewModel: ObservableObject {
         calendar.title = "DriveBuddy"
         calendar.source = source
         
-        // ✅ Use valid color values (0.0 to 1.0)
         if #available(iOS 14.0, *) {
             calendar.cgColor = UIColor.systemCyan.cgColor
         } else {
@@ -441,15 +455,12 @@ class ProfileViewModel: ObservableObject {
             throw error
         }
     }
-
     
-    // MARK: - 🆕 Tax Reminder with Calendar (UPDATED)
+    // MARK: - Tax & Service Reminders (remaining methods unchanged)
     
     private func scheduleTaxRemindersWithCalendar() async {
-        // 1. Schedule notification
         await scheduleTaxReminders()
         
-        // 2. Add to calendar if enabled
         if user?.add_to_calendar == true && calendarStatus == .authorized {
             do {
                 guard let userId = user?.user_id else { return }
@@ -523,8 +534,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    // MARK: - 🆕 Service Reminder with Calendar (UPDATED)
-    
     func scheduleServiceReminder(
         serviceId: UUID,
         serviceName: String,
@@ -564,7 +573,6 @@ class ProfileViewModel: ObservableObject {
             try await center.add(request)
             print("✅ Service reminder notification scheduled for \(serviceName)")
             
-            // Add to calendar if enabled
             if user?.add_to_calendar == true && calendarStatus == .authorized {
                 try await addCalendarEvent(
                     title: "🔧 Service: \(serviceName)",
@@ -587,7 +595,6 @@ class ProfileViewModel: ObservableObject {
         print("✅ Service reminder cancelled")
     }
     
-    // MARK: - 🆕 Sync All Vehicles to Calendar
     func syncAllVehiclesToCalendar() async {
         guard user?.add_to_calendar == true else {
             await MainActor.run {
@@ -615,7 +622,6 @@ class ProfileViewModel: ObservableObject {
                 viewContext.refreshAllObjects()
             }
 
-            // ✅ 1. SYNC TAX DUE DATES (always 7 days - this is fixed)
             let vehicleRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
             vehicleRequest.predicate = NSPredicate(format: "user.user_id == %@", userId as CVarArg)
             let vehicles = try viewContext.fetch(vehicleRequest)
@@ -627,7 +633,6 @@ class ProfileViewModel: ObservableObject {
                     
                     let title = "🚗 Tax Due: \(vehicleName)"
                     
-                    // Check if already exists
                     if await eventExists(title: title, startDate: taxDate) {
                         print("⚠️ Skipping duplicate: \(title)")
                         skippedCount += 1
@@ -644,7 +649,6 @@ class ProfileViewModel: ObservableObject {
                 }
             }
 
-            // ✅ 2. SYNC UPCOMING SERVICES WITH USER'S REMINDER PREFERENCE
             let serviceRequest: NSFetchRequest<ServiceHistory> = ServiceHistory.fetchRequest()
             serviceRequest.predicate = NSPredicate(
                 format: "vehicle.user.user_id == %@ AND service_date > %@",
@@ -670,7 +674,6 @@ class ProfileViewModel: ObservableObject {
                 print("     Date: \(serviceDate)")
                 print("     Reminder: \(reminderDays) days before")
 
-                // Check if already exists
                 if await eventExists(title: title, startDate: serviceDate) {
                     print("     ⚠️ Already in calendar, skipping")
                     skippedCount += 1
@@ -713,7 +716,6 @@ class ProfileViewModel: ObservableObject {
         startDate: Date,
         alarmOffsetDays: Int
     ) async throws {
-        // ✅ Check permission with proper iOS 17+ handling
         let currentStatus: EKAuthorizationStatus
         if #available(iOS 17.0, *) {
             currentStatus = EKEventStore.authorizationStatus(for: .event)
@@ -741,7 +743,6 @@ class ProfileViewModel: ObservableObject {
             }
         }
         
-        // ✅ Check for duplicates
         if await eventExists(title: title, startDate: startDate) {
             print("⚠️ Event already exists: \(title)")
             return
@@ -756,7 +757,6 @@ class ProfileViewModel: ObservableObject {
         event.endDate = startDate.addingTimeInterval(60 * 60)
         event.calendar = calendar
         
-        // Add alarm
         let secondsBefore = TimeInterval(alarmOffsetDays * 24 * 60 * 60) * -1
         event.alarms = [EKAlarm(relativeOffset: secondsBefore)]
         
@@ -768,8 +768,6 @@ class ProfileViewModel: ObservableObject {
             throw error
         }
     }
-    
-    // MARK: - 🆕 Test Notification
     
     func sendTestNotification() async {
         successMessage = nil
@@ -813,7 +811,7 @@ class ProfileViewModel: ObservableObject {
             }
         }
     }
-    // Remove all DriveBuddy events from calendar
+    
     func removeAllCalendarEvents() async {
         guard calendarStatus == .authorized || calendarStatus == .fullAccess else {
             print("⚠️ No calendar access to remove events")
@@ -823,7 +821,6 @@ class ProfileViewModel: ObservableObject {
         do {
             let calendar = try await getDriveBuddyCalendar()
             
-            // Get all events from DriveBuddy calendar
             let now = Date()
             let oneYearFromNow = Calendar.current.date(byAdding: .year, value: 1, to: now)!
             let oneYearAgo = Calendar.current.date(byAdding: .year, value: -1, to: now)!
@@ -855,7 +852,6 @@ class ProfileViewModel: ObservableObject {
         }
     }
   
-    // MARK: - Check if event exists (prevent duplicates)
     private func eventExists(title: String, startDate: Date) async -> Bool {
         let currentStatus: EKAuthorizationStatus
         if #available(iOS 17.0, *) {
@@ -873,7 +869,6 @@ class ProfileViewModel: ObservableObject {
         do {
             let calendar = try await getDriveBuddyCalendar()
             
-            // Search within ±1 day of the target date
             let dayBefore = Calendar.current.date(byAdding: .day, value: -1, to: startDate)!
             let dayAfter = Calendar.current.date(byAdding: .day, value: 1, to: startDate)!
             
@@ -885,7 +880,6 @@ class ProfileViewModel: ObservableObject {
             
             let events = eventStore.events(matching: predicate)
             
-            // Check if event with same title exists
             return events.contains { $0.title == title }
             
         } catch {
@@ -894,13 +888,11 @@ class ProfileViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Toggle Settings
     func toggleAddToCalendar(_ newValue: Bool) {
         addToCalendar = newValue
         user?.add_to_calendar = newValue
         saveContext()
         
-        // ✅ If turning OFF, remove all calendar events
         if !newValue {
             Task {
                 await removeAllCalendarEvents()
@@ -912,8 +904,6 @@ class ProfileViewModel: ObservableObject {
         isDarkMode = newValue
         saveContext()
     }
-
-    // MARK: - Save Context
     
     private func saveContext() {
         do {
