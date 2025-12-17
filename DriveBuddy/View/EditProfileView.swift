@@ -114,7 +114,7 @@ struct EditProfileView: View {
                     VStack(spacing: 16) {
                         avatarView
 
-                        // MARK: - Change Profile Photo Button (WHITE BORDER)
+                        // MARK: - Change Profile Photo Button
                         PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                             Text("Change Profile Photo")
                                 .fontWeight(.medium)
@@ -198,7 +198,6 @@ struct EditProfileView: View {
                 Button {
                     showingExitAlert = true
                 } label: {
-                    // MARK: WHITE BACK BUTTON
                     Image(systemName: "chevron.left")
                         .foregroundColor(.white)
                         .font(.system(size: 18, weight: .semibold))
@@ -219,6 +218,7 @@ struct EditProfileView: View {
         } message: {
             Text(dateValidationMessage)
         }
+        // ✅ Keep dark mode for consistent app design
         .preferredColorScheme(.dark)
     }
 
@@ -279,22 +279,22 @@ struct EditProfileView: View {
         .clipShape(Circle())
         .overlay(
             Circle()
-                .stroke(Color.white, lineWidth: 3) // WHITE BORDER
+                .stroke(Color.white, lineWidth: 3)
                 .shadow(color: .white.opacity(0.5), radius: 10)
         )
     }
 
-    // MARK: - TextField WITH GRAY BORDER (White background, Black text, Gray border, Gray placeholder)
+    // MARK: - TextField WITH GRAY BORDER (Adaptive colors)
     private func textFieldWithBorder(_ label: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel(label)
-            TextField("", text: text, prompt: Text(label).foregroundColor(.gray.opacity(0.5)))
+            TextField("", text: text, prompt: Text(label).foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                 .padding()
-                .foregroundColor(.black) // BLACK TEXT for readability
-                .background(Color.white) // WHITE BACKGROUND
+                .foregroundColor(.black)
+                .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                        .stroke(Color.gray.opacity(0.4), lineWidth: 1)
                 )
                 .cornerRadius(12)
         }
@@ -313,16 +313,16 @@ struct EditProfileView: View {
             } label: {
                 HStack {
                     Text(selection.wrappedValue.isEmpty ? "Select \(label)" : selection.wrappedValue)
-                        .foregroundColor(.black) // BLACK TEXT
+                        .foregroundColor(.black)
                     Spacer()
                     Image(systemName: "chevron.down")
                         .foregroundColor(.gray)
                 }
                 .padding()
-                .background(Color.white) // WHITE BACKGROUND
+                .background(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                        .stroke(Color.gray.opacity(0.4), lineWidth: 1)
                 )
                 .cornerRadius(12)
             }
@@ -344,13 +344,13 @@ struct DatePickerBoxStyle: ViewModifier {
         content
             .frame(width: 85)
             .padding(8)
-            .background(Color.white) // WHITE BACKGROUND
+            .background(Color.white)
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(Color.gray.opacity(0.4), lineWidth: 1) // GRAY BORDER
+                    .stroke(Color.gray.opacity(0.4), lineWidth: 1)
             )
             .cornerRadius(10)
-            .foregroundColor(.black) // BLACK TEXT (like "20 Nov 2025")
-            .tint(.black) // Ensures picker text is black
+            .foregroundColor(.black)
+            .tint(.black)
     }
 }

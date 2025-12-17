@@ -63,6 +63,7 @@ struct AddServiceView: View {
                                         .labelsHidden()
                                         .datePickerStyle(.compact)
                                         .frame(maxWidth: .infinity, alignment: .leading)
+                                        .colorScheme(.light)
                                 }
                                 .padding()
                                 .background(Color.white)
