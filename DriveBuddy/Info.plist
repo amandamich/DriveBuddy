@@ -16,5 +16,7 @@
 		</dict>
 		<dict/>
 	</array>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>riveBuddy needs notification permission to remind you about vehicle tax and service dates</string>
 </dict>
 </plist>
