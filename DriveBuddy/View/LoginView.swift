@@ -71,10 +71,10 @@ struct LoginView: View {
                 VStack(spacing: 0) {
                     // Title at top
                     Text("Sign In")
-                        .font(.system(size: 36, weight: .semibold, design: .rounded))
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
-                        .padding(.top, 60)
-                        .padding(.bottom, 20)
+                        .shadow(color: .blue, radius: 10)
+                        .padding(.top, 40)
                     
                     // Email Field
                     VStack(alignment: .leading, spacing: 8) {
