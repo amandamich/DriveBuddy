@@ -84,7 +84,7 @@ struct AddServiceView: View {
                     SectionBoxService(title: "Reminder Settings", icon: "bell.badge.fill") {
                         VStack(alignment: .leading, spacing: 15) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Reminders")
+                                Text("Reminders for next service")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 Menu {

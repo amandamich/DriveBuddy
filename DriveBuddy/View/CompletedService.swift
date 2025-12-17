@@ -176,7 +176,7 @@ struct CompleteServiceView: View {
                                             .foregroundColor(.gray)
                                             .font(.caption)
                                         if let odometerValue = Double(actualOdometer) {
-                                            Text("• \(Int(odometerValue + Double(nextServiceInterval))) km")
+                                            Text("• \(Int(odometerValue + Double(nextServiceInterval))) km - \(Int(odometerValue + Double(nextServiceInterval)) + 10000) km")
                                                 .foregroundColor(.white)
                                                 .font(.caption)
                                         }
