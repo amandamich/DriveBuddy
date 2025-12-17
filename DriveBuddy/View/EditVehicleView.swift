@@ -19,12 +19,12 @@ struct EditVehicleView: View {
                     // MARK: - Header
                     VStack(spacing: 8) {
                         Text("Edit Vehicle")
-                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.white)
-                            .shadow(color: .blue, radius: 10)
+                            .padding(.top, 8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
                     
                     // MARK: - Vehicle Information Section
                     SectionBoxEdit(title: "Vehicle Information", icon: "car.fill") {
