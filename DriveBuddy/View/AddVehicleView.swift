@@ -111,7 +111,7 @@ struct AddVehicleView: View {
                                 Text("Make & Model")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("Honda Brio", text: $addVehicleVM.makeModel)
+                                TextField("", text: $addVehicleVM.makeModel, prompt: Text("Honda Brio").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textFieldStyle(CustomTextFieldStyle())
                             }
 
@@ -126,9 +126,10 @@ struct AddVehicleView: View {
                                 } label: {
                                     HStack {
                                         Text(addVehicleVM.vehicleType.isEmpty ? "Select Vehicle Type" : addVehicleVM.vehicleType)
-                                            .foregroundColor(addVehicleVM.vehicleType.isEmpty ? .gray : .black)
+                                            .foregroundColor(addVehicleVM.vehicleType.isEmpty ? Color(red: 0.4, green: 0.4, blue: 0.4) : .black)
                                         Spacer()
                                         Image(systemName: "chevron.down")
+                                            .foregroundColor(.gray)
                                     }
                                     .padding()
                                     .background(Color.white)
@@ -140,7 +141,7 @@ struct AddVehicleView: View {
                                 Text("License Plate Number")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("L 567 GX", text: $addVehicleVM.plateNumber)
+                                TextField("", text: $addVehicleVM.plateNumber, prompt: Text("L 567 GX").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textFieldStyle(CustomTextFieldStyle())
                                     .textInputAutocapitalization(.characters)
                             }
@@ -186,7 +187,7 @@ struct AddVehicleView: View {
                                 Text("Current Odometer")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("4500 km", text: $addVehicleVM.odometer)
+                                TextField("", text: $addVehicleVM.odometer, prompt: Text("4500 km").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .keyboardType(.numberPad)
                                     .textFieldStyle(CustomTextFieldStyle())
                             }
@@ -215,7 +216,7 @@ struct AddVehicleView: View {
                                 Text("Service Item")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("Tune-Up", text: $addVehicleVM.serviceName)
+                                TextField("", text: $addVehicleVM.serviceName, prompt: Text("Tune-Up").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .textFieldStyle(CustomTextFieldStyle())
                             }
 
@@ -223,7 +224,7 @@ struct AddVehicleView: View {
                                 Text("Odometer at Last Service")
                                     .foregroundColor(.white)
                                     .font(.headline)
-                                TextField("42000 km", text: $addVehicleVM.lastOdometer)
+                                TextField("", text: $addVehicleVM.lastOdometer, prompt: Text("42000 km").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                     .keyboardType(.numberPad)
                                     .textFieldStyle(CustomTextFieldStyle())
                             }
@@ -343,6 +344,7 @@ struct CustomTextFieldStyle: TextFieldStyle {
             .padding()
             .background(Color.white)
             .cornerRadius(10)
+            .foregroundColor(.black)
     }
 }
 
