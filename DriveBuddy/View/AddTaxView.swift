@@ -107,13 +107,9 @@ struct AddTaxView: View {
                                     Text("Rp")
                                         .foregroundColor(.black)
                                         .fontWeight(.medium)
-                                    TextField("Enter amount (e.g., 500000)", text: $taxAmount)
+                                    TextField("", text: $taxAmount, prompt: Text("Enter amount (e.g., 500000)").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
                                         .keyboardType(.numberPad)
                                         .foregroundColor(.black)
-                                        // ✅ Make placeholder visible
-                                        .onChange(of: taxAmount) { oldValue, newValue in
-                                            // This ensures the view updates
-                                        }
                                 }
                                 .padding()
                                 .background(Color.white)
@@ -146,14 +142,17 @@ struct AddTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                DatePicker("", selection: $paymentDate, displayedComponents: .date)
-                                    .labelsHidden()
-                                    .datePickerStyle(.compact)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                    .tint(.blue) // ✅ Make date picker accent color visible
+                                // ✅ Custom DatePicker with black text
+                                ZStack {
+                                    DatePicker("", selection: $paymentDate, displayedComponents: .date)
+                                        .labelsHidden()
+                                        .datePickerStyle(.compact)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .colorScheme(.light) // Force light mode for black text
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                             }
                             
                             // Valid Until
@@ -162,14 +161,17 @@ struct AddTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                DatePicker("", selection: $validUntil, displayedComponents: .date)
-                                    .labelsHidden()
-                                    .datePickerStyle(.compact)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding()
-                                    .background(Color.white)
-                                    .cornerRadius(10)
-                                    .tint(.blue) // ✅ Make date picker accent color visible
+                                // ✅ Custom DatePicker with black text
+                                ZStack {
+                                    DatePicker("", selection: $validUntil, displayedComponents: .date)
+                                        .labelsHidden()
+                                        .datePickerStyle(.compact)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .colorScheme(.light) // Force light mode for black text
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(10)
                                 
                                 if validUntil <= paymentDate {
                                     HStack(spacing: 4) {
@@ -189,20 +191,12 @@ struct AddTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                // ✅ Custom TextField with visible placeholder
-                                ZStack(alignment: .leading) {
-                                    if location.isEmpty {
-                                        Text("e.g., Samsat Jakarta Timur")
-                                            .foregroundColor(.gray.opacity(0.6))
-                                            .padding(.leading, 16)
-                                    }
-                                    TextField("", text: $location)
-                                        .padding()
-                                        .foregroundColor(.black)
-                                        .autocorrectionDisabled(true)
-                                }
-                                .background(Color.white)
-                                .cornerRadius(10)
+                                TextField("", text: $location, prompt: Text("e.g., Samsat Jakarta Timur").foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4)))
+                                    .padding()
+                                    .foregroundColor(.black)
+                                    .background(Color.white)
+                                    .cornerRadius(10)
+                                    .autocorrectionDisabled(true)
                                 
                                 if location.isEmpty {
                                     HStack(spacing: 4) {
@@ -236,7 +230,7 @@ struct AddTaxView: View {
                             ZStack(alignment: .topLeading) {
                                 if notes.isEmpty {
                                     Text("Add any additional notes here...")
-                                        .foregroundColor(.gray.opacity(0.6))
+                                        .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 16)
                                 }
