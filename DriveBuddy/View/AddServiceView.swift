@@ -113,8 +113,12 @@ struct AddServiceView: View {
                     // MARK: - Add Button
                     Button(action: {
                         viewModel.addService()
-                        if viewModel.successMessage != nil {
-                            dismiss()
+                        
+                        // Gunakan DispatchQueue agar UI sempat mengupdate successMessage
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            if viewModel.successMessage != nil {
+                                dismiss()
+                            }
                         }
                     }) {
                         Text("Add Service")
