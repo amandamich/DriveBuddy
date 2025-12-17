@@ -77,11 +77,11 @@ struct ProfileView: View {
 
                         accountSection
 
-                        // MARK: Logout Button - ✅ FIXED WITH DEBUG
+                        // MARK: Sign Out Button - ✅ FIXED WITH DEBUG
                         Button(action: {
                             showLogoutAlert = true
                         }) {
-                            Text("Log Out")
+                            Text("Sign Out")
                                 .font(.headline)
                                 .foregroundColor(.white)
                                 .padding()
@@ -95,9 +95,9 @@ struct ProfileView: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.bottom, 20)
-                        .alert("Log Out", isPresented: $showLogoutAlert) {
+                        .alert("Sign Out", isPresented: $showLogoutAlert) {
                             Button("Cancel", role: .cancel) { }
-                            Button("Log Out", role: .destructive) {
+                            Button("Sign Out", role: .destructive) {
                                 print("🔴 LOGOUT BUTTON TAPPED")
                                 print("🔴 BEFORE - isAuthenticated: \(authVM.isAuthenticated)")
                                 print("🔴 BEFORE - currentUser: \(authVM.currentUser?.email ?? "nil")")
@@ -108,7 +108,7 @@ struct ProfileView: View {
                                 print("🔴 AFTER - currentUser: \(authVM.currentUser?.email ?? "nil")")
                             }
                         } message: {
-                            Text("Are you sure you want to log out?")
+                            Text("Are you sure you want to sign out?")
                         }
                     }
                     .padding(.bottom, 80)

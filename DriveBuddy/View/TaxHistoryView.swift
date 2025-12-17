@@ -14,7 +14,7 @@ struct TaxHistoryView: View {
     
     enum TaxFilter: String, CaseIterable {
         case all = "All"
-        case valid = "Valid"
+        case paid = "Paid"  // ✅ CHANGED FROM valid
         case expiring = "Expiring"
         case expired = "Expired"
     }
@@ -27,8 +27,8 @@ struct TaxHistoryView: View {
         switch selectedFilter {
         case .all:
             return vehicleTaxes
-        case .valid:
-            return vehicleTaxes.filter { $0.status == .valid }
+        case .paid:
+            return vehicleTaxes.filter { $0.status == .paid || $0.status == .expiredPaid }
         case .expiring:
             return vehicleTaxes.filter { $0.status == .expiringSoon }
         case .expired:
@@ -62,7 +62,6 @@ struct TaxHistoryView: View {
                     }
                     Spacer()
                     
-                    // Add Button - Using NavigationLink
                     NavigationLink(destination: AddTaxView(vehicle: vehicle)) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 32))
@@ -143,7 +142,7 @@ struct TaxHistoryView: View {
                 }
             }
             
-            // NavigationLink for Pay Tax (hidden, triggered by state)
+            // NavigationLink for Pay Tax
             if let tax = selectedTaxForPayment {
                 NavigationLink(
                     destination: PayTaxView(existingTax: tax, vehicle: vehicle),
@@ -287,8 +286,8 @@ struct TaxHistoryCardBlue: View {
                         .foregroundColor(.orange)
                 }
                 
-                // Pay Tax button for expired/expiring
-                if tax.status == .expired || tax.status == .expiringSoon {
+                // ✅ Only show Pay Tax button for unpaid expired/expiring taxes
+                if (tax.status == .expired || tax.status == .expiringSoon) && !tax.isPaid {
                     Button(action: {
                         onPayTax()
                     }) {
@@ -323,9 +322,10 @@ struct TaxHistoryCardBlue: View {
     
     func statusColor(for status: TaxStatus) -> Color {
         switch status {
-        case .valid: return .green
+        case .paid: return .green
         case .expiringSoon: return .orange
         case .expired: return .red
+        case .expiredPaid: return .gray
         }
     }
 }
@@ -348,9 +348,10 @@ struct StatusBadge: View {
     
     var statusColor: Color {
         switch status {
-        case .valid: return .green
+        case .paid: return .green
         case .expiringSoon: return .orange
         case .expired: return .red
+        case .expiredPaid: return .gray
         }
     }
 }

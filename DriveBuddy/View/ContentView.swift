@@ -50,13 +50,6 @@ struct ContentView: View {
         }
         .onChange(of: authVM.isAuthenticated) { oldValue, newValue in
             print("🔄 ContentView detected auth change: \(oldValue) -> \(newValue)")
-            if !newValue {
-                print("🔄 Switching to StartScreen...")
-                // Reset session check when logging out
-                hasCheckedSession = false
-            } else {
-                print("🔄 Switching to HomeView...")
-            }
         }
     }
 }

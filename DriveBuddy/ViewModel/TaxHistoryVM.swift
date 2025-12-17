@@ -2,8 +2,6 @@
 //  TaxHistoryVM.swift
 //  DriveBuddy
 //
-//  Created by Timothy on 26/11/25.
-//
 
 import Foundation
 import Combine
@@ -77,19 +75,15 @@ class TaxHistoryVM: ObservableObject {
         cancelNotification(for: history)
         print("✅ Deleted tax record: \(history.vehiclePlate)")
         
-        // ✅ UPDATE CORE DATA VEHICLE - Check if there's another valid tax, otherwise clear the date
         if let context = context {
-            if let latestTax = getLatestValidTax(for: history.vehiclePlate) {
-                // Sync to the next valid tax
+            if let latestTax = getLatestPaidTax(for: history.vehiclePlate) {
                 syncTaxDateToVehicle(licensePlate: history.vehiclePlate, validUntil: latestTax.validUntil, context: context)
             } else {
-                // No more valid taxes, clear the tax_due_date
                 clearVehicleTaxDate(licensePlate: history.vehiclePlate, context: context)
             }
         }
     }
     
-    // MARK: - ✅ CLEAR TAX DATE FROM CORE DATA VEHICLE
     private func clearVehicleTaxDate(licensePlate: String, context: NSManagedObjectContext) {
         let fetchRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "plate_number == %@", licensePlate)
@@ -98,11 +92,8 @@ class TaxHistoryVM: ObservableObject {
             let vehicles = try context.fetch(fetchRequest)
             if let vehicle = vehicles.first {
                 vehicle.tax_due_date = nil
-                
                 try context.save()
                 print("✅ Tax date cleared from Core Data vehicle: \(licensePlate)")
-                
-                // Post notification to refresh UI
                 NotificationCenter.default.post(name: .NSManagedObjectContextDidSave, object: context)
             }
         } catch {
@@ -111,7 +102,7 @@ class TaxHistoryVM: ObservableObject {
     }
     
     // MARK: - Filtering
-    func getExpiringTaxes() -> [TaxModel] {
+    func getExpiringSoonTaxes() -> [TaxModel] {
         return taxHistories.filter { $0.status == .expiringSoon }
     }
     
@@ -119,22 +110,25 @@ class TaxHistoryVM: ObservableObject {
         return taxHistories.filter { $0.status == .expired }
     }
     
-    func getValidTaxes() -> [TaxModel] {
-        return taxHistories.filter { $0.status == .valid }
+    func getPaidTaxes() -> [TaxModel] {
+        return taxHistories.filter { $0.status == .paid }
     }
     
-    // MARK: - Get Latest Valid Tax for Vehicle
-    func getLatestValidTax(for licensePlate: String) -> TaxModel? {
+    func getExpiredPaidTaxes() -> [TaxModel] {
+        return taxHistories.filter { $0.status == .expiredPaid }
+    }
+    
+    // MARK: - Get Latest Paid Tax for Vehicle
+    func getLatestPaidTax(for licensePlate: String) -> TaxModel? {
         let vehicleTaxes = taxHistories.filter { $0.vehiclePlate == licensePlate }
         
-        // Get the tax with the latest validUntil date that is still valid or expiring soon
         return vehicleTaxes
-            .filter { $0.status == .valid || $0.status == .expiringSoon }
+            .filter { $0.status == .paid || $0.status == .expiringSoon }
             .sorted { $0.validUntil > $1.validUntil }
             .first
     }
     
-    // MARK: - ✅ SYNC TAX DATE TO CORE DATA VEHICLE
+    // MARK: - SYNC TAX DATE TO CORE DATA VEHICLE
     private func syncTaxDateToVehicle(licensePlate: String, validUntil: Date, context: NSManagedObjectContext) {
         let fetchRequest: NSFetchRequest<Vehicles> = Vehicles.fetchRequest()
         fetchRequest.predicate = NSPredicate(format: "plate_number == %@", licensePlate)
@@ -143,26 +137,18 @@ class TaxHistoryVM: ObservableObject {
             let vehicles = try context.fetch(fetchRequest)
             if let vehicle = vehicles.first {
                 vehicle.tax_due_date = validUntil
-                
                 try context.save()
                 print("✅ Tax date synced to Core Data vehicle: \(licensePlate)")
-                
-                // Post notification to refresh UI
                 NotificationCenter.default.post(name: .NSManagedObjectContextDidSave, object: context)
-            } else {
-                print("⚠️ Vehicle not found for license plate: \(licensePlate)")
             }
         } catch {
             print("❌ Failed to sync tax date: \(error.localizedDescription)")
         }
     }
     
-    // MARK: - ✅ PUBLIC METHOD TO SYNC FROM OUTSIDE
     func syncLatestTaxToVehicle(licensePlate: String, context: NSManagedObjectContext) {
-        if let latestTax = getLatestValidTax(for: licensePlate) {
+        if let latestTax = getLatestPaidTax(for: licensePlate) {
             syncTaxDateToVehicle(licensePlate: licensePlate, validUntil: latestTax.validUntil, context: context)
-        } else {
-            print("ℹ️ No valid tax found for vehicle: \(licensePlate)")
         }
     }
     
@@ -171,10 +157,6 @@ class TaxHistoryVM: ObservableObject {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
                 print("✅ Notification permission granted")
-            } else if let error = error {
-                print("❌ Notification permission error: \(error.localizedDescription)")
-            } else {
-                print("❌ Notification permission denied")
             }
         }
     }
@@ -182,7 +164,6 @@ class TaxHistoryVM: ObservableObject {
     func scheduleNotification(for history: TaxModel) {
         let center = UNUserNotificationCenter.current()
         
-        // Cancel existing notifications for this tax
         let oldIdentifiers = [
             "\(history.id.uuidString)-30days",
             "\(history.id.uuidString)-7days",
@@ -190,17 +171,11 @@ class TaxHistoryVM: ObservableObject {
         ]
         center.removePendingNotificationRequests(withIdentifiers: oldIdentifiers)
         
-        // Calculate notification dates (30 days, 7 days, 1 day before expiry)
         let notificationDays = [30, 7, 1]
         
         for days in notificationDays {
             guard let notificationDate = Calendar.current.date(byAdding: .day, value: -days, to: history.validUntil) else { continue }
-            
-            // Only schedule if notification date is in the future
-            guard notificationDate > Date() else {
-                print("⏭️ Skipping notification for \(days) days (date has passed)")
-                continue
-            }
+            guard notificationDate > Date() else { continue }
             
             let content = UNMutableNotificationContent()
             content.title = "Tax Reminder 🚗"
@@ -214,13 +189,7 @@ class TaxHistoryVM: ObservableObject {
             let identifier = "\(history.id.uuidString)-\(days)days"
             let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
             
-            center.add(request) { error in
-                if let error = error {
-                    print("❌ Error scheduling notification: \(error.localizedDescription)")
-                } else {
-                    print("✅ Notification scheduled for \(history.vehiclePlate) - \(days) days before expiry")
-                }
-            }
+            center.add(request)
         }
     }
     
@@ -232,6 +201,5 @@ class TaxHistoryVM: ObservableObject {
             "\(history.id.uuidString)-1days"
         ]
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
-        print("✅ Cancelled notifications for: \(history.vehiclePlate)")
     }
 }

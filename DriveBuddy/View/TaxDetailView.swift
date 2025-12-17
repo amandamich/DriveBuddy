@@ -77,15 +77,56 @@ struct TaxDetailView: View {
                             .fill(Color.cyan.opacity(0.1))
                     )
                     
+                    // ✅ Payment Status Warning (for unpaid expired/expiring)
+                    if (tax.status == .expired || tax.status == .expiringSoon) && !tax.isPaid {
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Tax hasn't been paid")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text("Please pay your tax as soon as possible")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.red.opacity(0.15))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
+                    
                     // Details Section
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Details")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                         
+                        // ✅ Show Actual Payment Date if it's a history record
+                        if tax.isPaid, let actualDate = tax.actualPaymentDate {
+                            DetailRow(
+                                icon: "checkmark.circle.fill",
+                                title: "Actual Payment Date",
+                                value: actualDate.formatted(date: .long, time: .omitted),
+                                valueColor: .green
+                            )
+                            
+                            Divider()
+                                .background(Color.white.opacity(0.1))
+                        }
+                        
                         DetailRow(
                             icon: "calendar.badge.clock",
-                            title: "Payment Date",
+                            title: "Tax Due Date",
                             value: tax.paymentDate.formatted(date: .long, time: .omitted)
                         )
                         
@@ -126,28 +167,19 @@ struct TaxDetailView: View {
                                     .foregroundColor(.white)
                             }
                         }
-                    }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 15)
-                            .fill(Color(white: 0.15))
-                    )
-                    
-                    // Reminder Info
-                    VStack(spacing: 12) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "bell.badge.fill")
-                                .foregroundColor(.cyan)
-                            Text("Reminder Schedule")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                            Spacer()
-                        }
                         
-                        VStack(spacing: 8) {
-                            ReminderItem(days: 30, date: Calendar.current.date(byAdding: .day, value: -30, to: tax.validUntil)!)
-                            ReminderItem(days: 7, date: Calendar.current.date(byAdding: .day, value: -7, to: tax.validUntil)!)
-                            ReminderItem(days: 1, date: Calendar.current.date(byAdding: .day, value: -1, to: tax.validUntil)!)
+                        // ✅ Show if this is a history record
+                        if tax.isHistoryRecord {
+                            Divider()
+                                .background(Color.white.opacity(0.1))
+                            
+                            HStack(spacing: 8) {
+                                Image(systemName: "clock.arrow.circlepath")
+                                    .foregroundColor(.orange)
+                                Text("History Record")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
                         }
                     }
                     .padding()
@@ -156,8 +188,33 @@ struct TaxDetailView: View {
                             .fill(Color(white: 0.15))
                     )
                     
-                    // Pay Tax Button (for expired/expiring taxes)
-                    if tax.status == .expired || tax.status == .expiringSoon {
+                    // Reminder Info (only for future/unpaid taxes)
+                    if !tax.isPaid && tax.status != .expired {
+                        VStack(spacing: 12) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundColor(.cyan)
+                                Text("Reminder Schedule")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Spacer()
+                            }
+                            
+                            VStack(spacing: 8) {
+                                ReminderItem(days: 30, date: Calendar.current.date(byAdding: .day, value: -30, to: tax.validUntil)!)
+                                ReminderItem(days: 7, date: Calendar.current.date(byAdding: .day, value: -7, to: tax.validUntil)!)
+                                ReminderItem(days: 1, date: Calendar.current.date(byAdding: .day, value: -1, to: tax.validUntil)!)
+                            }
+                        }
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color(white: 0.15))
+                        )
+                    }
+                    
+                    // ✅ Pay Tax Button (only for unpaid expired/expiring taxes)
+                    if (tax.status == .expired || tax.status == .expiringSoon) && !tax.isPaid {
                         Button(action: {
                             showPayTaxSheet = true
                         }) {
@@ -241,9 +298,10 @@ struct TaxDetailView: View {
     
     var statusColor: Color {
         switch tax.status {
-        case .valid: return .green
+        case .paid: return .green
         case .expiringSoon: return .orange
         case .expired: return .red
+        case .expiredPaid: return .gray
         }
     }
 }
@@ -326,6 +384,7 @@ struct PayTaxView: View {
     @State private var validUntil: Date
     @State private var location = ""
     @State private var notes = ""
+    @State private var actualPaymentDate = Date()
     
     @State private var showAlert = false
     @State private var alertMessage = ""
@@ -339,6 +398,9 @@ struct PayTaxView: View {
         _location = State(initialValue: existingTax.location)
     }
     
+    // MARK: - Renew Tax Payment View
+    // Replace the existing PayTaxView body with this updated version
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -419,17 +481,19 @@ struct PayTaxView: View {
                             }
                             
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Payment Date")
+                                Text("Actual Payment Date")
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                DatePicker("", selection: $paymentDate, displayedComponents: .date)
+                                DatePicker("", selection: $actualPaymentDate, in: ...Date(), displayedComponents: .date)
                                     .labelsHidden()
                                     .datePickerStyle(.compact)
+                                    .environment(\.locale, Locale(identifier: "en_US"))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(10)
+                                    .colorScheme(.light)
                             }
                             
                             VStack(alignment: .leading, spacing: 6) {
@@ -437,13 +501,15 @@ struct PayTaxView: View {
                                     .foregroundColor(.white)
                                     .font(.headline)
                                 
-                                DatePicker("", selection: $validUntil, displayedComponents: .date)
+                                DatePicker("", selection: $validUntil, in: Date()..., displayedComponents: .date)
                                     .labelsHidden()
                                     .datePickerStyle(.compact)
+                                    .environment(\.locale, Locale(identifier: "en_US"))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding()
                                     .background(Color.white)
                                     .cornerRadius(10)
+                                    .colorScheme(.light)
                             }
                             
                             VStack(alignment: .leading, spacing: 6) {
@@ -480,39 +546,6 @@ struct PayTaxView: View {
                             .cornerRadius(10)
                             .scrollContentBackground(.hidden)
                             .foregroundColor(.black)
-                    }
-                    .padding()
-                    .background(Color.blue.opacity(0.15))
-                    .cornerRadius(15)
-                    
-                    // Reminder Info
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "bell.badge.fill")
-                                .foregroundColor(.cyan)
-                            Text("Reminder Settings")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("You'll be notified:")
-                                .foregroundColor(.white)
-                                .font(.subheadline)
-                            Text("• 30 days before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
-                            Text("• 7 days before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
-                            Text("• 1 day before expiry")
-                                .foregroundColor(.gray)
-                                .font(.subheadline)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white.opacity(0.1))
-                        .cornerRadius(10)
                     }
                     .padding()
                     .background(Color.blue.opacity(0.15))
@@ -556,7 +589,7 @@ struct PayTaxView: View {
         !taxAmount.isEmpty &&
         Double(taxAmount) != nil &&
         !location.isEmpty &&
-        validUntil > paymentDate
+        validUntil > actualPaymentDate
     }
     
     func savePayment() {
@@ -566,10 +599,13 @@ struct PayTaxView: View {
             vehiclePlate: existingTax.vehiclePlate,
             vehicleName: existingTax.vehicleName,
             taxAmount: amount,
-            paymentDate: paymentDate,
+            paymentDate: actualPaymentDate,
             validUntil: validUntil,
             location: location,
-            notes: notes
+            notes: notes,
+            isPaid: true,
+            actualPaymentDate: actualPaymentDate,
+            isHistoryRecord: false
         )
         
         taxManager.addTaxHistory(newTax, context: viewContext)
